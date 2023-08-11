@@ -1,0 +1,78 @@
+<template id="in-template-channels-tab">
+  <section class=" animated fadeIn" ref="channels">
+		<p class="pl-2 in-videos-tab-h3 mb-0 py-3">
+			<%= __('Canais Relacionados') %>
+		</p>
+    <div class="in-editor-section in-channels-preview" id="channels">
+			<v-layout row wrap justify-space-around class="py-2">
+				<v-hover v-for="(channel, index) in page.channels" :key="index">
+					<v-card
+						dark flat color="#121212" max-width="120" slot-scope="{ hover }"
+						:href="channel.link" target="_blank" :title="channel.title" :class="hover ? 'in-scale-05' : ''"
+					>
+						<v-avatar size="120px">
+							<img
+								:src="channel.thumbnails.medium.url"
+								cover width="120"
+							/>
+						</v-avatar>
+						<v-card-text class="px-0 py-1">
+							<p :class="'mb-0 ' + (!hover ? 'text-truncate grey--text' : '')">
+								{{channel.title}}
+							</p>
+						</v-card-text>
+					</v-card>
+				</v-hover>
+			</v-layout>
+    </div>
+  </section>
+</template>
+
+<script>
+  Vue.component("in-template-channels-tab", {
+    template: "#in-template-channels-tab",
+    data () {
+      return {
+        swiperOption: {
+          slidesPerView: "auto",
+          spaceBetween: 20,
+          loop: false,
+          pagination: {
+            el: '.swiper-pagination',
+            clickable: true
+          },
+          navigation: {
+            nextEl: '.swiper-button-next',
+            prevEl: '.swiper-button-prev'
+          }
+        }
+      }
+    },
+    computed: {
+      ...mapGetters('page', [
+        'page',
+        'editMode'
+      ])
+    },
+    methods: {
+      ...mapActions('page', [
+        'toggleModal',
+        'setAdding',
+        'setEditingType',
+        'removeType'
+      ]),
+      ...mapActions('app', [
+        'scrollPageTo',
+      ]),
+
+      editType (type) {
+        this.setEditingType(type)
+        this.toggleModal(false)
+        this.setAdding(true)
+        setTimeout(() => {
+          this.scrollPageTo(type)
+        }, 20)
+      }
+    }
+  })
+</script>

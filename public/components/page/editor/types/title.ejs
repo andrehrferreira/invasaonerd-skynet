@@ -1,0 +1,136 @@
+<template id="in-editor-type-title">
+  <div class="row py-3 mb-5" id="title">
+    <v-layout row wrap justify-space-between>
+      <v-flex d-flex>
+        <v-layout justify-start>
+          <h5><%= __('Preview') %></h5>
+        </v-layout>
+      </v-flex>
+      <v-flex d-flex>
+        <v-layout justify-end>
+          <v-tooltip :open-delay="50" :close-delay="50" bottom>
+            <v-btn slot="activator" color="success" dark icon @click.stop="checkChanges" v-if="buttonState">
+              <v-icon>save</v-icon>
+            </v-btn>
+            <span>Salvar Título</span>
+          </v-tooltip>
+        </v-layout>
+      </v-flex>
+    </v-layout>
+    <div class="col-12">
+      <v-text-field
+        label="Título"
+        v-model="title"
+        dark
+      ></v-text-field>
+      <v-text-field
+        label="Subtítulo"
+        v-model="nickname"
+        dark
+      ></v-text-field>
+      <v-text-field
+        label="Titúlo Original"
+        v-model="englishTitle"
+        dark
+      ></v-text-field>
+    </div>
+  </div>
+</template>
+
+<script>
+  Vue.component('in-editor-type-title', {
+    template: '#in-editor-type-title',
+    computed: {
+      ...mapGetters('page', [
+        'page',
+        'buttonState',
+        'editingType'
+      ])
+    },
+    data () {
+      return {
+        title: '',
+        nickname: '',
+        englishTitle:''
+      }
+    },
+    mounted () {
+      this.title = this.page.title
+      this.nickname = this.page.nickname ? this.page.nickname : ''
+      this.englishTitle = this.page.englishTitle ? this.page.englishTitle : ''
+    },
+    methods: {
+      ...mapActions('page', [
+        'setPage',
+        'setAdding',
+        'setSnackbar',
+        'setEditingType'
+      ]),
+      ...mapActions('app', [
+        'showDialog'
+      ]),
+
+      checkChanges: async function () {
+        const vue = await this
+        if (vue.title === vue.page.title && vue.nickname === vue.page.nickname && vue.englishTitle === vue.page.englishTitle) {
+          this.setAdding(false)
+          return this.setEditingType('')
+        }
+        if ((vue.title.toLowerCase() === vue.nickname.toLowerCase() && vue.nickname) ||
+            (vue.title.toLowerCase() === vue.englishTitle.toLowerCase() && vue.englishTitle) ||
+            (vue.nickname.toLowerCase() === vue.englishTitle.toLowerCase() && (vue.nickname || vue.englishTitle))) {
+          return this.showDialog({
+            message: 'O título não pode ser igual ao subtítulo ou título original',
+            color: 'orange',
+            icon: 'warning'
+          })
+        }
+        if (vue.title && vue.title !== vue.page.title) {
+          const { data } = await vue.$http.get('/check-title?title=' + vue.title)
+          if (data.exist) return await vue.showDialog({
+            message: 'Este título já existe',
+            color: 'orange',
+            icon: 'warning'
+          })
+        }
+        if (vue.nickname && vue.nickname !== vue.page.nickname) {
+          const { data } = await vue.$http.get('/check-nickname?nickname=' + vue.nickname)
+          if (data.exist) return await vue.showDialog({
+            message: 'Este subtítulo já existe',
+            color: 'orange',
+            icon: 'warning'
+          })
+        }
+        if (vue.englishTitle && vue.englishTitle !== vue.page.englishTitle) {
+          const { data } = await vue.$http.get('/check-englishTitle?englishTitle=' + vue.englishTitle)
+          if (data.exist) return await vue.showDialog({
+            message: 'Este título original já existe',
+            color: 'orange',
+            icon: 'warning'
+          })
+        }
+        await vue.save()
+      },
+
+      save () {
+        const { page } = this
+        page.title = this.title
+        page.nickname = this.nickname
+        page.englishTitle = this.englishTitle
+        page.changes.push({
+          type: this.editingType
+        })
+        this.setPage(page)
+        this.setAdding(false)
+        this.setEditingType('')
+        this.showDialog({
+          message: `Edições de título e subtítulo gravadas para envio`,
+          color: 'success',
+          icon: 'check-circle'
+        })
+      },
+
+
+    }
+  })
+</script>

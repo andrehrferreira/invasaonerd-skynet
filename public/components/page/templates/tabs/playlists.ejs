@@ -1,0 +1,98 @@
+<template id="in-template-playlist-tab">
+	<div>
+		<v-layout row wrap class="py-3">
+			<v-flex xs12 :id="playlistId">
+				<p class="pl-2 in-videos-tab-h3 mb-0">Playlists</p>
+			</v-flex>
+			<v-flex xs12>
+				<v-layout row wrap justify-end v-if="toPlay.id">
+					<v-tooltip :open-delay="50" :close-delay="50" left>
+						<v-btn slot="activator" icon color="#ef001c" @click.stop="toPlay = {}">
+							<v-icon>close</v-icon>
+						</v-btn>
+						<span>Fechar Vídeo</span>
+					</v-tooltip>
+				</v-layout>
+				<div v-if="toPlay.id"  class=" col-12 embed-responsive embed-responsive-16by9">
+					<iframe class="in-videos-item-player-iframe pa-1" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen
+					 :src="'https://www.youtube.com/embed/videoseries?list=' + toPlay.id + '&autoplay=1'">
+					</iframe>
+				</div>
+			</v-flex>
+			<v-flex v-for="(playlist, index) in page.playlists" class="pa-1" :key="index" xs12 md4 lg3 xl2>
+				<div class="text-left" @click.stop="play(playlist)" :title="playlist.title">
+					<img class="in-videos-preview-item-thumb" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen :src="checkImage(playlist.thumbnails)" />
+					<div class="in-videos-preview-item-title">
+						<p>{{playlist.title}}</p>
+					</div>
+					<div class="in-videos-preview-item-author mb-5">
+						Ultima publicação: {{ new Date(playlist.publishedAt).toLocaleDateString() }}
+					</div>
+				</div>
+			</v-flex>
+		</v-layout>
+	</div>
+</template>
+<script>
+	Vue.component('in-template-playlist-tab', {
+		template: '#in-template-playlist-tab',
+		computed: {
+			...mapGetters('page', [
+				'page',
+				'editMode'
+			])
+		},
+		data() {
+			return {
+				toPlay: {},
+        playlistId: '',
+			}
+		},
+		mounted() {
+			//this.get(this.page.feeds)
+		},
+		methods: {
+			...mapActions('page', [
+				'toggleModal',
+				'setAdding',
+				'setEditingType',
+				'removeType',
+				'setMovieDetails',
+				'setMovieModal'
+			]),
+			...mapActions('app', [
+				'scrollPageTo',
+			]),
+			checkImage(image) {
+        if (image) {
+          if (image.medium) return image.medium.url
+          else if (image.default) return image.default.url
+          else if (image.high) return image.high.url
+        }
+        return '/assets/img/avatardefault.jpeg'
+      },
+			play(video) {
+				this.toPlay = {}
+				setTimeout(() => {
+					this.toPlay = video
+          this.playlistId = video.id
+				}, 50)
+				setTimeout(() => {
+					this.scrollPageTo(video.id)
+				}, 100)
+			},
+		}
+	})
+
+</script>
+<style>
+	.in-videos-tab-h3 {
+		padding: 0px;
+		padding-bottom: 0px;
+		font-size: 32px;
+		letter-spacing: 2px;
+		font-weight: 300;
+		color: rgba(255, 255, 255, 0.8)
+	}
+
+</style>

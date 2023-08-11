@@ -1,0 +1,141 @@
+<template id="in-template-lives">
+	<section class=" animated fadeIn" ref="lives" v-if="hasLives">
+
+		<div class="row justify-end">
+			<div class="in-edit-block-position text-left justify-end" v-if="editMode">
+				<v-btn fab color="" class=" move mr-1" title="<%= __('Mover') %>" v-if="1 === 2">
+					<v-icon color="primary">zoom_out_map</v-icon>
+				</v-btn>
+
+				<v-tooltip :open-delay="50" :close-delay="50" bottom>
+					<v-btn
+						slot="activator"
+						class="mr-1 animated zoomIn faster" fab small
+						@click.stop="editType('lives')"
+					>
+						<v-icon color="green">edit</v-icon>
+					</v-btn>
+					<span>Editar Lives</span>
+				</v-tooltip>
+
+				<v-tooltip :open-delay="50" :close-delay="50" bottom>
+					<v-btn slot="activator" fab small class="animated zoomIn faster" @click.stop="removeType('lives')">
+						<v-icon color="#ef001c">delete</v-icon>
+					</v-btn>
+					<span>Deletar Lives</span>
+				</v-tooltip>
+			</div>
+		</div>
+
+		<h3 class="mt-3">
+			<%= __('Lives') %>
+		</h3>
+		<div class="in-editor-section in-videos-preview" id="lives">
+			<div v-if="toPlay._id" :id="'id-' + toPlay.channel.name">
+				<div class="row pr-4" v-if="toPlay._id">
+					<button title="Fechar Live" class="btn btn-danger col-1 offset-11 mb-3" @click.stop="toPlay = {}">
+						<i class="fa fa-times"></i>
+					</button>
+				</div>
+				<div class="row">
+					<div v-if="toPlay._id" class="col-12 embed-responsive embed-responsive-16by9">
+						<div :id="toPlay.channel.name"></div>
+					</div>
+				</div>
+			</div>
+			<swiper :options="swiperOption">
+				<swiper-slide v-for="(live, index) in list" :key="index" class="in-videos-preview-item">
+					<div :title="live.channel.status" @click.stop="play(live)">
+						<img class="in-videos-preview-item-thumb" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen :src="live.preview.medium" />
+						<div class="in-videos-preview-item-title">
+							<p>
+								<b>{{ live.channel.display_name }}</b> <br>
+								{{live.channel.game}}
+							</p>
+						</div>
+						<div class="in-videos-preview-item-author">
+							{{ new Date(live.created_at).toLocaleString() }}
+						</div>
+					</div>
+				</swiper-slide>
+
+				<!-- Optional controls -->
+				<div class="swiper-button-prev" slot="button-prev"></div>
+				<div class="swiper-button-next" slot="button-next"></div>
+				<div class="swiper-scrollbar" slot="scrollbar"></div>
+				<div class="swiper-pagination" slot="pagination"></div>
+			</swiper>
+		</div>
+		<div class="andre-margin-in-page"></div>
+	</section>
+</template>
+
+<script>
+	Vue.component("in-template-lives", {
+		template: "#in-template-lives",
+		computed: {
+			...mapGetters('page', [
+				'page',
+				'editMode',
+				'swiperOption'
+			])
+		},
+		data() {
+			return {
+				toPlay: {},
+				list: [],
+				hasLives: true
+			}
+		},
+		mounted: async function () {
+			const vm = await this
+			const { data } = await vm.$http.get('/api/lives/' + encodeURIComponent(vm.page.lives))
+			vm.list = await data.streams.filter(stream => {
+				return stream.game.toLowerCase().includes(vm.page.lives.toLowerCase())
+			})
+			if (!data.streams.length) {
+				vm.hasLives = await false
+			}
+		},
+		methods: {
+			...mapActions('page', [
+				'toggleModal',
+				'setAdding',
+				'setEditingType',
+				'removeType'
+			]),
+			...mapActions('app', [
+				'scrollPageTo'
+			]),
+
+			play(live) {
+				this.toPlay = {}
+				setTimeout(() => {
+					this.toPlay = live
+				}, 25)
+				setTimeout(() => {
+					const options = {
+						width: 854,
+						height: 480,
+						channel: live.channel.name,
+					}
+					var player = new Twitch.Player(live.channel.name, options)
+					player.setVolume(0.5)
+				}, 50)
+				setTimeout(() => {
+					this.scrollPageTo('id-' + live.channel.name)
+				}, 75)
+			},
+
+			editType(type) {
+				this.setEditingType(type)
+				this.toggleModal(false)
+				this.setAdding(true)
+				setTimeout(() => {
+					this.scrollPageTo(type)
+				}, 20)
+			}
+		}
+	})
+
+</script>

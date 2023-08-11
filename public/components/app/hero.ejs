@@ -1,0 +1,100 @@
+<template id="in-hero">
+	<v-img
+		:src="`https://hdqwalls.com/download/${image}-${$vuetify.breakpoint.width}x${$vuetify.breakpoint.height - parseInt($vuetify.breakpoint.height/2)}.jpg`"
+		:height="$vuetify.breakpoint.height - parseInt($vuetify.breakpoint.height/2)" ref="parallax" dark @error="(e) => loadNewImage(e)" cover
+		:lazy-src="`https://hdqwalls.com/download/${image}-${parseInt($vuetify.breakpoint.width / 10)}x${parseInt(($vuetify.breakpoint.height - parseInt($vuetify.breakpoint.height/2)) / 10)}.jpg`"
+		gradient="to top right, rgba(0, 0, 0, 1) 0%, rgba(1, 1, 1, 1) 10%, rgba(18, 18, 18, 0.15) 100%"
+	>
+		<v-layout column fill-height>
+			<v-flex xs12>
+				<v-layout row justify-end class="pa-2">
+					<p class="mb-0 pl-2" style="border-radius: 4px; background-color: rgba(0,0,0, 0.5)">
+						Siga-nos: 
+						<v-tooltip :open-delay="50" :close-delay="50" bottom>
+							<v-btn icon slot="activator" href="https://www.facebook.com/InvasaoNerd" target="_blank">
+								<v-avatar size="30" class="mt-2">
+									<span style="width: 100%" v-html="icons.facebook"></span>
+								</v-avatar>
+							</v-btn>
+							<span>Facebook</span>
+						</v-tooltip>
+						<v-tooltip :open-delay="50" :close-delay="50" bottom>
+							<v-btn icon class="mx-0" slot="activator" href="http://instagram.com/InvasaoNerd" target="_blank">
+								<v-avatar size="30" class="mt-2">
+									<span style="width: 100%" v-html="icons.instagram"></span>
+								</v-avatar>
+							</v-btn>
+							<span>Instagram</span>
+						</v-tooltip>
+						<v-tooltip :open-delay="50" :close-delay="50" bottom>
+							<v-btn icon slot="activator" href="http://telegram.me/InvasaoNerd" target="_blank">
+								<v-avatar size="30" class="mt-2">
+									<span style="width: 100%" v-html="icons.telegram"></span>
+								</v-avatar>
+							</v-btn>
+							<span>Telegram</span>
+						</v-tooltip>
+					</p>
+				</v-layout>
+			</v-flex>
+			<v-flex xs12>
+				<v-layout align-center column justify-center>
+					<h1 class="display-2 font-weight-thin mb-3">
+						<v-img width="200px" src="/assets/img/logo-256-white.png"></v-img>
+					</h1>
+					<h2 class="font-weight-thin font grey--text font-italic">A maior comunidade wiki nerd</h2>
+				</v-layout>
+			</v-flex>
+			<v-flex xs12>
+				<v-layout row fill-height>
+					<v-flex xs12 sm6 md5 lg4 xl3 fill-height>
+						<v-layout align-end fill-height>
+							<!-- <p class="ma-2 body-1 text-xs-center pa-2" style="border: 1px gray solid; border-radius: 4px;">
+								Quer desconto no ingresso da Campus Party 12?! <br>
+								Insira o código #INVASAONERDNACPBR12 <b><a target="_blank" href="http://bit.ly/INCPBR12">AQUI</a></b>
+							</p> -->
+						</v-layout>
+					</v-flex>
+				</v-layout>
+			</v-flex>
+		</v-layout>
+	</v-img>
+</template>
+
+<script>
+	Vue.component('in-hero', {
+		template: '#in-hero',
+		computed: {
+			...mapGetters('app', ['icons'])
+		},
+		data () {
+			const images = [
+				'son-goku-mastered-ultra-instinct-79',
+				'deadpool-2-movie-poster-n1',
+				'no-mans-sky-8k-ultrawide-i3',
+				'star-lord-cosplay-0t',
+				'marvel-avengers-vs-dc-justice-league-2p',
+				'iron-man-comicart-4k-yg',
+				'thanos-avengers-infinity-war-5k-4q',
+				'batman-5k-digital-artwork-wa',
+				'hulk-arts-new-79',
+				'marvel-superheroes-10-year-anniversary-artwork-9l',
+				'captain-america-vs-black-panther-4k'
+			]
+			return {
+				image: this.getImage(images),
+				images
+			}
+		},
+		methods: {
+			getImage (images) {
+				return images[Math.floor(Math.random() * images.length)]
+			},
+
+			loadNewImage (e) {
+				const { getImage, images } = this
+				this.image = getImage(images)
+			}
+		}
+	})
+</script>

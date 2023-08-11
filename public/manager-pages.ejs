@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+	<title>
+		<%= __('Appname') %>
+	</title>
+	<%- include('meta/header') %>
+
+	<meta name="description" content="A maior comunidade nerd do brasil">
+	<meta property="og:description" content="A maior comunidade nerd do brasil">
+
+	<meta property="og:image" content="<%= settings.url %>/assets/img/logo-256-white.png">
+	<meta property="og:image:type" content="image/png">
+	<meta property="og:image:width" content="256">
+	<meta property="og:image:height" content="256">
+
+	<meta name="og:title" property="og:title" content="Invasão Nerd">
+	<meta property="og:site_name" content="<%= __('Appname') %>">
+	<meta property="og:locale" content="pt-br">
+	<meta property="og:url" content="<%= settings.url %>">
+	<meta property="og:type" content="website">
+
+	<%- include('./meta/gtag.ejs') %>
+
+	<%- include('components/app/navbar') %>
+	<%- include('components/app/sidebar') %>
+	<%- include('components/app/snackbar') %>
+	<div id="app">
+		<v-app dark>
+			<div ref="ready" style="display: none;">
+				<div>
+					<in-sidebar :options="{ page: {} }" />
+				</div>
+				<div>
+					<in-navbar />
+				</div>
+				<v-content>
+					<v-container fluid fill-height>
+						<v-layout justify-center align-center>
+							<v-flex>
+								<v-layout row wrap>
+									<v-flex xs12>
+										<v-toolbar flat dark>
+											<v-toolbar-title>Gerencia de Páginas</v-toolbar-title>
+											<v-spacer></v-spacer>
+											<v-text-field v-model="search" append-icon="search" label="Filtrar" color="#ef001c" single-line hide-details></v-text-field>
+										</v-toolbar>
+										<v-data-table :headers="headers" :items="pages" :search="search" class="elevation-8" ref="table" :rows-per-page-items="[ 20, 50, 100, 250, 500, 1000, { 'text': 'Todas', 'value': -1 } ]" rows-per-page-text="Linhas por página:">
+											<template slot="items" slot-scope="props">
+												<tr :class="props.item.removed ? 'red' : ''">
+													<td class="py-0">
+														<p v-if="props.item.removed" class="white--text text-xs-center my-1">{{ props.item.title }}</p>
+														<a :href="'/page/' + props.item.url" target="_blank" v-else>
+															<p class="white--text text-xs-center my-1">{{ props.item.title }}</p>
+														</a>
+													</td>
+
+													<td class="py-0">
+														<p v-if="props.item.removed" class="white--text text-xs-center my-1">{{ props.item.nickname ? props.item.nickname : '' }}</p>
+														<a :href="'/page/' + props.item.url" target="_blank" v-else>
+															<p class="white--text text-xs-center my-1">{{ props.item.nickname ? props.item.nickname : '' }}</p>
+														</a>
+													</td>
+
+													<td class="py-0">
+														<p v-if="props.item.removed" class="white--text text-xs-center my-1">{{ props.item.englishTitle ? props.item.englishTitle : '' }}</p>
+														<a :href="'/page/' + props.item.url" target="_blank" v-else>
+															<p class="white--text text-xs-center my-1">{{ props.item.englishTitle ? props.item.englishTitle : '' }}</p>
+														</a>
+													</td>
+
+													<td class="py-0">
+														<p class="text-xs-center my-1">{{ props.item.categories.join(', ') }}</p>
+													</td>
+
+													<td class="py-0">
+														<p class="text-xs-center my-1">{{ new Date(props.item.feedbackDate).toLocaleString() }}</p>
+													</td>
+
+													<td class="py-0">
+														<p class="text-xs-center my-1">{{ props.item.removed ? 'Sim' : 'Não' }}</p>
+													</td>
+
+													<td class="text-xs-center">
+														<v-tooltip :open-delay="50" :close-delay="50" top>
+															<v-btn slot="activator" icon @click="props.expanded = !props.expanded">
+																<v-icon>{{ props.expanded ? 'expand_less' : 'expand_more' }}</v-icon>
+															</v-btn>
+															<span>{{ props.expanded ? 'Esconder Detalhes' : 'Ver Detalhes' }}</span>
+														</v-tooltip>
+													</td>
+												</tr>
+											</template>
+											<template slot="expand" slot-scope="{ item }">
+												<v-card flat dark>
+													<v-card-title class="py-2">
+														<v-layout row sm>
+															<v-flex sm12>
+																<p class="mb-0 text-sm-center title">Editores</p>
+															</v-flex>
+														</v-layout>
+													</v-card-title>
+													<v-card-text class="pa-0">
+														<div v-if="item.editors.length">
+															<v-data-table
+																:headers="[{
+																	text: 'Nome',
+																	align: 'center',
+																	sortable: true,
+																	value: 'name'
+																}, {
+																	text: 'Usuário',
+																	align: 'center',
+																	sortable: true,
+																	value: 'user'
+																}, {
+																	text: 'E-mail',
+																	align: 'center',
+																	sortable: true,
+																	value: 'email'
+																}, {
+																	text: 'Pontos Ganhos',
+																	align: 'center',
+																	sortable: true,
+																	value: 'count'
+																}, {
+																	text: 'Data de Edição',
+																	align: 'center',
+																	sortable: true,
+																	value: 'editAt'
+																}]"
+																:items="item.editors"
+																class="elevation-6"
+																:rows-per-page-items="[ 20, 50, 100, 250, 500, 1000, { 'text': 'Todas', 'value': -1 } ]"
+																rows-per-page-text="Linhas por página:"
+															>
+																<template slot="items" slot-scope="props">
+																	<td> <p class="text-sm-center">{{ props.item.name }}</p> </td>
+																	<td> <p class="text-sm-center">{{ props.item.user }}</p> </td>
+																	<td> <p class="text-sm-center">{{ props.item.email }}</p> </td>
+																	<td> <p class="text-sm-center">{{ props.item.count }}</p> </td>
+																	<td>
+																		<p v-if="props.item.editAt" class="mb-0 text-sm-center">{{ new Date(props.item.editAt).toLocaleString() }}</p>
+																		<p v-else class="mb-0 text-sm-center">Sem Informação</p>
+																	</td>
+																</template>
+															</v-data-table>
+														</div>
+														<div v-else>
+															<v-layout row wrap>
+																<v-flex sm12>
+																	<p class="mb-0 text-sm-center">Não há editores registrado para esta página</p>
+																</v-flex>
+															</v-layout>
+														</div>
+													</v-card-text>
+												</v-card>
+											</template>
+											<template slot="pageText" slot-scope="props">
+												Lignes {{ props.pageStart }} - {{ props.pageStop }} de {{ props.itemsLength }}
+											</template>
+											<template slot="no-data">
+												<p class="text-xs-center mt-3">Nenhuma Página foi cadastrada</p>
+											</template>
+										</v-data-table>
+									</v-flex>
+								</v-layout>
+							</v-flex>
+						</v-layout>
+					</v-container>
+				</v-content>
+				<div>
+					<in-snackbar />
+				</div>
+			</div>
+		</v-app>
+	</div>
+	<%- include('./meta/footer') %>
+	<script>
+		new Vue({
+			store: new Vuex.Store({
+				modules: {
+					app: {
+						namespaced: true,
+						state: <%- include('store/app/state.js') %>,
+						getters: <%- include('store/app/getters.js') %>,
+						mutations: <%- include('store/app/mutations.js') %>,
+						actions: <%- include('store/app/actions.js') %>
+					}
+				}
+			}),
+			el: '#app',
+			computed: {
+				...mapGetters('app', [
+					'user'
+				])
+			},
+			data: () => ({
+				pages: <%- JSON.stringify(pages) %>,
+				search: '',
+				headers: [{
+					text: 'Título',
+					align: 'center',
+					sortable: true,
+					value: 'title'
+				}, {
+					text: 'Subtítulo',
+					align: 'center',
+					sortable: true,
+					value: 'nickname'
+				}, {
+					text: 'Título Original',
+					align: 'center',
+					sortable: true,
+					value: 'englishtitle'
+				}, {
+					text: 'Categorias',
+					align: 'center',
+					sortable: true,
+					value: 'categories'
+				}, {
+					text: 'Data da Ultima edição',
+					align: 'center',
+					sortable: true,
+					value: 'feedbackDate'
+				}, {
+					text: 'Deletada',
+					align: 'center',
+					sortable: true,
+					value: 'removed'
+				}, {
+					text: 'Mias detalhes',
+					align: 'center',
+					sortable: true,
+					value: 'editors'
+				}]
+			}),
+			created() {
+				this.setUser(<%- JSON.stringify(user) %>)
+			},
+			mounted() {
+				this.$refs.ready.style.display = 'block'
+			},
+			methods: {
+				...mapActions('app', [
+					'setUser'
+				])
+			},
+			beforeMount() {
+				var loading = document.querySelector("#loading")
+				document.body.removeChild(loading)
+			}
+		})
+	</script>
+
+	<style>
+		a {
+			text-decoration: none !important;
+		}
+	</style>
+</body>
+
+</html>

@@ -1,0 +1,281 @@
+<template id="in-instagram-info">
+	<v-card dark style="overflow-y: auto;">
+		<v-layout v-if="loading">
+			<in-loading />
+		</v-layout>
+		<v-layout row wrap v-else-if="infos.id">
+			<v-flex xs12 class="py-2">
+				<v-layout row justify-start>
+					<v-flex xs4 md3 lg2 xl1>
+						<v-layout justify-center>
+							<a :href="'https://instagram.com/' + infos.username" target="_blank">
+								<v-avatar :size="imageSize(bp)">
+									<v-img :width="imageSize(bp)" :height="imageSize(bp)" :src="infos.profile_pic_url" cover></v-img>
+								</v-avatar>
+							</a>
+						</v-layout>
+					</v-flex>
+					<v-flex xs8 md9 lg10 xl11>
+						<v-layout row wrap>
+							<v-flex xs12>
+								<a :href="'https://instagram.com/' + infos.username" target="_blank" class="title grey--text">@{{ infos.username }}</a>
+							</v-flex>
+							<v-flex xs12>
+								<v-layout justify-start>
+									<div class="mr-3">
+										<p class="mb-0 text-xs-center">
+											<span class="title font-weight-bold">{{ infos.edge_owner_to_timeline_media.count }}</span>
+											<span class="caption grey--text">posts</span>
+										</p>
+									</div>
+									<div class="mr-3">
+										<p class="mb-0 text-xs-center">
+											<span class="title font-weight-bold">{{ formatNumberToString(infos.edge_followed_by.count) }}</span>
+											<span class="caption grey--text">Seguidores</span>
+										</p>
+									</div>
+									<div class="mr-3">
+										<p class="mb-0 text-xs-center">
+											<span class="title font-weight-bold">{{ formatNumberToString(infos.edge_follow.count) }}</span>
+											<span class="caption grey--text">Seguindo</span>
+										</p>
+									</div>
+								</v-layout>
+							</v-flex>
+							<v-flex xs12 v-if="bp.smAndUp">
+								<v-layout row wrap>
+									<v-flex xs12>
+										<p class="mb-0 font-weight-bold">{{ infos.full_name }}</p>
+									</v-flex>
+									<v-flex xs12>
+										{{ infos.biography }}
+									</v-flex>
+									<v-flex xs12>
+										<a class="grey--text" v-if="infos.external_url" :href="infos.external_url" target="_blank">
+											{{ infos.external_url }}
+										</a>
+									</v-flex>
+								</v-layout>
+							</v-flex>
+						</v-layout>
+					</v-flex>
+				</v-layout>
+				<v-layout row wrap v-if="bp.xs" class="mt-3">
+					<v-flex xs12>
+						<p class="mb-0 font-weight-bold">{{ infos.full_name }}</p>
+					</v-flex>
+					<v-flex xs12>
+						{{ infos.biography }}
+					</v-flex>
+					<v-flex xs12>
+						<a class="grey--text" v-if="infos.external_url" :href="infos.external_url" target="_blank">
+							{{ infos.external_url }}
+						</a>
+					</v-flex>
+				</v-layout>
+			</v-flex>
+			<v-flex xs12>
+				<v-divider></v-divider>
+			</v-flex>
+			<v-flex xs12 class="px-2">
+				<v-switch
+					label="Usar foto de perfil do instagram como Avatar"
+					v-model="useInstagramPhoto" color="#ef001c"
+					:persistent-hint="pageInfos.configs.images.avatar !== '' && pageInfos.avatar !== undefined"
+          :hint="pageInfos.configs.images.avatar && pageInfos.avatar ? 'Atualmente usando avatar do ' + pageInfos.configs.images.avatar : ''"
+				></v-switch>
+			</v-flex>
+		</v-layout>
+		<v-layout row wrap v-else>
+			<v-flex xs12>
+				<v-alert :value="error" type="error">
+					<v-layout row wrap>
+						<v-flex xs12>
+							{{ errorMessage }}
+						</v-flex>
+						<v-flex xs12>
+							<v-layout justify-center>
+								<v-btn small flat @click.stop="changeLink = !changeLink">{{ changeLink ? 'cancelar' : 'Alterar Link' }}</v-btn>
+							</v-layout>
+						</v-flex>
+					</v-layout>
+				</v-alert>
+				<v-layout v-if="changeLink" row wrap class="animated zoomIn faster px-3">
+					<v-flex xs12>
+						<v-layout row wrap>
+							<v-flex xs12 sm6>
+								<v-text-field
+									label="Link do Perfil do Instagram"
+									v-model="link" validate-on-blur
+									:rules="[rules.required, rules.valid]"
+								></v-text-field>
+							</v-flex>
+							<v-flex xs12 sm6>
+								<v-layout fill-height justify-start align-center>
+									<v-btn
+										small :disabled="rules.required(link) !== true || rules.valid(link) !== true || link === pageInfos.instagram.url"
+										flat @click.stop="getInstagramInfos('/api/instagram?link=' + link)"
+									>BUSCAR</v-btnsmall>
+								</v-layout>
+							</v-flex>
+						</v-layout>
+					</v-flex>
+				</v-layout>
+			</v-flex>
+		</v-layout>
+		<v-divider></v-divider>
+		<v-layout row v-if="!loading">
+			<v-btn flat @click.stop="$emit('push-step', { payload: e6 - 1 })">Voltar</v-btn>
+			<v-spacer></v-spacer>
+			<v-btn :disabled="error" @click.stop="saveInstagramInfos">Salvar</v-btn>
+		</v-layout>
+	</v-card>
+</template>
+
+<script>
+	Vue.component('in-instagram-info', {
+		template: '#in-instagram-info',
+		props: ['e6'],
+		computed: {
+			...mapGetters('create-page', [
+				'pageInfos',
+				'step'
+			]),
+			bp () {
+				return this.$vuetify.breakpoint
+			}
+		},
+		data () {
+			return {
+				loading: false,
+				infos: {},
+				error: false,
+				changeLink: false,
+				link: '',
+				useInstagramPhoto: false,
+				errorMessage: '',
+				rules: {
+          required: value => value !== '' ? true : 'Este campo é obrigatório.',
+          valid: value => (value.includes('http://') || value.includes('https://') || value.includes('www.')) && value.includes('instagram') ? true : 'Link do Instagram inválido'
+				}
+			}
+		},
+		created () {
+			this.link = this.pageInfos.instagram.url
+			if (!this.pageInfos.avatar) this.useInstagramPhoto = true
+			this.getInstagramInfos('/api/instagram?link=' + this.pageInfos.instagram.url)
+		},
+		methods: {
+			...mapActions('create-page', [
+				'setPageInfos',
+				'setStep'
+			]),
+
+			saveInstagramInfos: async function () {
+				const vue = await this
+				vue.loading = await true
+				const { pageInfos } = await vue
+				if (vue.useInstagramPhoto) {
+					pageInfos.configs.images.avatar = 'Instagram'
+          const base64 = await vue.getImage(vue.infos.profile_pic_url)
+					pageInfos.avatar = await vue.convertImage(base64)
+					if (pageInfos.avatar) pageInfos.miniavatar = await vue.setMiniAvatar(pageInfos.avatar)
+				}
+				await vue.setPageInfos(pageInfos)
+				vue.loading = await false
+				await vue.$emit('push-step', { payload: vue.e6 + 1, change: true })
+			},
+
+			getImage(imageLink) {
+				const vue = this
+				return new Promise(async resolve => {
+					try {
+						const res = await vue.$http.get(imageLink, { responseType: 'blob' })
+						const blob = await res.blob()
+						const reader = await new FileReader()
+						await reader.readAsDataURL(blob)
+						const base64 = await new Promise((res, rej) => {
+							reader.onloadend = function () {
+								res(reader.result)
+							}
+						})
+						await resolve(base64)
+					} catch (err) {
+						console.log(err)
+						await resolve('')
+					}
+				})
+			},
+
+			setMiniAvatar(base64) {
+				return new Promise(resolve => {
+					const img = new Image(),
+					canvas = document.createElement('canvas'),
+					ctx = canvas.getContext('2d')
+					img.src = base64
+					img.onload = function () {
+						canvas.width = 50
+						canvas.height = 50
+						ctx.drawImage(img, 0, 0, 50, 50)
+						resolve(canvas.toDataURL('image/jpeg', 0.8))
+					}
+				})
+      },
+            
+      convertImage (base64) {
+				return new Promise(resolve => {
+					const img = new Image(),
+					canvas = document.createElement('canvas'),
+					ctx = canvas.getContext('2d')
+					img.src = base64
+					img.onload = function (event) {
+						canvas.width = event.target.width
+						canvas.height = event.target.height
+						ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+						resolve(canvas.toDataURL('image/jpeg', 0.5))
+					}
+				})
+			},
+
+			formatNumberToString (number) {
+				var string = number + ''
+				if (string.length > 8) return `${string[0] + string[1] + string[2]}mi`
+				if (string.length > 7) return `${string[0] + string[1]},${string[2]}mi`
+				if (string.length > 6) return `${string[0]},${string[1]}mi`
+				if (string.length > 5) return `${string[0] + string[1] + string[3]}mil`
+				if (string.length > 4) return `${string[0] + string[1]},${string[2]}mil`
+				if (string.length > 3) return `${string[0]},${string[1]}mil`
+				return string
+			},
+
+			imageSize (bp) {
+				if (bp.xl) return 120
+				if (bp.smAndUp) return 100
+				return 70
+			},
+
+			getInstagramInfos: async function (url) {
+				const vue = await this
+				vue.loading = await true
+				vue.error = await false
+				try {
+					const { data } = await vue.$http.get(url)
+					if (data.id) {
+						vue.infos = await data
+					}	else if (data.blocked) {
+						vue.errorMessage = `O Instagram que você informou é bloqueado para menores de 18 anos`
+						vue.error = true
+					} else {
+						vue.errorMessage = `Ocorreu um erro ao atualizar os dados do instagram, caso o erro persista, verifique se o este link
+							('{{ pageInfos.instagram.url }}') corresponde ao link do instagram de {{ pageInfos.title }}`
+						vue.error = true
+					}
+				} catch (err) {
+					vue.errorMessage = `Ocorreu um erro na comunicação com o servidor`
+					vue.error = true
+				}
+				vue.loading = await false
+			}
+		}
+	})
+</script>

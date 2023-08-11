@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+	<title>
+		<%= __('Appname') %>
+	</title>
+	<%- include('meta/header') %>
+
+	<meta name="description" content="A maior comunidade nerd do brasil">
+	<meta property="og:description" content="A maior comunidade nerd do brasil">
+
+	<meta property="og:image" content="<%= settings.url %>/assets/img/logo-256-white.png">
+	<meta property="og:image:type" content="image/png">
+	<meta property="og:image:width" content="256">
+	<meta property="og:image:height" content="256">
+
+	<meta name="og:title" property="og:title" content="Invasão Nerd">
+	<meta property="og:site_name" content="<%= __('Appname') %>">
+	<meta property="og:locale" content="pt-br">
+	<meta property="og:url" content="<%= settings.url %>">
+	<meta property="og:type" content="website">
+
+	<%- include('./meta/gtag.ejs') %>
+	
+	<%- include('components/app/navbar') %>
+	<%- include('components/app/sidebar') %>
+	<%- include('components/app/snackbar') %>
+	<%- include('components/app/loading') %>
+	<div id="app">
+		<v-app dark>
+			<v-layout ref="ready" style="display: none;">
+				<div>
+					<in-sidebar :options="{ page: {} }" />
+				</div>
+				<div>
+					<in-navbar />
+				</div>
+				<v-content>
+					<v-container fluid fill-height>
+						<v-layout row justify-center>
+							<v-flex xs12 :class="sideBar && $vuetify.breakpoint.width > 1350 ? 'animated fadeIn' : 'animated fadeIn'">
+								<v-layout row wrap>
+									<v-flex xs12>
+										<v-toolbar flat dark>
+											<v-toolbar-title>Gerenciar Usuários</v-toolbar-title>
+											<v-spacer></v-spacer>
+											<v-text-field v-model="search" append-icon="search" label="Filtrar" color="#ef001c" single-line hide-details></v-text-field>
+										</v-toolbar>
+										<v-data-table
+											:headers="fields"
+											:items="users"
+											item-key="name"
+											:search="search"
+											class="elevation-8"
+											:rows-per-page-items="[ 20, 50, 100, 250, 500, 1000, { 'text': 'Todos', 'value': -1 } ]"
+											rows-per-page-text="Linhas por página:"
+										>
+											<template slot="items" slot-scope="props">
+												<tr :class="props.item.blacklist ? 'red' : ''">
+													<td class="text-xs-center">{{ props.item.rank }}º</td>
+													<td class="text-xs-center">{{ props.item.name }}</td>
+													<td class="text-xs-center">{{ props.item.points }}</td>
+													<td class="text-xs-center">{{ props.item.blacklist ? 'Sim' : 'Não' }}</td>
+													<td class="text-xs-center">
+														<v-tooltip :open-delay="50" :close-delay="50" top>
+															<v-btn slot="activator" icon @click="props.expanded = !props.expanded">
+																<v-icon>{{ props.expanded ? 'expand_less' : 'expand_more' }}</v-icon>
+															</v-btn>
+															<span>{{ props.expanded ? 'Esconder Detalhes' : 'Ver Detalhes' }}</span>
+														</v-tooltip>
+													</td>
+												</tr>
+											</template>
+											<template slot="expand" slot-scope="props">
+												<v-card flat dark>
+													<v-card-title class="pb-0">
+														<v-avatar>
+															<v-img :src="props.item.avatar"></v-img>
+														</v-avatar>
+														<span class="headline ml-2" v-html="props.item.name"></span>
+													</v-card-title>
+													<v-card-text>
+														<v-tabs v-model="active" dark color="#232323" slider-color="#ef001c" show-arrows class="elevation-1">
+															<v-tab href="#in-tab-details" ripple>
+																<v-icon dark small>visibility</v-icon>
+																DETALHES
+															</v-tab>
+															<v-tab href="#in-tab-strikes" ripple :disabled="strinking" >
+																<v-icon dark small>warning</v-icon>
+																STRIKES
+															</v-tab>
+														</v-tabs>
+														<v-tabs-items v-model="active" dark touchless>
+															<v-tab-item value="in-tab-details">
+																<v-layout row wrap class="py-2">
+																	<v-flex xs12 class="animated zoomIn faster">
+																		<v-layout row class="mb-2">
+																			<v-flex class="ml-3">
+																				<b>Nome: </b> {{ props.item.name }}
+																			</v-flex>
+																		</v-layout>
+																		<v-layout row class="mb-2">
+																			<v-flex class="ml-3">
+																				<b>E-mail: </b> {{ props.item.email }}
+																			</v-flex>
+																		</v-layout>
+																		<v-layout row class="mb-2">
+																			<v-flex class="ml-3">
+																				<b>Usuário: </b> {{ props.item.user }}
+																			</v-flex>
+																		</v-layout>
+																		<v-layout row class="mb-2">
+																			<v-flex class="ml-3">
+																				<b>Atribuição: </b> {{ getAtribuition(props.item) }}
+																			</v-flex>
+																		</v-layout>
+																	</v-flex>
+																</v-layout>
+																<v-divider></v-divider>
+																<v-card-actions>
+																	<v-btn
+																		v-if="props.item.admin && !strinking && !props.item.superadmin && !props.item.blacklist"
+																		@click.stop="flagUser(props.item, 'admin', false, 'alterar', 'alterado')"
+																		color="#ef001c" :loading="loading" class="animated slideInRight faster"
+																	>
+																		Remover Admin
+																	</v-btn>
+																	<v-btn
+																		v-if="props.item.admin && !strinking && props.item.superadmin && !props.item.blacklist"
+																		@click.stop="flagUser(props.item, 'superadmin', false, 'alterar', 'alterado')"
+																		color="#ef001c" :loading="loading" class="animated slideInRight faster"
+																	>
+																		Remover Super Admin
+																	</v-btn>
+																	<v-btn
+																		v-if="!strinking && !props.item.admin && !props.item.superadmin && !props.item.blacklist"
+																		@click.stop="flagUser(props.item, 'blacklist', true, 'banir', 'banido')"
+																		color="#ef001c" :loading="loading" class="animated slideInRight faster"
+																	>Banir</v-btn>
+																	<v-spacer></v-spacer>
+																	<v-btn
+																		v-if="!props.item.admin && !strinking && !props.item.superadmin && !props.item.blacklist"
+																		@click.stop="flagUser(props.item, 'admin', true, 'promover', 'promovido')"
+																		color="teal" :loading="loading" class="animated slideInLeft faster"
+																	>
+																		Tornar Admin
+																	</v-btn>
+																	<v-btn
+																		v-if="props.item.admin && !strinking && !props.item.superadmin && !props.item.blacklist"
+																		@click.stop="flagUser(props.item, 'superadmin', true, 'promover', 'promovido')"
+																		color="teal" :loading="loading" class="animated slideInLeft faster"
+																	>
+																		Tornar Super Admin
+																	</v-btn>
+																	<v-btn
+																		v-if="props.item.blacklist"
+																		@click.stop="flagUser(props.item, 'blacklist', false, 'reativar', 'reativado')"
+																		color="teal" :loading="loading" class="animated slideInLeft faster"
+																	>Reativar Usuário</v-btn>
+																</v-card-actions>
+															</v-tab-item>
+															<v-tab-item value="in-tab-strikes">
+																<v-toolbar flat dark class="elevation-1 animated zoomIn faster">
+																	<v-toolbar-title>Strikes de {{ props.item.name }}</v-toolbar-title>
+																	<v-spacer></v-spacer>
+																	<v-dialog v-model="strike.dialog" max-width="500px">
+																		<v-btn slot="activator" color="#ef001c" dark class="mb-2">STRIKE</v-btn>
+																		<v-card>
+																			<v-card-title class="pb-0">
+																				<span class="headline">Strike de usuário</span>
+																			</v-card-title>
+														
+																			<v-card-text>
+																				<v-layout row wrap>
+																					<v-flex xs12 class="animated zoomIn faster">
+																						<v-layout row wrap>
+																							<v-flex xs12>
+																								<v-textarea
+																									label="Motivo do Strike"
+																									v-model="strikeMessage" box
+																								></v-textarea>
+																							</v-flex>
+																							<v-flex xs12>
+																								<v-text-field
+																									label="Punição na pontuação"
+																									v-model="punish"
+																									placeholder="Ex: 5"
+																									box type="number"
+																								></v-text-field>
+																							</v-flex>
+																						</v-layout>
+																					</v-flex>
+																				</v-layout>
+																			</v-card-text>
+														
+																			<v-card-actions>
+																				<v-btn color="#ef001d" flat @click.stop="strike.dialog = !strike.dialog">CANCELAR</v-btn>
+																				<v-spacer></v-spacer>
+																				<v-btn
+																					color="success" flat @click.stop="sendStrike(strikeMessage, punish, props.item)"
+																					:disabled="strikeMessage.length <= 3" :loading="loading"
+																				>ENVIAR</v-btn>
+																			</v-card-actions>
+																		</v-card>
+																	</v-dialog>
+																</v-toolbar>
+																<v-data-table
+																	:headers="strike.header"
+																	:items="props.item.strikes"
+																	class="elevation-1 animated zoomIn faster"
+																	:rows-per-page-items="[ 5, 10, 20, { 'text': 'Todos', 'value': -1 } ]"
+																	rows-per-page-text="Linhas por página:"
+																>
+																	<template slot="items" slot-scope="{ item, index }">
+																		<td class="text-xs-center">{{ index }}</td>
+																		<td class="text-xs-center">{{ item.message }}</td>
+																		<td class="text-xs-center">{{ item.punish }}</td>
+																		<td class="text-xs-center">{{ item.adminUser }}</td>
+																		<td class="text-xs-center">{{ new Date(item.timestamp).toLocaleString() }}</td>
+																		<td class="justify-center layout px-0">
+																			<v-btn icon @click="removeStrike(index, props.item)">
+																				<v-icon small color="#ef001c">
+																					delete
+																				</v-icon>
+																			</v-btn>
+																		</td>
+																	</template>
+																	<template slot="no-data">
+																		<p class="text-xs-center my-2">
+																			{{ props.item.name }} ainda não recebeu nenhum Strike
+																		</p>
+																	</template>
+																</v-data-table>
+															</v-tab-item>
+														</v-tabs-items>
+														
+													</v-card-text>
+												</v-card>
+											</template>
+										</v-data-table>
+									</v-flex>
+								</v-layout>
+							</v-flex>
+						</v-layout>
+					</v-container>
+				</v-content>
+				<div>
+					<in-snackbar />
+				</div>
+			</div>
+		</v-app>
+	</div>
+	<%- include('./meta/footer') %>
+	<script>
+		new Vue({
+			store: new Vuex.Store({
+				modules: {
+					app: {
+						namespaced: true,
+						state: <%- include('store/app/state.js') %>,
+						getters: <%- include('store/app/getters.js') %>,
+						mutations: <%- include('store/app/mutations.js') %>,
+						actions: <%- include('store/app/actions.js') %>
+					}
+				}
+			}),
+			el: '#app',
+			computed: {
+				...mapGetters('app', [
+					'user',
+					'sideBar',
+					'windowWidth'
+				])
+			},
+			data() {
+				return {
+					loading: false,
+					search: '',
+					active: 'in-tab-details',
+					users: (<%- JSON.stringify(users) %>)
+						.sort((a, b) => b.points - a.points)
+						.map((user, index) => {
+							user.rank = index + 1
+							delete user._id
+							return user
+						}),
+					strinking: false,
+					strikeMessage: '',
+					punish: 0,
+					fields: [{
+							value: 'rank',
+							text: 'Rank',
+							align: 'center',
+							sortable: true
+						},
+						{
+							value: 'name',
+							text: 'Nome',
+							align: 'center',
+							sortable: true
+						},
+						{
+							value: 'points',
+							text: 'Pontos',
+							align: 'center',
+							sortable: true
+						},
+						{
+							value: 'blacklist',
+							text: 'Banido',
+							align: 'center',
+							sortable: true
+						},
+						{
+							value: 'actions',
+							align: 'center',
+							text: 'Ver Detalhes',
+							sortable: false
+						}
+					],
+					strike: {
+						dialog: false,
+						editedIndex: -1,
+						header: [{
+							text: '#',
+							align: 'center',
+							sortable: true,
+							value: 'index'
+						}, {
+							text: 'Mensagem',
+							align: 'center',
+							sortable: true,
+							value: 'message'
+						}, {
+							text: 'Pontos Perdidos',
+							align: 'center',
+							sortable: true,
+							value: 'punish'
+						}, {
+							text: 'Admin Striker',
+							align: 'center',
+							sortable: true,
+							value: 'adminUser'
+						}, {
+							text: 'Data e Hora',
+							align: 'center',
+							sortable: true,
+							value: 'timestamp'
+						}, {
+							text: 'Ações',
+							align: 'center',
+							sortable: false
+						}]
+					}
+				}
+			},
+			created () {
+				this.setUser(<%- JSON.stringify(user) %>)
+			},
+			mounted() {
+				const vm = this
+				vm.$nextTick(() => {
+					vm.$refs.ready.style.display = 'block'
+				})
+			},
+			methods: {
+				...mapActions('app', [
+					'showDialog',
+					'goTo',
+					'setUser'
+				]),
+
+				editItem (strike) {
+					this.strikeMessage = strike.message
+					this.punish = strike.punish
+					this.strike.dialog = true
+				},
+
+				flagUser(user, entry, value, textIn, textOut) {
+					const vm = this
+					if (confirm(`Deseja mesmo ${textIn} ${user.name}`)) {
+						const rank = user.rank
+						delete user.rank
+						user[entry] = value
+						vm.loading = true
+						vm.$http.put('/user', {
+							user
+						}).then((response) => {
+							if (response.status) {
+								vm.showDialog({
+									message: `${user.name} ${textOut} com sucess`,
+									color: 'success',
+									icon: 'check-circle'
+								})
+							} else {
+								vm.showDialog({
+									message: response.message,
+									color: 'success',
+									icon: 'check-circle'
+								})
+							}
+							user.rank = rank
+							vm.loading = false
+						})
+					}
+				},
+
+				getAtribuition (user) {
+					if (user.superadmin) return 'Super Admin'
+					else if (user.admin) return 'Admin'
+					return 'Usuário'
+				},
+
+				sendStrike(strike, punish, user) {
+					const vm = this
+					if (punish) user.points -= parseInt(punish)
+					user.strikes.push({
+						message: strike,
+						punish: punish,
+						adminUser: vm.user.user,
+						timestamp: new Date().getTime()
+					})
+					delete user._showDetails
+					const rank = user.rank
+					delete user.rank
+					this.loading = true
+					vm.$http.put('/user', {
+						user
+					}).then((response) => {
+						if (response.data.status) {
+							vm.showDialog({
+								message: 'Strike Enviado',
+								color: 'success',
+								icon: 'check-circle'
+							})
+						} else {
+							vm.showDialog({
+								message: response.data.message,
+								color: 'red',
+								icon: 'warning'
+							})
+						}
+						user.rank = rank
+						vm.resetModal()
+						this.loading = false
+					})
+				},
+
+				removeStrike(strikeIndex, user) {
+					const vm = this
+					if (confirm('Deseja mesmo excluir este strike de ' + user.name)) {
+						user.points += parseInt(user.strikes[strikeIndex].punish)
+						user.strikes = user.strikes.filter((strike, index) => {
+							return index !== strikeIndex
+						})
+						const rank = user.rank
+						delete user.rank
+						this.loading = true
+						vm.$http.put('/user', {
+							user
+						}).then((response) => {
+							if (response.data.status) {
+								vm.showDialog({
+									message: 'Strike removido com sucesso',
+									color: 'success',
+									icon: 'check'
+								})
+							} else {
+								vm.showDialog({
+									message: response.data.message,
+									color: 'red',
+									icon: 'warning'
+								})
+							}
+							user.rank = rank
+							vm.resetModal()
+							this.loading = false
+						})
+					}
+				},
+
+				resetModal () {
+					this.strikeMessage = ''
+					this.punish = 0
+					this.strike.dialog = false
+				}
+			},
+
+			
+			beforeMount() {
+				var loading = document.querySelector("#loading")
+				document.body.removeChild(loading)
+			}
+		})
+	</script>
+
+</body>
+
+</html>

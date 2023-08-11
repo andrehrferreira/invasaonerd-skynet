@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+	<title>
+		<%= __('Appname') %>
+	</title>
+	<meta name="google-site-verification" content="3bQumEhwaOHg0WHBBOycPX_vgYn8d5DYfRKBUdEPA_0" />
+		<!-- Global site tag (gtag.js) - Google Analytics -->
+	<script async src="https://www.googletagmanager.com/gtag/js?id=UA-129191784-1"></script>
+	<script>
+		window.dataLayer = window.dataLayer || [];
+		function gtag(){dataLayer.push(arguments);}
+		gtag('js', new Date());
+
+		gtag('config', 'UA-129191784-1');
+	</script>
+
+	<link rel="stylesheet" href="<%= settings.url %>/assets/cdns/css/bootstrap.min.css" />
+	<%- include('meta/header') %>
+	<style>
+		.menor {
+			width: 150px;
+		}
+
+		h1 {
+			font-size: 28px;
+			font-weight: 900;
+			letter-spacing: 3px;
+		}
+
+		.link {
+			width: 35px;
+		}
+
+		body {
+			background-color: rgba(0, 0, 0, 0.1);
+			overflow-y: hidden;
+		}
+	</style>
+
+	<%- include('./meta/gtag.ejs') %>
+
+	<div class="bg-muted">
+		<div class="container">
+			<div class="row">
+				<div class="col-12 text-center pt-5 mt-5">
+					<img class="img-fluid menor" src="assets/img/Logo_preta.svg" alt="Logo do Invasão nerd">
+				</div>
+				<div class="col-12 text-center mt-5">
+					<h1>SITE EM CONSTRUÇÃO…</h1>
+				</div>
+				<div class="col-12 text-center mt-2">
+					<a href="https://www.facebook.com/InvasaoNerd/"><img class="link" src="assets/img/facebook.svg" alt=""></a>
+					<a href="https://www.instagram.com/invasaonerd/"><img class="mx-4 link" src="assets/img/instagram.svg" alt=""></a>
+					<a href=""><img class="link" src="assets/img/tiwtter.svg" alt=""></a>
+				</div>
+				<div class="col-12 text-center mt-5">
+					<img class="img-fluid grudado" src="assets/img/deadpool_under.svg" alt="">
+				</div>
+			</div>
+
+		</div>
+	</div>
+</body>
+
+</html>

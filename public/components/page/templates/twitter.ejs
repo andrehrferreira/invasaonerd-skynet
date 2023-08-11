@@ -1,0 +1,137 @@
+<template id="in-template-twitter">
+	<section class=" animated fadeIn mt-3" ref="twitter">
+		<div class="row justify-end">
+			<div class=" text-left justify-end" v-if="editMode">
+				<v-tooltip :open-delay="50" :close-delay="50" bottom>
+					<v-btn slot="activator" fab small class="animated zoomIn faster" @click.stop="removeType('twitter')">
+						<v-icon color="#ef001c">delete</v-icon>
+					</v-btn>
+					<span>Deletar Twitter</span>
+				</v-tooltip>
+			</div>
+		</div>
+		<div class="row" v-if="!movingBox">
+			<div class="col-12">
+				<div id="twitter">
+					<v-btn class="m-0 col-12" type="button" @click.stop="modal = !modal" data-target="#twitter-modal" color="#1B95E0">
+						Ver Tweets
+					</v-btn>
+					<div class="mt-2">
+						<a :href="formatLink(page.twitter.url) + '?ref_src=twsrc%5Etfw'" class="twitter-follow-button" data-show-count="false"></a>
+					</div>
+				</div>
+			</div>
+		</div>
+		<v-dialog
+			v-model="modal"
+			width="600px"
+			max-width="100%"
+			transition="dialog-transition"
+			@input="modal = !modal"
+			persistent :fullscreen="$vuetify.breakpoint.width < 500"
+		>
+			<v-card max-width="100%" class="in-specialborder">
+				<v-toolbar dark color="#212121" absolute>
+					<v-toolbar-title>Tweets <small>por</small>
+						<a :href="page.twitter.url" target="_blank">@{{ page.title }}</a>
+					</v-toolbar-title>
+					<v-spacer></v-spacer>
+					<v-btn icon dark @click.stop="modal = !modal">
+						<v-icon>close</v-icon>
+					</v-btn>
+				</v-toolbar>
+				<v-img src="/assets/img/default_cover.jpg" cover>
+					<v-container fluid fill-height style="background-color: rgba(0,0,0,0.7); overflow-y: auto;" class="px-0">
+						<v-layout row wrap fill-height>
+							<v-flex xs12>
+								<a class="twitter-timeline" data-dnt="true" data-theme="dark" data-link-color="#2B7BB9" :href="formatLink(page.twitter.url) + '?ref_src=twsrc%5Etfw'">Tweets
+										de</a>
+							</v-flex>
+						</v-layout>
+					</v-container>
+				</v-img>
+			</v-card>
+		</v-dialog>
+	</section>
+</template>
+
+<script>
+	Vue.component("in-template-twitter", {
+		template: "#in-template-twitter",
+		computed: {
+			...mapGetters('page', [
+				'page',
+				'editMode',
+				'movingBox'
+			]),
+			...mapGetters('app', [
+				'windowWidth'
+			])
+		},
+		data() {
+			return {
+				modal: false
+			}
+		},
+		mounted() {
+			var twitterScript = document.createElement('script')
+			twitterScript.setAttribute('src', 'https://platform.twitter.com/widgets.js')
+			twitterScript.setAttribute('async', 'true')
+			twitterScript.setAttribute('charset', 'utf-8')
+			document.head.appendChild(twitterScript)
+		},
+		methods: {
+			...mapActions('page', [
+				'toggleModal',
+				'setAdding',
+				'setEditingType',
+				'removeType'
+			]),
+			...mapActions('app', [
+				'scrollPageTo',
+			]),
+
+			formatLink(link) {
+				if (link[link.length - 1] === '/') {
+					link = link.split('').filter((letter, index) => {
+						return index + 1 !== link.length
+					}).join('')
+				}
+				return link
+			},
+
+			editType(type) {
+				this.setEditingType(type)
+				this.toggleModal(false)
+				this.setAdding(true)
+				setTimeout(() => {
+					this.scrollPageTo(type)
+				}, 20)
+			}
+		}
+	})
+
+</script>
+
+<style>
+	/* .timeline-Viewport {
+		background-color: #333 !important;
+		color: white !important;
+	}
+
+	.twitter-modal .modal-content {
+		top: 50px !important;
+		max-height: 90vh !important;
+		overflow-y: scroll !important;
+	}
+
+	.modal-body {
+		background-color: rgb(41, 47, 51);
+	}
+
+	.in-button-modal {
+		position: fixed;
+		right: -50px;
+	} */
+
+</style>

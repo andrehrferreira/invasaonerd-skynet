@@ -1,0 +1,185 @@
+<template id="in-modal-editor">
+  <div>
+    <div
+      class="in-modal-editor-box-step animated fadeInUp"
+      v-if="modal">
+      <div class="in-modal-close-button" @click.stop="closeModal">
+        <i class="fa fa-times"></i>
+      </div>
+      <div class="container in-editor-box-step animated fadeIn" v-if="$vuetify.breakpoint.width > 780">
+        <div v-for="(item, index) of types" :key="index" v-if="!page[item.type]"
+          :class="(item.enable ? '' : 'disabled') + ' in-editor-type-box'" @click.stop="editType(item.type, item.enable)">
+          <div><i :class="item.icon + ' fa-3x'"></i></div>
+          <div v-html="item.text"></div>
+        </div>
+      </div>
+      <div class="container in-editor-box-step animated fadeIn" v-if="$vuetify.breakpoint.width <= 780">
+        <swiper
+          :options="swiperOption"
+        >
+          <swiper-slide
+            class="in-swiper-editor-item"
+            v-for="item of types" :key="item.type"
+            v-if="!page[item.type]"
+          >
+            <div 
+              :class="(item.enable ? '' : 'disabled') + ' in-editor-type-box'"
+              @click.stop="editType(item.type, item.enable)">
+              <div><i :class="item.icon + ' fa-3x'"></i></div>
+              <div v-html="item.text"></div>
+            </div>
+          </swiper-slide>
+
+          <!-- Optional controls -->
+          <div class="swiper-scrollbar" slot="scrollbar"></div>
+          <div class="swiper-pagination" slot="pagination"></div>
+        </swiper>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+  Vue.component('in-modal-editor', {
+    template: "#in-modal-editor",
+    computed: {
+      ...mapGetters('page', [
+        'page',
+        'modal',
+        'swiperOption'
+      ]),
+      ...mapGetters('app', [
+        'windowWidth'
+      ])
+    },
+    methods: {
+      ...mapActions('page', [
+        'toggleModal',
+        'setAdding',
+        'setEditingType',
+        'setPage'
+      ]),
+      ...mapActions('app', [
+        'scrollPageTo',
+      ]),
+      closeModal () {
+        this.toggleModal(false)
+      },
+
+      editType (type, enable) {
+        if (enable) {
+          let { page } = this
+          page[type] = ''
+          this.setPage(page)
+          this.setEditingType(type)
+          this.setAdding(true)
+          this.toggleModal(false)
+          setTimeout(() => {
+            this.scrollPageTo(type)
+          }, 20)
+        }
+      }
+    },
+
+    data () {
+      return {
+        types: [{
+          type: 'wiki',
+          icon: 'fab fa-wikipedia-w',
+          text: 'Wikipedia',
+          enable: true
+        },{
+          type: 'books',
+          icon: 'fas fa-book',
+          text: 'Livros/Quadrinhos',
+          enable: true
+        },{
+          type: 'movies',
+          icon: 'fab fa-imdb',
+          text: 'Filmes',
+          enable: true
+        },{
+          type: 'series',
+          icon: 'fa fa-television',
+          text: 'Séries',
+          enable: true
+        },{
+          type: 'games',
+          icon: 'fas fa-gamepad',
+          text: 'Jogos',
+          enable: true
+        },{
+          type: 'featuredVideo',
+          icon: 'fas fa-film',
+          text: 'Vídeo em Destaque',
+          enable: true
+        },{
+          type: 'channels',
+          icon: 'fab fa-youtube',
+          text: 'Canais Relacionados',
+          enable: true
+        },{
+          type: 'playlists',
+          icon: 'fab fa-youtube-square',
+          text: 'Playlist do Youtube',
+          enable: true
+        },{
+          type: 'videos',
+          icon: 'fas fa-film',
+          text: 'Vídeos',
+          enable: true
+        },{
+          type: 'lives',
+          icon: 'fab fa-twitch',
+          text: 'Lives',
+          enable: true
+        },{
+          type: 'featuredPages',
+          icon: 'fas fa-share-alt',
+          text: 'Páginas Relacionadas',
+          enable: true
+        },{
+          type: 'comments',
+          icon: 'fas fa-comments',
+          text: 'Comentários',
+          enable: false
+        },{
+          type: 'feeds',
+          icon: 'fas fa-rss-square',
+          text: 'Feeds',
+          enable: true
+        },{
+          type: 'images',
+          icon: 'fas fa-images',
+          text: 'Imagens',
+          enable: false
+        },{
+          type: 'wallpapes',
+          icon: 'fas fa-desktop',
+          text: 'Wallpapes',
+          enable: false
+        },{
+          type: 'products',
+          icon: 'fas fa-cart-plus',
+          text: 'Produtos',
+          enable: false
+        },{
+          type: 'scripts',
+          icon: 'fas fa-code',
+          text: 'Scripts',
+          enable: false
+        }]
+      }
+    }
+  })
+</script>
+
+<style>
+  .disabled {
+    cursor: not-allowed;
+    background-color: #333333a3;
+  }
+  .disabled:hover {
+    background-color: #333 !important;
+  }
+</style>

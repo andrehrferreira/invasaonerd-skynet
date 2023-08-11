@@ -1,0 +1,315 @@
+<template id="in-editor-type-wiki">
+  <div>
+    <div id="wiki" class="in-editor-box-step animated fadeIn"></div>
+    <v-layout row wrap justify-space-between>
+      <v-flex d-flex>
+        <v-layout justify-start>
+          <h5><%= __('Preview') %></h5>
+        </v-layout>
+      </v-flex>
+      <v-flex d-flex>
+        <v-layout justify-end>
+          <v-tooltip :open-delay="50" :close-delay="50" bottom>
+            <v-btn slot="activator" color="success" dark icon @click.stop="save({fullinfo: fullinfo, summary: summary})">
+              <v-icon>save</v-icon>
+            </v-btn>
+            <span>Salvar Wiki</span>
+          </v-tooltip>
+        </v-layout>
+      </v-flex>
+    </v-layout>
+    <div style="padding: 0px" v-if="!loading">
+      <v-alert color="warning" icon="warning" dismissible v-model="error">
+        <span>
+          <%= __('Não encontramos nada referente a ') %>
+          <strong>{{ search }}</strong>
+          <%= __(', verifique se o termo digitado está correto ou edite manualmente, caso o termo esteja correto, verifique se a página que você está procurando existe em Portugues, a busca encontra apenas páginas em portugues') %>
+        </span>
+      </v-alert>
+
+      <v-layout row wrap>
+        <v-flex sm12 sm8 md9 lg10 xl11>
+          <v-text-field placeholder="<%= __('Buscar por: ') %>" :disabled="loading" @keyup.enter="get('/api/wiki')" @input="error = false" v-model="search"></v-text-field>
+        </v-flex>
+        <v-flex sm12 sm4 md3 lg2 xl1>
+          <v-layout class="px-2">
+            <v-btn dark block :loading="loading" @click.stop="get('/api/wiki')" >
+              <v-icon class="mr-2">search</v-icon> Buscar
+            </v-btn>
+          </v-layout>
+        </v-flex>
+      </v-layout>
+
+      <div class="in-editor-section" v-if="summary">
+        <div class="in-editor-section-title">
+          <h4><%= __('Resumo') %></h4>
+          <hr/>
+        </div>
+        <div v-if="!manualEdit" class="in-editor-section-contents" v-html="summary"></div>
+        <div v-else 
+          class="animated fadeIn"
+          style="background-color: white; color: black;">
+          <quill-editor v-model="summary"
+            ref="quillEditorA"
+            :options="{
+              theme: 'snow',
+              placeholder: 'Descreva a página ' + page.ref
+            }">
+          </quill-editor>
+        </div>
+      </div>
+      <div class="in-editor-section mt-2">
+        <div class="in-editor-section-title">
+          <h4><%= __('Informações') %></h4>
+          <div>
+            <v-btn color="info" @click.stop="manualEdit = !manualEdit">
+              <i class="fa fa-edit"></i>
+              Editar Wiki {{ manualEdit ? 'Automaticamente' : 'Manualmente' }}
+            </v-btn>
+          </div>
+          <hr/>
+        </div>
+        <div class="in-editor-section-contents">
+          <ul>
+            <li
+              v-for="([key, value, checked], index) in fullinfo" :key="index"
+              style="padding: 5px;"
+            >
+              <div>
+                <div class="col-12 pa-1 animated fadeIn" v-if="editingItem !== index">
+                  <v-tooltip :open-delay="50" :close-delay="50" bottom>
+                    <v-btn slot="activator" icon color="success" @click.stop="editingItem = index">
+                      <v-icon small>edit</v-icon>
+                    </v-btn>
+                    <span>Editar</span>
+                  </v-tooltip>
+                  <v-tooltip :open-delay="50" :close-delay="50" bottom>
+                    <v-btn slot="activator" icon color="red" @click.stop="deleteItem(index)">
+                      <v-icon small>delete</v-icon>
+                    </v-btn>
+                    <span>Deletar</span>
+                  </v-tooltip>
+                  <p-check
+                    class="p-bigger p-jelly p-icon" :name="key" color="success-o" @change="changeItem(this.event.target.checked, index)" :checked="checked">
+                    <i class="icon fa fa-check-square" slot="extra"></i>
+                    <strong>{{key}}:</strong>
+                    <span v-if="typeof value === 'object'">{{ value.join(', ')}}</span>
+                    <span v-else>{{value}}</span>
+                  </p-check>
+                </div>
+                <div class="col-12 pa-1 animated fadeIn"  v-if="editingItem === index">
+                  <v-card>
+                    <v-card-text>
+                      <v-text-field type="text" v-model="key" @keyup.enter="saveInfo([key, value, checked], index)"></v-text-field>
+                      <v-text-field type="text" v-model="value" @keyup.enter="saveInfo([key, value, checked], index)"></v-text-field>
+                      <v-layout row wrap>
+                        <v-tooltip :open-delay="50" :close-delay="50" bottom>
+                          <v-btn slot="activator" icon color="success" @click.stop="saveInfo([key, value, checked], index)">
+                            <v-icon small>save</v-icon>
+                          </v-btn>
+                          <span>Salvar</span>
+                        </v-tooltip>
+                        <v-tooltip :open-delay="50" :close-delay="50" bottom>
+                          <v-btn slot="activator" icon color="red" @click.stop="editingItem = -1">
+                            <v-icon small>close</v-icon>
+                          </v-btn>
+                          <span>Cancelar</span>
+                        </v-tooltip>
+                      </v-layout>
+                    </v-card-text>
+                  </v-card>
+                </div>
+              </div>
+            </li>
+          </ul>
+          <div v-if="fullinfo && manualEdit">
+            <div>
+              <div class="col-md-4 col-sm-12 m-1">
+                <v-text-field class="col-12 p-1" type="text" v-model="newInfo[0]" placeholder="Titulo"></v-text-field>
+              </div>
+              <div class="col-md-4 col-sm-12 m-1">
+                <v-text-field
+                  class="col-12 p-1" type="text" v-model="newInfo[1]" persistent-hint
+                  placeholder="Informação" hint="Para multiplas informações adicione virgula. Ex: Invasão, Nerd"></v-text-field>
+              </div>
+              <div class="col-md-2 col-sm-12 m-1">
+                <v-btn color="success"
+                  @click.stop="pushInfo(newInfo)">
+                  Add
+                </v-btn>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="in-loading" v-if="loading">
+      <in-loading />
+    </div>
+  </div>
+</template>
+
+<script>
+  Vue.component('in-editor-type-wiki', {
+    template: '#in-editor-type-wiki',
+    computed: {
+      ...mapGetters('page', [
+        'page',
+        'buttonState',
+        'editingType'
+      ])
+    },
+    data () {
+      return {
+        alert: true,
+        title: 'Wiki',
+        editingItem: -1,
+        summary: '',
+        fullinfo: [],
+        loading: false,
+        error: false,
+        search: '',
+        manualEdit: false,
+        newInfo: [
+          '',
+          '',
+          true,
+          ''
+        ],
+        selecteds: []
+      }
+    },
+    mounted () {
+      this.search = this.page.title
+      if (this.page.wiki) {
+        this.summary = this.page.wiki.summary
+        this.fullinfo = this.page.wiki.fullinfo
+      } else {
+        this.get('/api/wiki')
+      }      
+    },
+    methods: {
+      ...mapActions('page', [
+        'setPage',
+        'setAdding',
+        'setSnackbar',
+        'setEditingType'
+      ]),
+      ...mapActions('app', [
+        'showDialog'
+      ]),
+
+      changeItem (status, index) {
+        this.fullinfo = this.fullinfo.map((entrie, idx) => {
+          if (idx === index) entrie[2] = status
+          return entrie
+        })
+      },
+
+      deleteItem (index) {
+        this.fullinfo = this.fullinfo.filter((entrie, idx) => {
+          return index !== idx
+        })
+      },
+
+      saveInfo (info, index) {
+        this.fullinfo = this.fullinfo.map((entrie, idx) => {
+          if (idx === index) entrie = info
+          return entrie
+        })
+        this.editingItem = -1
+      },
+
+      selectInfo (check, key) {
+        if (check) {
+          this.selecteds.push(key)
+        } else if (this.selecteds.includes(key)) {
+          this.selecteds = this.selecteds.filter((selected) => {
+            return selected !== key
+          })
+        }
+      },
+
+      pushInfo (info) {
+        if (info[1].split(', ').length > 1) {
+          info[3] = []
+          info[1] = info[1].split(', ').map(item => {
+            info[3].push('')
+            return item
+          })
+        }
+        this.fullinfo.push(info)
+        this.newInfo = ['', '', true, '']
+      },
+
+      get (url) {
+        var vm = this
+        vm.loading = true
+        vm.error = false
+        vm.$http.get(url + '/' + encodeURI(vm.search))
+          .then(function(res) {
+            if (!res.data.error && res.body.summary) {
+              const wiki = res.body
+              vm.summary = wiki.summary
+              vm.fullinfo = Object.entries(wiki.fullinfo).map(entrie => {
+                var [key, value, checked, link] = entrie
+                if (typeof value == 'string') {
+                  if (value.split(', ').length > 1) {
+                    value = value.split(', ')
+                  }
+                }
+                if (typeof value == 'object') link = value.map(item => '')
+                else link = ''
+                checked = false
+                key = this.formatKey(key)
+                return [key, value, checked, link]
+              })
+              vm.loading = false
+            } else {
+              vm.summary = '...'
+              vm.fullinfo = []
+              vm.loading = false
+              vm.error = true
+            }
+          })
+      },
+
+      formatKey (key) {
+        const letters = this.setSpaces(key.split(''))
+        var ret = letters[0].toUpperCase() + letters.slice(1, letters.length).join('')
+        return ret
+      },
+
+      setSpaces (letters) {
+        return letters.map(letter => {
+          if (letter === letter.toUpperCase()) {
+            return ' ' + letter
+          }
+          return letter
+        })
+      },
+
+      save () {
+        const { page, summary, fullinfo } = this
+        page.wiki = {}
+        page.wiki.summary = summary
+        page.wiki.fullinfo = fullinfo.filter(entrie => {
+          const [key, value, checked] = entrie
+          return checked
+        })
+        page.changes.push({
+          type: this.editingType
+        })
+        this.setPage(page)
+        this.setAdding(false)
+        this.setEditingType('')
+        this.showDialog({
+          message: `Edições de ${this.title} gravadas para envio`,
+          color: 'success',
+          icon: 'check-circle'
+        })
+      }
+    }
+  })
+</script>

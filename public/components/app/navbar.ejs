@@ -1,0 +1,451 @@
+<%- include('./search') %>
+<%- include('./user-menu') %>
+<%- include('./user-notifications') %>
+<template id="in-navbar">
+	<div>
+		<v-toolbar
+			id="main-toolbal" class="grey darken-4"
+			dense fixed clipped-left app height="60px" dark
+			:extended="page ? scrollTop > bp : scrollTop > $vuetify.breakpoint.height / 2">
+			<v-toolbar-side-icon @click.stop="toggleSideBar(!sideBar)"></v-toolbar-side-icon>
+			<v-toolbar-title>
+				<a href="/">
+					<v-img src="/assets/img/logo-white-site.png" contain width="73px"></v-img>
+				</a>
+			</v-toolbar-title>
+			<v-spacer></v-spacer>
+			<v-layout class="hidden-sm-and-down pt-2" align-center style="max-width: 450px">
+				<in-search :solo="true" />
+			</v-layout>
+			<v-spacer></v-spacer>
+			<v-menu
+				offset-x left dark transition="slide-x-transition" max-width
+				class="hidden-md-and-up" :close-on-content-click="false" absolute
+			>
+				<v-btn icon dark slot="activator" @click.stop="searchModal = !searchModal">
+					<v-icon>search</v-icon>
+				</v-btn>
+				<v-dialog content-class="in-search-modal" v-model="searchModal" full-width content-class="ma-0" transition="slide-y-transition">
+					<v-card color="dark" class="white--text">
+						<v-layout row align-center>
+							<v-flex xs12 class="pl-3">
+								<in-search class="hidden-md-and-up" />
+							</v-flex>
+					</v-card>
+				</v-dialog>
+			</v-menu>
+			<v-badge overlap color="#ef001c">
+				<small slot="badge" v-if="getNewNotifications(user.notifications).length !== 0">
+					{{ getNewNotifications(user.notifications).length > 10 ? '9+' : getNewNotifications(user.notifications).length }}
+				</small>
+			</v-badge>
+			<v-menu
+				v-model="notifications" dark fixed attach left
+				:close-on-content-click="false" nudge-bottom="35"
+				transition="slide-x-transition"
+			>
+				<v-btn v-if="user.name" slot="activator" icon dark @click.stop="notifications = !notifications" class="ma-0">
+					<v-icon v-if="getNewNotifications(user.notifications).length !== 0">{{ notifications ? 'close' : 'notifications' }}</v-icon>
+					<v-icon v-else>{{ notifications ? 'close' : 'notifications_none' }}</v-icon>
+				</v-btn>
+				<div v-if="notifications && user.notifications">
+					<in-user-notifications :notifications="user.notifications" />
+				</div>
+			</v-menu>
+			<v-menu
+				v-model="menu" dark fixed attach left
+				transition="slide-x-transition"
+				:close-on-content-click="false"
+				@input="toggleUserMenu" nudge-bottom="35"
+			>
+				<v-btn v-if="user.name" slot="activator" icon dark @click.stop="toggleUserMenu(!userMenu)">
+					<v-icon>{{ menu ? 'close' : 'account_circle' }}</v-icon>
+				</v-btn>
+				<v-btn v-else color="success" slot="activator" @click.stop="toggleUserMenu(!userMenu)">LOGIN</v-btn>
+				<div v-if="userMenu">
+					<in-usermenu />
+				</div>
+			</v-menu>
+			<v-tabs
+				slot="extension" centered v-model="active"
+				v-if="scrollTop > bp && page" color="rgba(0,0,0,0)"
+				slider-color="#ef001c" show-arrows @change="checkTab"
+				class="animated fadeIn faster" dark
+			>
+				<v-tab :href="isCommunity ? '/page/' + page.url + '?t=0' : '#in-tab-content'" v-if="checkContent(page)"
+						ripple>
+					<v-icon class="mr-2" dark small>view_module</v-icon> CONTEÚDO
+				</v-tab>
+
+				<v-tab :href="isCommunity ? '/page/' + page.url + '?t=1' : '#in-tab-instagram'" v-if="page.instagram && editingtype !== 'basic-infos'">
+					<v-icon class="mr-2" dark small>photo_camera</v-icon> Instagram
+				</v-tab>
+
+				<v-tab :href="isCommunity ? '/page/' + page.url + '?t=2' : '#in-tab-books'" v-if="checkLists(page.books) && editingtype !== 'books'">
+					<v-icon class="mr-2" dark small>import_contacts</v-icon> Livros
+				</v-tab>
+
+				<v-tab :href="isCommunity ? '/page/' + page.url + '?t=3' : '#in-tab-channels'" v-if="checkLists(page.channels) && editingtype !== 'channels'">
+					<v-icon class="mr-2" dark small>account_circle</v-icon> Relacionados
+				</v-tab>
+
+				<v-tab :href="isCommunity ? '/page/' + page.url + '?t=4' : '#in-tab-movies'" v-if="checkLists(page.movies) && editingtype !== 'movies'">
+					<v-icon class="mr-2" dark small>local_movies</v-icon> Filmes
+				</v-tab>
+
+				<v-tab :href="isCommunity ? '/page/' + page.url + '?t=5' : '#in-tab-games'" v-if="checkLists(page.games) && editingtype !== 'games'">
+					<v-icon class="mr-2" dark small>videogame_asset</v-icon> Jogos
+				</v-tab>
+
+				<v-tab :href="isCommunity ? '/page/' + page.url + '?t=6' : '#in-tab-lives'" v-if="page.lives && editingtype !== 'lives'">
+					<v-icon class="mr-2" dark small>live_tv</v-icon> Lives
+				</v-tab>
+
+				<v-tab :href="isCommunity ? '/page/' + page.url + '?t=7' : '#in-tab-series'" v-if="page.series && editingtype !== 'series'">
+					<v-icon class="mr-2" dark small>tv</v-icon> Series
+				</v-tab>
+				
+				<v-tab :href="isCommunity ? '/page/' + page.url + '?t=8' : '#in-tab-videos'" v-if="checkLists(page.videos) && editingtype !== 'videos'">
+					<v-icon class="mr-2" dark small>ondemand_video</v-icon> Videos
+				</v-tab>
+				
+				<v-tab :href="isCommunity ? '/page/' + page.url + '?t=9' : '#in-tab-playlists'" v-if="checkLists(page.playlists) && editingtype !== 'playlists'">
+					<v-icon class="mr-2" dark small>playlist_play</v-icon> Playlists
+				</v-tab>
+
+				<v-tab :href="isCommunity ? '/page/' + page.url + '?t=10' : '#in-tab-feeds'" v-if="page.feeds || editingtype === 'feeds'" id="feeds" ripple>
+					<v-icon class="mr-2" dark small>list_alt</v-icon> Noticias
+				</v-tab>
+
+				<v-tab href="#in-tab-community">
+					<v-icon class="mr-2" dark small>forum</v-icon> COMUNIDADE
+				</v-tab>
+			</v-tabs>
+			<v-tabs
+				dark color="rgba(0,0,0,0)" v-if="pages && scrollTop > $vuetify.breakpoint.height / 2"
+				show-arrows slot="extension" centered class="animated fadeIn faster"
+				v-model="active" @change="setTab"
+			>
+				<v-tabs-slider color="#ef001c"></v-tabs-slider>
+				<v-tab href="#home">
+					TUDO
+				</v-tab>
+				<v-tab
+					v-for="(cat, index) in categories"
+					:href="'#' + cat.text"
+					:key="index" v-if="pages.some(page => page.categories.includes(cat.text))"
+				>
+					{{ cat.alias ? cat.alias : cat.text }}
+				</v-tab>
+			</v-tabs>
+		</v-toolbar>
+		<v-snackbar
+			v-model="snackbar.status" color="#515151"
+			vertical :timeout="5000" left @input="checkNotifications"
+			:style="$vuetify.breakpoint.mdAndUp ? 'position: fixed; top: 90vh;' : 'position: fixed; top: 20vh;'"
+		>
+			<v-layout row justify-start>
+				<v-flex v-if="snackbar.notification.image" class="pa-2">
+					<v-avatar size="50">
+						<v-img :src="snackbar.notification.image" cover></v-img>
+					</v-avatar>
+				</v-flex>
+				<v-flex>
+					<v-layout row wrap>
+						<v-flex xs12>
+							<p class="mb-1 text-truncate">{{ snackbar.notification.message }}</p>
+						</v-flex>
+						<v-flex xs12>
+							<p class="mb-0 caption font-italic grey--text">{{ new Date(snackbar.notification.timestamp).toLocaleString() }}</p>
+						</v-flex>
+						<v-flex xs12>
+							<v-layout row justify-end>
+								<v-tooltip :open-delay="50" :close-delay="50" bottom>
+									<v-btn slot="activator" dark icon @click="toggleMute" class="my-1 px-2">
+										<v-icon>{{ mute ? 'notifications_off' : 'notifications_active' }}</v-icon>
+									</v-btn>
+									<span>{{ mute ? 'Silenciar' : 'Alertar' }}</span>
+								</v-tooltip>
+								<v-spacer></v-spacer>
+								<v-btn dark flat @click="redirectToHref(snackbar.notification)" class="my-1 px-2">
+									Ver
+								</v-btn>
+								<v-btn dark flat color="#ef001c" @click="checkNotifications(false)" class="my-1 px-2">
+									Fechar
+								</v-btn>
+							</v-layout>
+						</v-flex>
+					</v-layout>
+				</v-flex>
+			</v-layout>
+		</v-snackbar>
+	</div>
+</template>
+<script src="<%= settings.url %>/socket.io/socket.io.js"></script>
+<script>
+	Vue.use({
+		install: (Vue, io) => {
+			Vue.prototype.$socket = io
+		}
+	}, io('<%= settings.url %>', {transports: ['websocket', 'polling', 'flashsocket']}))
+</script>
+<script>
+	Vue.component('in-navbar', {
+		template: '#in-navbar',
+		props: ['page', 'editingtype', 'pages', 'categories'],
+		computed: {
+			...mapGetters('app', ['sideBar', 'userMenu', 'user', 'tab', 'scrollTop', 'userPages']),
+			bp () {
+				const { breakpoint } = this.$vuetify
+				if (breakpoint.smAndDown) {
+					return 100
+				} else if (breakpoint.width <= 1500) {
+					return breakpoint.width / 3
+				} else {
+					return 500
+				}				
+			}
+		},
+		watch: {
+			userMenu: function (val) {
+				this.menu = val
+			},
+
+			tab (val) {
+				this.active = val
+			}
+		},
+		data () {
+			if (!localStorage.hasOwnProperty('mute')) localStorage.setItem('mute', false)
+			const tab = parseInt(new URL(location.href).searchParams.get('t'))
+			const tabs = ['in-tab-content', 'in-tab-instagram', 'in-tab-books', 'in-tab-channels', 'in-tab-movies', 'in-tab-games', 'in-tab-lives', 'in-tab-series', 'in-tab-videos', 'in-tab-playlists', 'in-tab-feeds']
+			var selectedTab = tabs[tab]
+			if (location.href.includes('/community')) selectedTab = 'in-tab-community'
+			return {
+				active: this.pages !== undefined ? 'home' : (selectedTab ? selectedTab : 'in-tab-content'),
+				searchModal: false,
+				notifications: false,
+				menu: false,
+				mute: localStorage.getItem('mute'),
+				isCommunity: selectedTab === 'in-tab-community',
+				snackbar: {
+					status: false,
+					notification: {},
+					list: []
+				},
+				audio: new Audio("<%= settings.url %>/assets/audios/beep-notification.mp3")
+			}
+		},
+		mounted () {
+			const vue = this
+			vue.menu = vue.userMenu
+			if (vue.user.pages) vue.listenNotifications()
+		},
+		methods: {
+			...mapActions('app', ['toggleSideBar', 'setUserMenu', 'setUser', 'goTo', 'showDialog', 'setTab', 'scrollPageTo', 'setUserPages']),
+
+			listenNotifications () {
+				const vue = this
+				const user = Object.assign({}, vue.user)
+				vue.setUserNotifications(vue, user)
+				vue.setUserPagesNotifications(vue, user)
+			},
+
+			setUserNotifications ({ snackbar, setUser, mute, audio, $socket }, user) {
+				$socket.on(`user-${user._id}`, async (notification) => {
+					user.notifications.unshift(notification)
+					if (snackbar.notification.timestamp) {
+						snackbar.list.push(notification)
+					} else {
+						if (mute) await audio.play()
+						snackbar.notification = notification
+					}
+					snackbar.status = true
+					setUser(user)
+				})
+			},
+
+			setUserPagesNotifications ({ snackbar, setUser, mute, audio, userPages, setUserPages, requestUserPages, $socket }, user) {
+				user.pages.forEach(page => {
+					$socket.on(`page-${page}`, (notification) => {
+						user.notifications.unshift(notification)
+						if (snackbar.notification.timestamp) {
+							snackbar.list.push(notification)
+						} else {
+							if (mute) audio.play()
+							snackbar.notification = notification
+						}
+						snackbar.status = true
+						setUser(user)
+						if (userPages.some(p => p.id === notification.pageId)) {
+							setUserPages(userPages.map(p => {
+								if (p.id === notification.pageId) {
+									p.notifications++
+								}
+								return p
+							}))
+						} else {
+							requestUserPages(userPages.length + 1)
+						}
+					})
+				})
+			},
+
+			getNewNotifications(notifications) {
+				if (notifications) {
+					return notifications.filter(notification => {
+						return notification.new
+					})
+				}
+				return []
+			},
+
+			checkTab (tab) {
+				if (tab === 'in-tab-community' && !this.page.local && !location.href.includes('/community')) {
+					this.goTo(`/page/${this.page.url}/community?p=1`)
+				} else {
+					this.setTab(tab)
+					this.scrollPageTo('contents')
+				}
+			},
+
+			checkContent (page) {
+				return page.books !== undefined ||
+				page.videos !== undefined ||
+				page.playlists !== undefined ||
+				page.wiki !== undefined ||
+				page.lives !== undefined ||
+				page.movies !== undefined ||
+				page.series !== undefined ||
+				page.games !== undefined ||
+				page.featuredVideo !== undefined ||
+				page.channels !== undefined ||
+				page.instagram !== undefined
+			},
+
+			checkLists (list) {
+				if (list) if (list.length) return true
+				return false
+			},
+
+			checkNotifications (payload) {
+				const vue = this
+				if (vue.snackbar.status) vue.snackbar.status = false
+				if (!payload && vue.snackbar.list.length) {
+					setTimeout(() => {
+						if (vue.mute) vue.audio.play()
+						vue.snackbar.notification = vue.snackbar.list[0]
+						vue.snackbar.list = vue.snackbar.list.filter((n, i) => i !== 0)
+						vue.snackbar.status = true
+					}, 1000)
+				}
+			},
+
+			toggleMute (payload) {
+				localStorage.setItem('mute', !this.mute)
+				this.mute = !this.mute
+				this.showDialog({
+					message: `Alerta sonoro ${ this.mute ? 'ativado' : 'silenciado'}`,
+					icon: 'info',
+					color: 'info' 
+				})
+			},
+
+			redirectToHref: async function (notification) {
+				const vue = await this
+				if (!notification.clicked) {
+					const user = await JSON.parse(JSON.stringify(vue.user))
+					user.notifications = await user.notifications.map(n => {
+						if (n.timestamp === notification.timestamp) {
+							n.clicked = true
+							n.new = false
+						}
+						return n
+					})
+					await vue.$http.post('/update-user-notifications', { user })
+				}
+				await vue.goTo(notification.href)
+			},
+
+			toggleUserMenu (val) {
+				this.setUserMenu(val)
+			},
+
+			requestUserPages (limit) {
+				const vm = this
+				if (vm.user._id) {
+					vm.loading = true
+					vm.$http.post('/pages-info', {
+							pages: vm.user.pages.filter((item, index) => {
+								return !vm.userPages.some(page => page.id === item) && index < limit
+							})
+						})
+						.then(res => {
+							const { data } = res
+							const { user } = vm
+							data.map(page => {
+								if (user.notifications.some(n => n.pageId === page.id)) {
+									page.notifications = user.notifications.filter(n => n.pageId === page.id && n.new).length
+								} else {
+									page.notifications = 0
+								}
+								vm.userPages.push(page)
+							})
+							vm.setUserPages(vm.userPages.sort((a, b) => b.notifications - a.notifications))
+							if (limit === vm.user.pages.length && vm.userPages.length !== vm.user.pages.length) {
+								const { user } = vm
+								user.pages = vm.userPages.map(page => {
+									return page.id
+								})
+								vm.$http.put('/user', { user }).then(res => {
+									if (res.data.status) {
+										vm.setUser(user)
+									}
+								})
+							}
+							vm.loading = false
+							vm.firstRequest = true
+						})
+				}
+			}
+		}
+	})
+</script>
+
+<style>
+	.in-search-modal {
+		align-self: flex-start !important;
+		margin: 0 !important;
+	}
+	.layout.row {
+		margin-right: 0 !important;
+    	margin-left: 0 !important;
+	}
+	hr.v-divider {
+		margin-top: 0 !important;
+    	margin-bottom: 0 !important;
+	}
+	.v-toolbar .v-badge--overlap .v-badge__badge {
+    top: -25px !important;
+    left: 15px !important;
+	}
+	.v-toolbar .v-badge {
+		display: block !important;
+		z-index: 1;
+	}
+
+	.v-tabs__item--active, .v-tabs__item:not(.v-tabs__item--active):hover {
+		background-color: #555555;
+	}
+
+	.v-tabs__item--active:hover {
+		background-color: #777777;
+	}
+
+	@media (max-width: 600px) {
+		#main-toolbal .v-toolbar__extension {
+			padding: 0 !important;
+			height: 48px !important;	
+		}
+	}
+</style>

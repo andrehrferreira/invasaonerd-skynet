@@ -1,0 +1,138 @@
+<template id="in-template-instagram-midia">
+	<v-card dark :max-height="bp.mdAndUp ? 600 : 9999" :style="(loading ? '' : bp.mdAndUp ? 'min-height: 450px;' : '')">
+		<v-layout>
+			<v-flex xs12 v-if="loading">
+				<in-loading />
+			</v-flex>
+			<v-flex xs12 v-else>
+				<v-layout row wrap>
+					<v-flex xs12 md8>
+						<v-layout align-center justify-center :style="bp.mdAndUp ? 'height: 600px;' : ''" class="black">
+							<v-btn flat color="#ef001c" fab absolute small style="top: 0; right: 0;" @click.stop="$emit('close-modal')">
+								<v-icon>close</v-icon>
+							</v-btn>
+							<video v-if="midia.__typename === 'GraphVideo'" controls :poster="midia.display_url" preload="metadata">
+								<source :src="midia.video_url" type="video/mp4">
+								O seu browser não suporta a reprodução deste vídeo.
+							</video>
+							<v-carousel v-else-if="midia.__typename === 'GraphSidecar'" :cycle="false">
+								<v-carousel-item v-for="({ node }, index) in midia.edge_sidecar_to_children.edges" :key="index">
+									<v-img
+										:height="bp.mdAndUp ? 600 : '500'"
+										contain :src="node.display_url"
+										:alt="node.accessibility_caption"
+									></v-img>
+								</v-carousel-item>
+							</v-carousel>
+							<v-img
+								v-else
+								:height="bp.mdAndUp ? 600 : 'auto'"
+								contain :src="midia.display_url"
+								:alt="midia.accessibility_caption"
+							></v-img>
+						</v-layout>
+					</v-flex>
+					<v-flex xs12 md4>
+						<v-layout row wrap>
+							<v-flex xs12 class="mx-2 mt-3">
+								<v-layout align-center>
+									<a :href="'https://instagram.com/' + midia.owner.username + '/'" target="_blank">
+										<v-avatar size="40">
+											<img :src="midia.owner.profile_pic_url" height="40" width="40" :alt="midia.owner.full_name">
+										</v-avatar>
+									</a>
+									<a :href="'https://instagram.com/' + midia.owner.username" target="_blank" class="white--text mb-0 ml-3">{{ midia.owner.username }}</a>
+								</v-layout>
+							</v-flex>
+							<v-flex xs12 class="ma-2">
+								<v-divider dark></v-divider>
+							</v-flex>
+							<v-flex xs12>
+								<v-layout row wrap>
+									<v-flex xs12>
+										<v-list two-line style="max-height: 450px; overflow-y: auto;">
+											<p class="px-2 caption" v-html="midia.edge_media_to_caption.edges[0].node.text"></p>
+											<template v-for="({ node }, index) in midia.edge_media_to_comment.edges">
+												<v-list-tile :key="index" avatar :href="'https://www.instagram.com/' + node.owner.username + '/'" target="_blank">
+													<v-list-tile-avatar>
+														<img :src="node.owner.profile_pic_url">
+													</v-list-tile-avatar>
+													<v-list-tile-content>
+														<v-list-tile-title v-html="node.owner.username"></v-list-tile-title>
+														<p class="mb-0 caption grey--text" v-html="node.text"></p>
+													</v-list-tile-content>
+												</v-list-tile>
+											</template>
+										</v-list>
+									</v-flex>
+								</v-layout>
+							</v-flex>
+							<v-flex xs12 class="ma-2">
+								<v-divider dark></v-divider>
+							</v-flex>
+							<v-flex xs12>
+								<v-layout row wrap>
+									<v-flex xs12>
+										<v-layout row justify-start>
+											<a :href="'https://instagram.com/p/' + link" target="_blank" class="px-2">
+												<i class="far fa-heart fa-2x white--text"></i>
+											</a>
+											<a :href="'https://instagram.com/p/' + link" target="_blank">
+												<i class="far fa-comment fa-2x white--text"></i>
+											</a>
+										</v-layout>
+										<v-layout row justify-space-between>
+											<v-flex v-if="midia.edge_media_preview_like.count" class="px-2">
+												<p class="mb-0 caption">{{ midia.edge_media_preview_like.count }} curtidas</p>
+											</v-flex>
+											<v-flex v-if="midia.taken_at_timestamp" class="px-2">
+												<p class="mb-0 caption font-italic text-xs-right grey--text">
+													{{ new Date(midia.taken_at_timestamp * 1000).toLocaleString() }}
+												</p>
+											</v-flex>
+										</v-layout>
+									</v-flex>
+								</v-layout>
+							</v-flex>
+						</v-layout>
+					</v-flex>
+				</v-layout>
+			</v-flex>
+		</v-layout>
+	</v-card>
+</template>
+
+<script>
+	Vue.component('in-template-instagram-midia', {
+		template: '#in-template-instagram-midia',
+		props: ['link'],
+		computed: {
+			bp () {
+				return this.$vuetify.breakpoint
+			}
+		},
+		data () {
+			return {
+				loading: true,
+				midia: {}
+			}
+		},
+		created: async function () {
+			const vue = await this
+			const { data } = await vue.$http.get('/api/instagram-midia?link=' + vue.link)
+			vue.midia = await data
+			vue.loading = await false
+		},
+		methods: {
+			...mapActions('app', [
+        'goTo'
+			])
+		}
+	})
+</script>
+
+<style>
+	.v-carousel__controls {
+		background: rgba(0, 0, 0, 0) !important;
+	}
+</style>

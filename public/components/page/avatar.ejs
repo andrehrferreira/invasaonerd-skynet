@@ -1,0 +1,113 @@
+<template id="in-avatar-template">
+	<div>
+		<div class="in-avatar in-radius in-specialborder animated fadeIn" v-if="adding && editingType === 'avatar'">
+			<croppa
+				v-model="imgAvatar"
+				auto-sizing prevent-white-space
+				canvas-color="lightgray"
+				placeholder="<%= __('Avatar') %>"
+				:initial-image="page.avatar"
+				class="in-avatar-thumb"
+			  id="avatar">
+			</croppa>
+		</div>
+		<div class="in-avatar in-radius in-specialborder" v-else>
+			<div v-if="!page.avatar" class="in-avatar-default">
+				<v-tooltip :open-delay="50" :close-delay="50" right>
+					<v-btn slot="activator" v-show="editMode" class="animated zoomIn faster" fab dark small @click.stop="editAvatar" style="position: relative;">
+						<v-icon color="success">edit</v-icon>
+					</v-btn>
+					<span>Editar Avatar</span>
+				</v-tooltip>
+			</div>
+			<v-img v-if="page.avatar" :src="page.avatar" contain class="in-avatar-thumb" id="avatar">
+				<v-tooltip :open-delay="50" :close-delay="50" right>
+					<v-btn slot="activator" v-show="editMode" class="animated zoomIn faster" fab dark small @click.stop="editAvatar" style="position: relative;">
+						<v-icon color="success">edit</v-icon>
+					</v-btn>
+					<span>Editar Avatar</span>
+				</v-tooltip>
+			</v-img>
+		</div>
+		<div class="btn-group-sm" v-if="adding && editingType === 'avatar'">
+			<v-tooltip :open-delay="50" :close-delay="50" left>
+				<v-btn slot="activator" dark small fab flat fixed @click.stop="setImage" class="btn-second btn btn-info btn-fab animated fadeInUp faster" v-if="buttonState">
+					<v-icon>save</v-icon>
+				</v-btn>
+				<span>Salvar Avatar</span>
+			</v-tooltip>
+		</div>
+	</div>
+</template>
+
+<script>
+	Vue.component("in-avatar", {
+		template: "#in-avatar-template",
+		computed: {
+			...mapGetters('page', [
+				'page',
+				'editMode',
+				'adding',
+				'editingType',
+				'buttonState'
+			])
+		},
+		data() {
+			return {
+				imgAvatar: {}
+			}
+		},
+		methods: {
+			...mapActions('page', [
+				'toggleModal',
+				'setEditMode',
+				'setPage',
+				'setAdding',
+				'setEditingType'
+			]),
+			...mapActions('app', [
+				'showDialog'
+			]),
+
+			setImage() {
+				let page = this.page
+				page.changes.push({
+					type: 'avatar'
+				})
+				page.avatar = this.imgAvatar.generateDataUrl('image/jpeg', 0.3)
+				page.miniavatar = this.imgAvatar.generateDataUrl('image/jpeg', 0.1)
+				this.editingAvatar = false
+				this.setPage(page)
+				this.setAdding(false)
+				this.setEditingType('')
+				this.showDialog({
+					message: 'Avatar salvo para envio',
+					color: 'success',
+					icon: 'check-circle'
+				})
+			},
+
+			editAvatar() {
+				this.setEditingType('avatar')
+				this.setAdding(true)
+			}
+		}
+	})
+</script>
+
+<style>
+	.in-avatar {
+		position: relative;
+		display: block;
+		background-color: #333;
+		width: 170px;
+		height: 170px;
+		margin: auto;
+		margin-top: -85px;
+		padding: 3px;
+	}
+
+	.in-avatar-thumb>canvas {
+		max-height: 162px !important;
+	}
+</style>

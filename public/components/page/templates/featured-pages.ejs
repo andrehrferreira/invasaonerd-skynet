@@ -1,0 +1,180 @@
+<template id="in-template-featured-pages">
+	<v-layout row class="">
+		<v-flex xs12>
+			<v-layout row justify-space-between class="py-2">
+				<v-flex xs11 class="pt-2">
+					<p class="mb-0 title">Páginas Relacionadas</p>
+				</v-flex>
+				<v-flex v-if="editMode">
+					<v-tooltip :open-delay="50" :close-delay="50" top>
+						<v-btn class="ma-0" slot="activator" icon dark @click.stop="editType('featuredPages')">
+							<v-icon color="success">edit</v-icon>
+						</v-btn>
+						<span>Editar</span>
+					</v-tooltip>
+				</v-flex>
+			</v-layout>
+			<v-layout row wrap>
+				<v-flex xs12>
+					<v-layout row wrap justify-space-around>
+						<v-flex md6 lg4 xl3 v-for="(featuredPage, index) in featuredPages" :key="index" class="px-2 animated zoomIn fast">
+							<a :href="`/page/${featuredPage.url}`" target="_blank" style="width:120px; word-wrap:break-word;">
+								<v-layout justify-center>
+									<img style="max-width: 80px; max-height: 80px;" :src="`/image/${featuredPage.url}/avatar.jpg`" @error="setDefaultImage"
+										class="in-editor-channel-thumb img-fluid"
+									/>
+								</v-layout>
+								<div class="in-editor-featured-pages-title text-center">
+									{{ featuredPage.title }}
+								</div>
+							</a>
+						</v-flex>
+					</v-layout>
+				</v-flex>
+			</v-layout>
+		</v-flex>
+	</v-layout>
+</template>
+
+<script>
+	Vue.component('in-template-featured-pages', {
+		template: '#in-template-featured-pages',
+		computed: {
+			...mapGetters('page', [
+				'page',
+				'editMode'
+			])
+		},
+		data () {
+			return {
+				editing: false,
+				featuredPages: [],
+				loading: true
+			}
+		},
+		created: async function () {
+			const { data } = await this.$http.post('/get-featured-pages', { featuredPages: this.page.featuredPages.map(fp => {
+				if (fp.url) return fp.url
+				return fp
+			}) })
+			this.featuredPages = await data.filter(page => {
+				return !page.error
+			})
+			const { page } = this
+			page.featuredPages = this.featuredPages
+			this.setPage(page)
+		},
+		methods: {
+			...mapActions('page', [
+				'toggleModal',
+				'setAdding',
+				'setEditingType',
+				'setPage'
+			]),
+			...mapActions('app', [
+				'scrollPageTo',
+			]),
+
+			getOnlyTitle (string) {
+        if (string.includes('(') && string.includes(')')) {
+          return string.split(' (')[0]
+        }
+        return string
+      },
+
+      setDefaultImage (event) {
+        event.target.src = '/assets/img/avatardefault.jpeg'
+      },
+
+			editType(type) {
+				this.setEditingType(type)
+				this.toggleModal(false)
+				this.setAdding(true)
+				setTimeout(() => {
+					this.scrollPageTo(type)
+				}, 20)
+			}
+		}
+	})
+</script>
+
+<style>
+	.in-channels-preview {
+		width: 100%;
+		text-align: center;
+		flex-wrap: wrap;
+		overflow: hidden;
+	}
+
+	.in-games-preview .swiper-container {
+		width: 100%;
+		height: 280px !important;
+	}
+
+	.in-channels-preview-item {
+		width: 120px;
+		height: 200px;
+		overflow: hidden;
+		display: -webkit-box;
+		display: -moz-box;
+		display: -ms-flexbox;
+		display: -webkit-flex;
+		background-color: rgba(0, 0, 0, 0);
+		display: flex;
+		flex-wrap: wrap;
+		align-items: flex-start;
+		color: #333;
+		text-align: left !important;
+		-webkit-transition: 0.2s ease-in-out;
+		-moz-transition: 0.2s ease-in-out;
+		-o-transition: 0.2s ease-in-out;
+		transition: 0.2s ease-in-out;
+		cursor: pointer;
+	}
+
+	.in-editor-featured-pages-title {
+		padding: 5px 0 10px 0;
+		text-shadow: none;
+		line-height: 18px;
+		color: white;
+		font-size: 13px;
+		text-overflow: ellipsis;
+		white-space: normal;
+		overflow: hidden;
+	}
+
+	.in-editor-channel-container {
+		text-align: left;
+		display: -webkit-box;
+		display: -moz-box;
+		display: -ms-flexbox;
+		display: -webkit-flex;
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		flex-direction: row;
+	}
+	
+	.in-editor-channel-item {
+		width: 120px;
+		height: 220px;
+		background-color: rgba(0, 0, 0, 0);
+		margin: auto;
+		-webkit-border-radius: 3px;
+		-moz-border-radius: 3px;
+		border-radius: 3px;
+		align-self: center;
+		margin-bottom: 10px
+	}
+
+	.in-editor-channel-thumb {
+		width: 100% !important;
+		height: auto;
+		display: block;
+		border: 0;
+		position: relative;
+		-webkit-border-radius: 3px;
+		-moz-border-radius: 3px;
+		border-radius: 100%;
+	}
+</style>

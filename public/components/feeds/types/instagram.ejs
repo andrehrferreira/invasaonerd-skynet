@@ -1,0 +1,148 @@
+<template id="in-type-instagram">
+	<v-layout row wrap>
+		<v-flex xs12 v-if="payload.edge_media_to_caption">
+			<p v-html="$urlify(payload.edge_media_to_caption.edges[0].node.text)"></p>
+		</v-flex>
+		<v-flex xs12>
+			<v-layout
+				v-if="payload.__typename === 'GraphImage' || payload.__typename === 'GraphVideo'"
+				row class="black"
+			>
+				<v-flex xs12 v-if="playing !== payload.shortcode">
+					<v-layout row align-center justify-center>
+						<v-hover>
+							<v-img
+								:src="payload.display_url"
+								:lazy-src="payload.thumbnail_resources[0].src"
+								slot-scope="{ hover }"
+								:max-height="payload.dimensions.height"
+								:max-width="payload.dimensions.width"
+								cover :alt="payload.accessibility_caption"
+								:style="hover ? 'cursor: pointer;' : ''" @error="removeFromFeed($event)"
+							>
+								<v-container
+									v-if="payload.__typename === 'GraphVideo'" fluid fill-height
+									:style="hover ? 'background-color: rgba(0,0,0,0.7)' : ''"
+									@click.stop="$emit('play-video', payload.shortcode)"
+								>
+									<v-layout justify-center align-center fill-height>
+										<v-icon :color="hover ? 'red' : 'white'" size="70px" class="absolute_position" dark>play_arrow</v-icon>
+									</v-layout>
+								</v-container>
+							</v-img>
+						</v-hover>
+					</v-layout>
+				</v-flex>
+				<v-flex xs12 v-else>
+					<video-player class="vjs-custom-skin"
+						ref="videoPlayer"
+						:options="playerOptions"
+						:playsinline="1 !== 1"
+					>
+					<!-- EVENTS
+						@play="onPlayerPlay($event)"
+						@pause="onPlayerPause($event)"
+						@ended="onPlayerEnded($event)"
+						@loadeddata="onPlayerLoadeddata($event)"
+						@waiting="onPlayerWaiting($event)"
+						@playing="onPlayerPlaying($event)"
+						@timeupdate="onPlayerTimeupdate($event)"
+						@canplay="onPlayerCanplay($event)"
+						@canplaythrough="onPlayerCanplaythrough($event)"
+						@ready="playerReadied"
+						@statechanged="playerStateChanged($event)" -->
+					</video-player>
+				</v-flex>
+			</v-layout>
+			<v-layout align-center justify-center class="black" v-else-if="payload.__typename === 'GraphSidecar'">
+				<v-flex xs12 v-if="loading">
+					<in-loading />
+				</v-flex>
+				<v-carousel v-else :cycle="false">
+					<v-carousel-item v-for="({ node }, index) in midia.edge_sidecar_to_children.edges" :key="index">
+						<v-img
+							:height="bp.mdAndUp ? 600 : '500'"
+							contain :src="node.display_url"
+							:alt="node.accessibility_caption"
+						></v-img>
+					</v-carousel-item>
+				</v-carousel>
+			</v-layout>
+		</v-flex>
+	</v-layout>
+</template>
+
+<script>
+	Vue.component('in-type-instagram', {
+		template: '#in-type-instagram',
+		props: ['payload', 'playing'],
+		computed: {
+			bp () {
+				return this.$vuetify.breakpoint
+			},
+			player() {
+        return this.$refs.videoPlayer.player
+      }
+		},
+		data () {
+			return {
+				midia: {},
+				loading: false,
+				playerOptions: {}
+			}
+		},
+		created: async function () {
+			const vue = this
+			const { __typename, shortcode } = vue.payload
+			if (__typename === 'GraphSidecar' || __typename === 'GraphVideo') {
+				vue.loading = true
+				try {
+					const { data } = await vue.$http.get('/api/instagram-midia?link=' + shortcode)
+					
+					vue.midia = data
+
+					if (__typename === 'GraphVideo' && data) {
+						vue.playerOptions = {
+							controlBar: {
+								fullscreenToggle: false
+							},
+							autoplay: true,
+							muted: false,
+							language: 'en',
+							playbackRates: [0.5, 0.7, 1.0, 1.5, 2.0],
+							sources: [{
+								type: "video/mp4",
+								src: data.video_url,
+							}],
+							poster: data.display_url
+						}
+					} 
+					
+				} catch (err) {
+					console.log(err)
+					vue.showDialog({
+						message: 'Falha na comunicação com o servidor',
+						color: 'red',
+						icon: 'warning'
+					})
+				}
+				vue.loading = false
+			}
+		},
+		methods: {
+			removeFromFeed (e) {
+				this.payload.display_url = this.midia.display_url
+				console.clear()
+			}
+		},
+	})
+</script>
+
+<style>
+	.video-js:hover .vjs-big-play-button,.vjs-custom-skin > .video-js .vjs-big-play-button:focus,.vjs-custom-skin > .video-js .vjs-big-play-button:active {
+		background-color: rgba(244, 67, 54, 0.8) !important;
+	}
+	.vjs-custom-skin > .video-js .vjs-play-progress, .vjs-custom-skin > .video-js .vjs-volume-level {
+    background-color: rgb(244, 67, 54) !important;
+	}
+</style>

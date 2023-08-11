@@ -1,0 +1,319 @@
+<template id="in-index-slider">
+	<v-layout row wrap class="noselect">
+		<v-flex xs12>
+			<p class="display-1 mt-3 ml-1">{{ cat.alias ? cat.alias : cat.text }}</p>
+		</v-flex>
+		<v-flex xs12>
+			<v-layout
+				row :style="`overflow-x: ${ $vuetify.breakpoint.width > 500 ? 'hidden' : 'auto' }; overflow-y: hidden; cursor: grab;`"
+				:ref="formatCat(cat.text)" class="pa-2"
+				:id="formatCat(cat.text)"
+				@mousedown="mouseDown" @mousemove="mouseMove" @mouseup="mouseUp"
+			>
+				<div
+					v-show="scrollLeft > 50"
+					class="in-slider in-left"
+					@click.stop="slide('left')"
+					v-ripple
+				>
+					<v-icon dark large style="margin-top: 120px; text-shadow: 1px 1px grey;">arrow_back_ios</v-icon>
+				</div>
+				<div
+					v-show="scrollLeft !== scrolableArea"
+					class="in-slider in-right"
+					@click.stop="slide('right')"
+					v-ripple
+				>
+					<v-icon dark large style="margin-top: 120px; text-shadow: 1px 1px grey;">arrow_forward_ios</v-icon>
+				</div>
+				<v-flex
+					v-for="(page, index) in pages" :key="index" style="max-width: 280px"
+					class="in-card-hover mr-3 animated fadeIn faster" style="border-radius: 5px"
+				>
+					<v-hover>
+						<v-card slot-scope="{ hover }" width="280" :class="`elevation-${hover ? 12 : 2}`" @click.stop="goTo('/page/' + page.url)">
+							<v-img :src="page.avatar" height="280" width="280" cover :lazy-src="page.miniavatar">
+								<v-container fluid fill-height :class="'pa-0 ' + (hover ? 'in-fade-image' : '')">
+									<v-layout wrap fill-height>
+										<v-flex xs12 class="pl-2 pt-2">
+											<v-layout row wrap>
+												<v-flex xs12>
+													<a :href="'/page/' + page.url">
+														<v-layout row justify-space-between class="in-fade-image pa-2" style="border-top-left-radius: 30px; border-bottom-left-radius: 30px;">
+															<v-flex class="pr-2">
+																<v-avatar>
+																	<v-img :src="page.miniavatar"></v-img>
+																</v-avatar>
+															</v-flex>
+															<v-flex xs11 class="in-card-title" align-content-center justify-center>
+																<v-layout row wrap justify-start align-center>
+																	<v-flex xs12>
+																		<span class="title white--text font-weight-thin" v-html="page.title"></span>
+																	</v-flex>
+																	<v-flex  v-if="page.nickname">
+																		<span class="subtitle white--text">({{ page.nickname }})</span>
+																	</v-flex>
+																</v-layout>
+															</v-flex>
+														</v-layout>
+													</a>
+												</v-flex>
+											</v-layout>
+										</v-flex>
+										<v-flex xs12 v-if="hover" :class="'px-3 ' + (hover ? 'animated fadeIn faster' : '')">
+											<p class="white--text text-xs-justify ma-0 pa-1 body-1" v-html="formatSummary(page.summary)"></p>
+										</v-flex>
+										<v-flex xs12 class="px-3 pb-3">
+											<v-layout row wrap justify-space-between align-end fill-height>
+												<v-flex v-if="user.pages">
+													<v-layout justify-end>
+														<v-btn type="button" class="ma-0" @click.stop="follow(page)" v-if="!user.pages.includes(page.id)" color="#ef001c"
+														:loading="loading && unfollowing === page.id" :disabled="loading && unfollowing === page.id">INSCREVER-SE</v-btn>
+														<v-btn type="button" class="ma-0" v-else color="#4b4b4b" :loading="loading && unfollowing === page.id"
+														@click.stop="confirmUnsubscribe(page.id)" :disabled="loading && unfollowing === page.id">INSCRITO</v-btn>
+													</v-layout>
+												</v-flex>
+												<v-flex v-else>
+													<v-layout justify-end>
+														<v-btn class="ma-0" @click.stop="setUserMenu(true)" color="#ef001c">INSCREVER-SE</v-btn>
+													</v-layout>
+												</v-flex>
+											</v-layout>
+										</v-flex>
+									</v-layout>
+								</v-container>
+							</v-img>
+
+							<div v-if="page.id === unfollowing">
+								<v-dialog v-model="unsubscribe" transition="dialog-transition" max-width="500px">
+									<v-card>
+										<v-card-title class="pa-4">Deseja cancelar inscrição de {{ page.title }}? </v-card-title>
+										<v-divider></v-divider>
+										<v-card-actions>
+											<v-spacer></v-spacer>
+											<v-btn color="grey" flat @click.native="unsubscribe = false">NÃO</v-btn>
+											<v-btn color="#ef001c" flat @click.stop="follow(page)">SIM</v-btn>
+										</v-card-actions>
+									</v-card>
+								</v-dialog>
+							</div>
+						</v-card>
+					</v-hover>
+				</v-flex>
+			</v-layout>
+
+			<v-progress-linear v-if="loading && loadingMoreCategorie === cat.text" class="my-0 py-0 animated faster text-sm-center"
+			 :indeterminate="true" color="#ef001c" height="5"></v-progress-linear>
+		</v-flex>
+	</v-layout>
+</template>
+
+<script>
+	Vue.component('in-index-slider', {
+		template: '#in-index-slider',
+		props: [
+			'cat',
+			'pages',
+			'categories'
+		],
+		computed: {
+			...mapGetters('app', [
+				'user',
+				'windowWidth'
+			])
+		},
+		data() {
+			return {
+				loading: false,
+				jobs: [],
+				unsubscribe: false,
+				unfollowing: '',
+				hasNext: (<%- JSON.stringify(categories) %>).map(cat => {
+					return { name: cat.text, hasNext: true }
+				}),
+				loadingMoreCategorie: '',
+				progress: 0,
+				scrollLeft: 0,
+				scrolableArea: 0,
+				x: 0,
+				down: false
+			}
+		},
+		mounted () {
+			const vue = this
+			vue.$nextTick(() => {
+				const elem = vue.$refs[vue.formatCat(vue.cat.text)]
+				vue.scrollLeft = elem.scrollLeft
+				vue.scrolableArea = elem.scrollWidth - elem.clientWidth
+				elem.addEventListener('scroll', (event) => {
+					const { scrollLeft, scrollWidth, clientWidth } = event.target
+					const scrolableArea = (scrollWidth - clientWidth)
+					vue.scrolableArea = scrolableArea
+					vue.scrollLeft = scrollLeft
+					vue.progress = ((scrollLeft / scrolableArea) * 100)
+					vue.loadMore((scrollLeft / scrolableArea), vue.cat.text)
+				})
+			})
+		},
+		methods: {
+			...mapActions('app', [
+				'setUser',
+				'showDialog',
+				'setUserMenu',
+				'goTo'
+			]),
+
+			formatCat (cat) {
+				return cat.replace('(','').replace(')', '').split(' ').join('-').split('/').join('')
+			},
+
+			mouseDown (event) {
+				this.down = true
+				this.x = event.pageX
+				this.$refs[this.formatCat(this.cat.text)].style.cursor = 'grabbing'
+			},
+
+			mouseMove (event) {
+				if(this.down) {
+					this.$refs[this.formatCat(this.cat.text)].scrollLeft = (this.scrollLeft - event.pageX) + this.x
+					this.$refs[this.formatCat(this.cat.text)].style.cursor = 'grabbing'
+				}
+			},
+
+			mouseUp () {
+				this.down = false
+				this.$refs[this.formatCat(this.cat.text)].style.cursor = 'grab'
+			},
+
+			slide: async function (direction) {
+				const vue = await this
+				const elem = await vue.$refs[vue.formatCat(vue.cat.text)]
+				if (direction === 'left') {
+					await $(`#${vue.formatCat(vue.cat.text)}`).animate( { scrollLeft: '-=288' }, 200)
+				} else {
+					await $(`#${vue.formatCat(vue.cat.text)}`).animate( { scrollLeft: '+=288' }, 200)
+				}
+			},
+
+			formatSummary(text) {
+				if (text) {
+					return text.split(' ').filter((word, index) => {
+						return index < 25
+					}).join(' ') + '...'
+				}
+				return text
+			},
+
+			verifyChange(categories) {
+				if (categories.length > 1 && categories.includes('Sem Categoria')) {
+					this.selectedCategories = categories.filter(cat => cat !== 'Sem Categoria')
+				} else if (categories.length === 0) {
+					this.selectedCategories = ['Sem Categoria']
+				}
+			},
+
+			confirmUnsubscribe(id) {
+				this.unfollowing = id
+				setTimeout(() => {
+					this.unsubscribe = true
+				}, 20)
+			},
+
+			loadMore: async function (payload, categorie) {
+				const vm = await this
+				const { length } = await vm.pages.filter(page => {
+					return page.categories.includes(categorie)
+				})
+				const { hasNext } = await vm.hasNext.filter(hn => hn.name === categorie)[0]
+				if (payload > 0.9 && !vm.loading && hasNext) {
+					vm.loadingMoreCategorie = await categorie
+					vm.loading = await true
+					await vm.$http.get(`/index/pages?skip=${length}&limit=${15}&categorie=${categorie}`).then(async res => {
+						const {
+							pages,
+							hasNext
+						} = await res.data
+						if (!hasNext) {
+							vm.hasNext = await vm.hasNext.map(hn => {
+								if (hn.name === categorie) hn.hasNext = hasNext
+								return hn
+							})
+						}
+						await this.$emit('set-pages', pages)
+						vm.loading = await false
+					}).catch(err => {
+						console.log(err)
+						vm.loading = false
+					})
+				}
+			},
+
+			follow(page) {
+				const vm = this
+				vm.unfollowing = page.id
+				if (vm.unsubscribe) vm.unsubscribe = !vm.unsubscribe
+				vm.jobs.push(page.id)
+				var user = JSON.parse(JSON.stringify(vm.user))
+				var add = !pages.includes(page.id)
+				var {
+					pages
+				} = user
+				if (add) {
+					pages.push(page.id)
+				} else {
+					pages = pages.filter(pageId => {
+						return pageId !== page.id
+					})
+				}
+				user.pages = pages
+				vm.loading = true
+				vm.$http.post('/follow', { user, id: page.id, add }).then(() => {
+					vm.setUser(user)
+					vm.loading = false
+					vm.jobs = vm.jobs.filter(id => {
+						return id !== page.id
+					})
+				}).catch((err) => {
+					console.log(err)
+					vm.jobs = vm.jobs.filter(id => {
+						return id !== page.id
+					})
+					vm.showDialog({
+						message: 'Falha na comunicação com o servidor',
+						color: 'red',
+						icon: 'warning'
+					})
+				})
+			}
+		}
+	})
+</script>
+
+<style>
+	.in-left {
+		left: 0;
+	}
+	.in-right {
+		right: 0;
+	}
+	.in-slider {
+		position: absolute;
+		z-index: 2;
+		height: 280px;
+		transition: all .2s linear;
+		background-color: rgba(0, 0, 0, 0.1);
+	}
+	.in-slider:hover {
+		background-color: rgba(0, 0, 0, 0.8);
+		cursor: pointer;
+	}
+	.noselect {
+		-webkit-touch-callout: none; /* iOS Safari */
+		-webkit-user-select: none; /* Safari */
+		-khtml-user-select: none; /* Konqueror HTML */
+		-moz-user-select: none; /* Firefox */
+		-ms-user-select: none; /* Internet Explorer/Edge */
+		user-select: none; /* Non-prefixed version, currently
+													supported by Chrome and Opera */
+	}
+</style>

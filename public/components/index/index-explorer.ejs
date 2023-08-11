@@ -1,0 +1,83 @@
+<template id="in-explorer">
+	<v-flex xs12>
+		<v-layout row wrap>
+			<v-flex xs12>
+				<v-tabs
+					dark color="black" class="animated fadeIn faster"
+					show-arrows v-if="scrollTop <= $vuetify.breakpoint.height / 2"
+					v-model="active" @change="setTab" centered
+				>
+					<v-tabs-slider color="#ef001c"></v-tabs-slider>
+					<v-tab href="#home">
+						TUDO
+					</v-tab>
+					<v-tab
+						v-for="(cat, index) in categories"
+						:href="'#' + cat.text"
+						:key="index" v-if="pages.some(page => page.categories.includes(cat.text))"
+					>
+						{{ cat.alias ? cat.alias : cat.text }}
+					</v-tab>
+				</v-tabs>
+				<v-tabs-items dark touchless v-model="active">
+					<v-tab-item value="home">
+						<div v-for="(cat, index) in categories" :key="index" v-if="pages.some(page => page.categories.includes(cat.text))">
+							<in-index-slider :cat="cat" :pages="pages.filter(page => page.categories.includes(cat.text))" :categories="categories" @set-pages="setPages" />
+						</div>
+					</v-tab-item>
+					<v-tab-item
+						v-for="(cat, index) in categories" :value="cat.text"
+						:key="index" v-if="pages.some(page => page.categories.includes(cat.text))"
+					>
+						<div>
+							<in-index-panel :cat="cat" :pages="pages.filter(page => page.categories.includes(cat.text))" :tab="tab" @set-pages="setPages" />
+						</div>
+					</v-tab-item>
+				</v-tabs-items>
+			</v-flex>
+		</v-layout>
+	</v-flex>
+</template>
+
+<script>
+	Vue.component('in-explorer', {
+		template: '#in-explorer',
+		props: ['categories', 'pages'],
+		computed: {
+			...mapGetters('app', [
+				'tab',
+				'scrollTop'
+			])
+		},
+		watch: {
+			tab (val) {
+				this.active = val
+			}
+		},
+		data () {
+			return {
+				active: 'home'
+			}
+		},
+		methods: {
+			...mapActions('app', [
+				'scrollPageTo',
+				'setTab'
+			]),
+			setPages: async function (payload) {
+				const vue = await this
+				vue.$emit('set-page', payload)
+			}
+		}
+	})
+</script>
+
+<style>
+	a {
+		text-decoration: none !important;
+	}
+
+	span.headline.white--text {
+		text-shadow: 1px 1px black;
+	}
+</style>

@@ -1,0 +1,63 @@
+<template id="in-template-facebook">
+	<section class=" animated fadeIn" ref="facebook">
+		<div class="row justify-end mt-3">
+			<div class=" text-left justify-end" v-if="editMode">
+				<!-- <v-btn fab color="" class=" move mr-1" title="<%= __('Mover') %>" v-if="1 === 2">
+					<v-icon color="primary">zoom_out_map</v-icon>
+				</v-btn> -->
+				<v-btn color="" fab small title="<%= __('Remover') %>" @click.stop="removeType('facebook')">
+					<v-icon color="#ef001c">delete</v-icon>
+				</v-btn>
+			</div>
+		</div>
+		<div class="row">
+			<div class="col-12" v-if="!movingBox">
+				<div id="facebook">
+					<iframe :src="'https://www.facebook.com/plugins/page.php?href=' + encodeURI(page.facebook.url) + '&width=1500&height=220&small_header=false&adapt_container_width=true&hide_cover=false&show_facepile=true&appId=556136401387797'"
+					style="border:none;overflow:hidden; width: 100%; height: 220px;" scrolling="no" frameborder="0" allowTransparency="true"
+					allow="encrypted-media"></iframe>
+				</div>
+			</div>
+		</div>
+
+	</section>
+
+</template>
+<script>
+	Vue.component("in-template-facebook", {
+		template: "#in-template-facebook",
+		computed: {
+			...mapGetters('page', [
+				'page',
+				'editMode',
+				'movingBox'
+			]),
+			...mapGetters('app', [
+				'windowWidth'
+			])
+		},
+		methods: {
+			...mapActions('page', [
+				'toggleModal',
+				'setAdding',
+				'setEditingType',
+				'removeType'
+			]),
+			...mapActions('app', [
+				'scrollPageTo',
+			]),
+
+			editType(type) {
+				this.setEditingType(type)
+				this.toggleModal(false)
+				this.setAdding(true)
+				setTimeout(() => {
+					this.scrollPageTo(type)
+				}, 20)
+			}
+		}
+	})
+
+</script>
+<style>
+</style>

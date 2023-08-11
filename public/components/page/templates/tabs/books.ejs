@@ -1,0 +1,68 @@
+<template id="in-template-books-tab">
+	<section class=" animated fadeIn" ref="books">
+
+		<p class="pl-2 in-videos-tab-h3 mb-0 py-3">
+			<%= __('Livros/Quadrinhos') %>
+		</p>
+
+		<div class="in-editor-section in-books-preview" id="books">
+			<v-layout row wrap justify-space-around class="py-2" style="overflow-y: hidden;">
+				<v-hover v-for="(book, index) in page.books" :key="index">
+					<v-card
+						dark flat color="#121212" slot-scope="{ hover }"
+						:title="book.title" :hover="hover"
+						@click.stop="seeBookDetails(book)" max-width="128"
+					>
+						<v-img :src="book.thumbnail" aspect-ratio="1.4" cover height="189" width="128"></v-img>
+						<v-card-text class="px-0 py-1">
+							<p class="mb-0 text-truncate">{{ book.title }}</p>
+							<p class="mb-0 grey--text font-italic text-truncate grey--text">{{book.authors}}</p>
+							<p class="mb-0 grey--text caption text-truncate" v-if="book.isbn">ISBN: {{book.isbn.identifier}}</div>
+						</v-card-text>
+					</v-card>
+				</v-hover>
+			</v-layout>
+		</div>
+	</section>
+</template>
+
+<script>
+	Vue.component("in-template-books-tab", {
+		template: "#in-template-books-tab",
+		computed: {
+			...mapGetters('page', [
+				'page',
+				'editMode',
+				'swiperOption'
+			])
+		},
+		methods: {
+			...mapActions('page', [
+				'toggleModal',
+				'setAdding',
+				'setEditingType',
+				'removeType',
+				'setBookDetails',
+				'setBookModal'
+			]),
+			...mapActions('app', [
+				'scrollPageTo'
+			]),
+
+			seeBookDetails(movie) {
+				this.setBookDetails(movie)
+				this.setBookModal(true)
+			},
+
+			editType(type) {
+				this.setEditingType(type)
+				this.toggleModal(false)
+				this.setAdding(true)
+				setTimeout(() => {
+					this.scrollPageTo(type)
+				}, 20)
+			}
+		}
+	})
+
+</script>

@@ -1,0 +1,121 @@
+<template id="in-report-modal">
+	<v-dialog v-model="dialog" max-width="500" @input="closeModal">
+		<v-card>
+			<v-card-title class="headline">Detalhes da denuncia</v-card-title>
+			<v-card-text v-if="report.answer">
+				<v-card>
+					<v-card-text class="grey darken-4">
+						<p class="mb-0 font-italic grey--text text-truncate" v-html="report.answer.comment"></p>
+					</v-card-text>
+				</v-card>
+			</v-card-text>
+			<v-card-text>
+				<v-layout row wrap>
+					<v-flex xs12 d-flex>
+						<v-select v-model="report.categorie" :items="categories" box label="Categorize esta denuncia*"></v-select>
+					</v-flex>
+					<v-flex xs12>
+						<v-textarea
+							label="Diga algo sobre isso"
+							:rules="[(v) => v.length <= 255 || 'Maximo de 255 caracteres']"
+							:counter="255"
+							v-model="report.text"
+						></v-textarea>
+					</v-flex>
+				</v-layout>
+			</v-card-text>
+			<v-card-actions>
+				<v-btn color="red" @click.native="closeModal(false)">Cancelar</v-btn>
+				<v-spacer></v-spacer>
+				<v-btn color="success" @click.native="sendToReport(report)" :disabled="!report.categorie || report.text.length > 255">Enviar</v-btn>
+			</v-card-actions>
+		</v-card>
+	</v-dialog>
+</template>
+
+<script>
+	Vue.component('in-report-modal', {
+		template: '#in-report-modal',
+		props: ['modal', 'answer'],
+		computed: {
+			...mapGetters('app', ['user'])
+		},
+		watch: {
+			modal (val) {
+				if (val) this.report.answer = this.answer
+				this.dialog = val
+			}
+		},
+		data () {
+			return {
+				dialog: false,
+				report: {
+					timestamp: '',
+					user: '',
+					categorie: '',
+					text: ''
+				},
+				loading: false,
+				categories: [
+					'Nudez',
+					'Violência',
+					'Assédio',
+					'Suicídio ou automutilação',
+					'Notícia falsa',
+					'Spam',
+					'Vendas não autorizadas',
+					'Discurso de ódio',
+					'Terrorismo'
+				].sort((a, b) => a > b ? 1 : -1)
+			}
+		},
+		mounted() {
+			this.categories.push('Outros')
+		},
+		methods: {
+			...mapActions('app', ['showDialog']),
+			
+			closeModal (val) {
+				if (!val) {
+					this.report = {
+						user: '',
+						categorie: '',
+						text: ''
+					}
+					this.dialog = val
+					this.$emit('close-modal', val)
+				}
+			},
+
+			async sendToReport (report) {
+				report.pageRef = parseInt(new URL(location.href).searchParams.get('p'))
+				console.log(report)
+				const vue = this
+				let error = {
+					status: false,
+					message: ''
+				}
+				report.user = vue.user.email
+				vue.loading = true
+				try {
+					const { data } = await vue.$http.post('/comments/report', { report })
+					vue.closeModal(false)
+					vue.showDialog({
+						message: 'Sua denuncia foi enviada para os administradores',
+						color: 'success',
+						icon: 'info'
+					})
+				} catch (err) {
+					console.log(err)
+					error = true
+				}
+				vue.loading = false
+				if (error.status) vue.showDialog({
+					message: error.message || 'Ocorreu um erro na comunicação com o servidor',
+					color: 'red',
+					icon: 'warning'
+				})
+			}
+		}
+	})
+</script>

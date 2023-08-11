@@ -1,0 +1,64 @@
+.in-modal-editor-box-step {
+  align-self: auto;
+  position: fixed;
+  background-color: rgb(35, 35, 35);
+  z-index: 1000;
+  bottom: 0;
+  margin: 0 auto;
+  width: 100%;
+  left: 0;
+  overflow-y: scroll;
+  height: 600px;
+}
+
+.in-modal-close-button {
+  margin-left: 90%;
+  text-align: center;
+  position: relative;
+  display: block;
+  width: 50px;
+}
+
+.in-modal-close-button > .fa:hover {
+  background-color: lightgray;
+  border-radius: 25px;
+  color: black;
+}
+
+.in-modal-close-button > .fa {
+  cursor: pointer;
+  padding: 10px;
+  position: relative;
+  font-size: 2em;
+  background-color: rgb(35, 35, 35);
+  border-radius: 25px;
+  width: 50px;
+  -webkit-transition: 0.2s ease-in-out;
+  -moz-transition: 0.2s ease-in-out;
+  -o-transition: 0.2s ease-in-out;
+  transition: 0.2s ease-in-out;
+}
+
+.in-swiper-editor-item {
+  max-width: 170px;
+  background-color: rgb(35, 35, 35) !important;
+}
+
+@media (max-width: 780px) {
+  .in-modal-editor-box-step {
+    height: 250px;
+  }
+
+  .in-editor-type-box {
+    width: 100% !important;
+  }
+
+  .in-modal-close-button {
+    margin-left: 85%;
+  }
+
+  .in-editor-plus, .in-editor-save {
+    right: 0 !important;
+    bottom: 0 !important;
+  }
+}

@@ -1,0 +1,82 @@
+<template id="in-categories">
+		<section class=" animated fadeIn">
+			<v-layout row wrap>
+				<v-flex xs12 v-if="editMode">
+					<v-layout justify-end>
+						<v-tooltip :open-delay="50" :close-delay="50" bottom>
+							<v-btn
+								slot="activator"
+								class="mr-1 animated zoomIn faster" fab small
+								@click.stop="editType('categories')"
+							>
+								<v-icon color="green">edit</v-icon>
+							</v-btn>
+							<span>Editar Categorias</span>
+						</v-tooltip>
+					</v-layout>
+				</v-flex>
+			</v-layout>
+			<v-layout row wrap>
+				<v-flex xs12 id="categories">
+					<h2 class="body-1 font-italic" class="ma-0 pa-0" v-if="ssr">
+						<%if (page.categories) { %>
+							<%- page.categories.join(', ') %>
+						<% } %>
+					</h2>
+					<v-layout v-else row justify-center>
+						<v-tooltip :open-delay="50" :close-delay="50" v-for="(categorie, index) of page.categories" :key="index" bottom>
+							<v-avatar size="25" slot="activator" color="#ef001d" class="ma-1" style="cursor: pointer;">
+								<span class="white--text caption">{{ categorie[0] }}</span>
+							</v-avatar>
+							<span>{{ categorie }}</span>
+						</v-tooltip>
+					</v-layout>
+					<p class="small-text-legend mb-0">Categorias</p>
+				</v-flex>
+			</v-layout>
+		</section>
+	</template>
+	
+	<script>
+		Vue.component('in-categories', {
+			template: '#in-categories',
+			computed: {
+				...mapGetters('page', [
+					'page',
+					'editMode'
+				])
+			},
+			data () {
+				return {
+					ssr: true
+				}
+			},
+			mounted () {
+				const vue = this
+				vue.$nextTick(() => {
+					vue.ssr = false
+				})
+			},
+			methods: {
+				...mapActions('page', [
+					'toggleModal',
+					'setAdding',
+					'setEditingType'
+				]),
+				...mapActions('app', [
+					'scrollPageTo',
+				]),
+	
+				editType(type) {
+					this.setEditingType(type)
+					this.toggleModal(false)
+					this.setAdding(true)
+					setTimeout(() => {
+						this.scrollPageTo(type)
+					}, 20)
+				}
+			}
+		})
+	
+	</script>
+	

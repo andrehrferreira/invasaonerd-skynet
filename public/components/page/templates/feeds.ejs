@@ -1,0 +1,123 @@
+<template id="in-template-feeds">
+  <section class=" animated fadeIn mt-3" ref="feeds">
+    <div class="row justify-end">
+      <div class="in-edit-block-position text-left justify-end" v-if="editMode">
+
+        <v-tooltip :open-delay="50" :close-delay="50" bottom>
+          <v-btn
+            slot="activator"
+            class="mr-1 animated zoomIn faster" fab small
+            @click.stop="editType('feeds')"
+          >
+            <v-icon color="green">edit</v-icon>
+          </v-btn>
+          <span>Editar Feeds de Nótícias</span>
+        </v-tooltip>
+
+        <v-tooltip :open-delay="50" :close-delay="50" bottom>
+          <v-btn slot="activator" fab small class="animated zoomIn faster" @click.stop="removeType('feeds')">
+            <v-icon color="#ef001c">delete</v-icon>
+          </v-btn>
+          <span>Deletar Feeds de Nótícias</span>
+        </v-tooltip>
+
+      </div>
+    </div>
+    <h3><%= __('Feed de Notícias') %></h3>
+    <div v-if="!loading">
+      <b-card-group columns id="in-feeds-cards">
+        <div v-for="(feed, index) in feeds.items" :key="index" class="py-1">
+          <b-card
+            v-if="feed.title && feed.link"
+            bg-variant="dark" text-variant="white"
+            :title="feed.title"
+            style="cursor: pointer" @click.stop="redirectTo(feed.link)"
+          >
+            <p class="card-text" v-html="feed.contentSnippet"></p>
+            <p v-if="feed.creator || feed.author" class="text-right"><small> - <i>{{feed.creator || feed.author}}</i></small></p>
+            <div slot="footer" v-if="feed.isoDate">
+              <small class="text-muted">
+              <%= __('Publicação:') %> {{ new Date(feed.isoDate).toLocaleDateString() + ' - ' + new Date(feed.isoDate).toLocaleTimeString() }}
+              </small>
+            </div>
+          </b-card>
+        </div>
+      </b-card-group>
+      <div class="row my-2">
+        <div class="col-12 text-center">
+          <a class="text-white" target="_blank" :href="feeds.link">Ver mais Notícias</a>
+        </div>
+      </div>
+    </div>
+    <div class="row" v-else>
+      <div class="col-12">
+        <in-loading />
+      </div>
+    </div>
+  </section>
+</template>
+
+<script>
+  Vue.component('in-template-feeds', {
+    template: '#in-template-feeds',
+    computed: {
+      ...mapGetters('page', [
+        'page',
+        'editMode'
+      ])
+    },
+    data () {
+      return {
+        feeds: {},
+        loading: true
+      }
+    },
+    mounted () {
+      this.get(this.page.feeds)
+    },
+    methods: {
+      ...mapActions('page', [
+				'toggleModal',
+				'setAdding',
+				'setEditingType',
+				'removeType',
+				'setMovieDetails',
+				'setMovieModal'
+			]),
+			...mapActions('app', [
+				'scrollPageTo',
+      ]),
+
+      get (url) {
+        this.loading = true
+        this.$http.post('/api/rss-reader', { url: url }).then(response => {
+          this.feeds = response.data
+          this.loading = false
+        })
+      },
+
+      redirectTo (link) {
+        window.open(link, '_blank')
+      },
+
+      editType(type) {
+				this.setEditingType(type)
+				this.toggleModal(false)
+				this.setAdding(true)
+				setTimeout(() => {
+					this.scrollPageTo(type)
+				}, 20)
+			}
+    }
+  })
+</script>
+
+<style>
+  #in-feeds-cards .card {
+    transition: 0.3s;
+  }
+  #in-feeds-cards .card:hover {
+    transform: scale(1.02);
+    box-shadow: 3px 5px 4px rgba(0,0,0,0.3);
+  }
+</style>

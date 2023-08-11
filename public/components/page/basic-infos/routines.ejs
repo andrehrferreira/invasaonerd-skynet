@@ -1,0 +1,208 @@
+<template id="in-basic-infos-routines">
+	<div class="row animated fadeIn">
+		<div v-if="loading" class="col-12 grey darken-4 ">
+			<div class="row">
+				<h3 class="col-12 text-center">Coletando Informações...</h3>
+			</div>
+			<in-loading />
+		</div>
+		<div v-else-if="!editingInfos" class="col-12 animated fadeIn">
+			<div class="row grey darken-4 d-flex justify-center ">
+				<p class="col-12 text-center in-modal-letter py-5 mb-0">
+					Deseja editar suas configurações antes de salvar?
+				</p>
+			</div>
+			<div class="row p-4 d-flex justify-between">
+				<v-btn large color="red darken-1" @click.stop="saveBasicInfos(list)">
+					não
+				</v-btn>
+				<v-btn large @click.stop="editingInfos = true" color="green darken-1">
+					sim
+				</v-btn>
+			</div>
+		</div>
+		<div v-else class="col-12">
+			<in-basic-infos-edit :list-infos="list" @save-basic-infos="saveBasicInfos" @back-to-link="$emit('back-to-link')" />
+		</div>
+	</div>
+</template>
+
+<script>
+	Vue.component('in-basic-infos-routines', {
+		template: '#in-basic-infos-routines',
+		props: ['basicInfos'],
+		computed: {
+			...mapGetters('page', [
+				'page'
+			]),
+			...mapGetters('app', [
+				'icons'
+			])
+		},
+		data() {
+			return {
+				loading: true,
+				list: [],
+				editingInfos: false
+			}
+		},
+		mounted() {
+			// Limpando todas as prototypes antes de passar para a função
+			const basicInfos = JSON.parse(JSON.stringify(this.basicInfos))
+			this.executeRoutines(basicInfos)
+		},
+		methods: {
+			...mapActions('page', [
+				'setPage',
+				'setEditMode',
+				'setPageEntry',
+				'setPageLoading'
+			]),
+			...mapActions('app', [
+				'showDialog'
+			]),
+
+			saveBasicInfos(list) {
+				const vm = this
+				vm.$emit('close-modal')
+				vm.setPageLoading({
+					active: true,
+					icon: vm.icons.pacman,
+					text: 'Alimentando Página...'
+				})
+				Promise.all(list.map(item => {
+					if (!item.fail) {
+						vm.setPageEntry({
+							entry: 'changes',
+							data: vm.checkIfHaveChanges(vm.page.changes, item)
+						})
+						if (item.key === 'youtube') return vm.youtubeRoutine(item.value)
+						if (item.key === 'website') return new Promise(resolve => {
+							vm.setPageEntry({
+								entry: item.key,
+								data: item.value
+							});
+							resolve()
+						})
+						if (item.key === 'facebook') return new Promise(resolve => {
+							vm.setPageEntry({
+								entry: item.key,
+								data: item.value
+							});
+							resolve()
+						})
+						if (item.key === 'twitter') return vm.twitterRoutine(item.value)
+						if (item.key === 'instagram') return new Promise(resolve => {
+							vm.setPageEntry({
+								entry: item.key,
+								data: item.value
+							});
+							resolve()
+						})
+						if (item.key === 'spotify') return new Promise(resolve => {
+							vm.setPageEntry({
+								entry: item.key,
+								data: item.value
+							});
+							resolve()
+						})
+					}
+					return new Promise(resolve => resolve({
+						fail: true
+					}))
+				})).then(() => {
+					vm.$emit('back-to-link')
+					vm.$emit('close-modal')
+					// O código a baixo serve para atualizar a view Quando todas as informações estiverem carregadas
+					setTimeout(() => {
+						vm.setEditMode(true)
+						vm.setPageLoading({ active: false })
+						vm.setPage(vm.page)
+					}, 1500)
+					vm.setEditMode(false)
+					// ---------------------------------------------------------------------------------------------
+				})
+			},
+
+			executeRoutines(basicInfos) {
+				const vm = this
+				Promise.all(Object.entries(basicInfos).map(entrie => {
+					const [key, value] = entrie
+					if (value.url) {
+						if (key === 'youtube') return vm.getYoutubeChannel(value)
+						if (key === 'website') return new Promise(resolve => resolve({
+							key,
+							value
+						}))
+						if (key === 'facebook') return new Promise(resolve => resolve({
+							key,
+							value
+						}))
+						if (key === 'twitter') return vm.getTwitterPageInfo(value)
+						if (key === 'instagram') return new Promise(resolve => resolve({
+							key,
+							value
+						}))
+						if (key === 'spotify') return new Promise(resolve => resolve({
+							key,
+							value
+						}))
+						else return new Promise((resolve, reject) => resolve({
+							key: key,
+							value: value,
+							fail: true
+						}))
+					} else {
+						return new Promise((resolve, reject) => resolve({
+							key: key,
+							value: value,
+							fail: true
+						}))
+					}
+				})).then(list => {
+					vm.list = list
+					vm.loading = false
+				})
+			},
+
+			checkIfHaveChanges(changes, item) {
+				if (JSON.stringify(page[item.key]) !== JSON.stringify(item.value)) {
+					changes.push({
+						type: item.key
+					})
+				}
+				return changes
+			},
+
+			setMiniAvatar(base64) {
+				const vm = this
+				const img = new Image(),
+					canvas = document.createElement('canvas'),
+					ctx = canvas.getContext('2d')
+				img.src = base64
+				img.onload = function () {
+					canvas.width = 50
+					canvas.height = 50
+					ctx.drawImage(img, 0, 0, 50, 50)
+					const miniavatar = canvas.toDataURL('image/jpeg', 0.8)
+					vm.setPageEntry({
+						entry: 'miniavatar',
+						data: miniavatar
+					})
+				}
+			},
+
+			...<%- include('./routines/youtube-routines.js') %>,
+			...<%- include('./routines/twitter-routines.js') %>
+		}
+	})
+
+</script>
+
+<style>
+	.in-modal-letter {
+		font-weight: 300;
+		font-size: 16px;
+	}
+
+</style>

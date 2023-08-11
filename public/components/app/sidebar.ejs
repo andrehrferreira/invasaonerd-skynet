@@ -1,0 +1,481 @@
+<%- include('./invite-register') %>
+<%- include('./bug-report') %>
+<%- include('./reporteds-bugs') %>
+<%- include('./upload-buttom') %>
+<template id="in-sidebar">
+	<v-navigation-drawer
+		fixed clipped :mini-variant="mini" v-model="drawer"
+		app :width="280" class="grey darken-4" :mini-variant-width="80"
+		:mobile-break-point="href === '<%= settings.url %>/' || href.includes('/post/') ? $vuetify.breakpoint.width + 1 : 1264"
+	>
+		<v-list dense>
+			<v-list-tile v-if="$vuetify.breakpoint.mdAndUp" @click.stop="mini = !mini">
+				<v-list-tile-action>
+					<v-tooltip :open-delay="50" :close-delay="50" right :disabled="!mini">
+						<v-btn icon slot="activator">
+							<v-icon>{{ mini ? 'chevron_right' : 'chevron_left' }}</v-icon>
+						</v-btn>
+						<span>Maximizar</span>
+					</v-tooltip>
+				</v-list-tile-action>
+				<v-list-tile-content>
+					<v-list-tile-title class="grey--text">
+						<%= __('MINIMIZAR') %>
+					</v-list-tile-title>
+				</v-list-tile-content>
+			</v-list-tile>
+			<v-divider v-if="permission === 'default'"></v-divider>
+			<v-list-tile class="grey darken-2" v-if="permission === 'default'" @click.stop="activeNotification($OneSignal)">
+				<v-list-tile-action>
+					<v-tooltip :open-delay="50" :close-delay="50" right :disabled="!mini">
+						<v-btn icon slot="activator">
+							<v-icon>add_alert</v-icon>
+						</v-btn>
+						<span>Ativar Notificações</span>
+					</v-tooltip>
+				</v-list-tile-action>
+				<v-list-tile-content>
+					<v-list-tile-title>
+						<%= __('ATIVAR NOTIFICAÇÕES') %>
+					</v-list-tile-title>
+				</v-list-tile-content>
+			</v-list-tile>
+			<v-divider class="my-2" v-if="$vuetify.breakpoint.mdAndUp"></v-divider>
+			<div>
+				<v-subheader class="grey--text">
+					<%= __('PÁGINA') %>
+				</v-subheader>
+				<div v-for="(item, index) in pageItems" :key="index" v-if="item.condition">
+					<v-list-tile :href="item.href ? item.href : '#'" @click.prevent="(e) => checkUser(e, item.action, item.payload)" :disabled="verifyLocation(item.payload)" :class="verifyLocation(item.payload) ? 'grey darken-2' : ''">
+						<v-list-tile-action>
+							<v-tooltip :open-delay="50" :close-delay="50" right :disabled="!mini">
+								<v-btn icon slot="activator" :disabled="verifyLocation(item.payload)">
+									<v-icon>{{ item.icon }}</v-icon>
+								</v-btn>
+								<span>{{ item.text }}</span>
+							</v-tooltip>
+						</v-list-tile-action>
+						<v-list-tile-content>
+							<v-list-tile-title>
+								{{ item.text }}
+							</v-list-tile-title>
+						</v-list-tile-content>
+					</v-list-tile>
+				</div>
+			</div>
+			<v-divider class="my-2" v-if="user.name"></v-divider>
+			<div>
+				<v-subheader v-if="user.name" class="grey--text">
+					<%= __('USUÁRIO') %>
+				</v-subheader>
+				<v-list-tile v-for="(item, index) in userItems" :key="index" v-if="item.condition" :href="item.href ? item.href : '#'" @click.stop="item.action(item.payload)"
+				 :disabled="verifyLocation(item.payload)" :class="verifyLocation(item.payload) ? 'grey darken-2' : ''">
+					<v-list-tile-action>
+						<v-tooltip :open-delay="50" :close-delay="50" right :disabled="!mini">
+							<v-btn icon slot="activator" :disabled="verifyLocation(item.payload)">
+								<v-icon>{{ item.icon }}</v-icon>
+							</v-btn>
+							<span>{{ item.text }}</span>
+						</v-tooltip>
+					</v-list-tile-action>
+					<v-list-tile-content>
+						<v-list-tile-title>
+							{{ item.text }}
+						</v-list-tile-title>
+					</v-list-tile-content>
+				</v-list-tile>
+			</div>
+			<v-divider class="my-2" v-if="user.superadmin"></v-divider>
+			<div>
+				<v-subheader v-if="user.superadmin" class="grey--text">
+					<%= __('ADMIN ZONE') %>
+				</v-subheader>
+				<v-list-tile v-for="(item, index) in adminItems" :key="index" v-if="item.condition" :href="item.href ? item.href : '#'" @click.stop="item.action(item.payload)"
+				 :disabled="verifyLocation(item.payload)" :class="verifyLocation(item.payload) ? 'grey darken-2' : ''">
+					<v-list-tile-action>
+						<v-tooltip :open-delay="50" :close-delay="50" right :disabled="!mini">
+							<v-btn icon slot="activator" :disabled="verifyLocation(item.payload)">
+								<v-icon>{{ item.icon }}</v-icon>
+							</v-btn>
+							<span>{{ item.text }}</span>
+						</v-tooltip>
+					</v-list-tile-action>
+					<v-list-tile-content>
+						<v-list-tile-title>
+							{{ item.text }}
+						</v-list-tile-title>
+					</v-list-tile-content>
+				</v-list-tile>
+			</div>
+			<v-divider class="my-2" v-if="userPages.length"></v-divider>
+			<div>
+				<div v-if="$vuetify.breakpoint.mdAndDown || (href !== '<%= settings.url %>/' && !href.includes('/post/'))">
+					<v-subheader class="grey--text" v-if="userPages.length">
+						INSCRIÇÕES
+					</v-subheader>
+					<v-list-tile avatar v-for="(page, index) in userPages" :key="index" :href="'/page/' + page.url" class="animated fadeIn">
+						<v-badge overlap color="#ef001c" :value="mini && page.notifications > 0">
+							<small slot="badge">{{ page.notifications }}</small>
+							<v-tooltip :open-delay="50" :close-delay="50" right :disabled="!mini">
+								<v-list-tile-avatar slot="activator" :size="32">
+									<img :src="`/image/${page.url}/miniavatar.jpg`" @error="setDefaultImage" alt="">
+								</v-list-tile-avatar>
+								<span>{{ `${page.title} ${page.nickname ? '(' + page.nickname + ')' : '' }` }}</span>
+							</v-tooltip>
+						</v-badge>
+						<v-list-tile-content>
+							<v-list-tile-title>{{ page.title }}</v-list-tile-title>
+							<v-list-tile-sub-title v-if="page.nickname">
+								<small>{{ page.nickname }}</small>
+							</v-list-tile-sub-title>
+						</v-list-tile-content>
+						<v-list-tile-action v-if="page.notifications">
+							<v-tooltip :open-delay="50" :close-delay="50" right :disabled="!mini">
+								<v-btn small icon ripple color="#ef001c" slot="activator">
+									<small>{{ page.notifications }}</small>
+								</v-btn>
+								<span>{{ page.notifications }} notificações</span>
+							</v-tooltip>
+						</v-list-tile-action>
+					</v-list-tile>
+					<div v-if="user.pages">
+						<v-list-tile v-if="user.pages.length - userPages.length > 0" @click="requestUserPages(userPages.length + 20)">
+							<v-list-tile-action>
+								<v-tooltip :open-delay="50" :close-delay="50" right :disabled="!mini">
+									<v-btn icon slot="activator" :loading="loading">
+										<v-icon color="grey--text lighten-3">arrow_drop_down</v-icon>
+									</v-btn>
+									<span>Ver mais {{ user.pages.length - userPages.length }}</span>
+								</v-tooltip>
+							</v-list-tile-action>
+							<v-list-tile-title color="grey--text lighten-3">Ver mais {{ user.pages.length - userPages.length }}</v-list-tile-title>
+						</v-list-tile>
+					</div>
+				</div>
+				<v-divider class="my-2"></v-divider>
+				<v-list-tile @click.stop="() => {
+						if (user.name) bugmodal = !bugmodal
+						else setUserMenu(true)
+					}">
+					<v-list-tile-action>
+						<v-tooltip :open-delay="50" :close-delay="50" right :disabled="!mini">
+							<v-btn icon slot="activator">
+								<v-icon color="#ef001c">bug_report</v-icon>
+							</v-btn>
+							<span>Reportar Bug</span>
+						</v-tooltip>
+					</v-list-tile-action>
+					<v-list-tile-title>Reportar Bug</v-list-tile-title>
+				</v-list-tile>
+			</div>
+		</v-list>
+		<div>
+			<in-invite-register v-if="user.superadmin" :invite="invite" @set-invite="(val) => invite = val"/>
+		</div>
+		<div>
+			<in-bug-report :bugmodal="bugmodal" @close-modal="(val) => bugmodal = val"/>
+		</div>
+		<div>
+			<in-reporteds-bugs :reportbugs="reportbugs" @close-modal="(val) => reportbugs = val"/>
+		</div>
+	</v-navigation-drawer>
+</template>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/blueimp-md5/2.10.0/js/md5.min.js"></script>
+<script>
+	Vue.component('in-sidebar', {
+		template: '#in-sidebar',
+		props: ['options'],
+		watch: {
+			sideBar(val) {
+				this.drawer = val
+			},
+			drawer(val) {
+				localStorage.setItem('sd-drawer', JSON.stringify({
+					state: val
+				}))
+				this.toggleSideBar(val)
+			},
+			mini(val) {
+				localStorage.setItem('sd-mini', JSON.stringify({
+					state: val
+				}))
+			},
+			user (val) {
+				if (val.pages && !this.firstRequest) {
+					this.requestUserPages(7)
+				}
+			}
+		},
+		computed: {
+			...mapGetters('app', [
+				'sideBar',
+				'user',
+				'windowWidth',
+				'userPages'
+			]),
+
+			pageItems() {
+				return [{
+					text: this.user.admin ? 'Criar Página' : 'Sugerir Página',
+					condition: true,
+					action: this.goTo,
+					payload: '/createpage',
+					href: '/createpage',
+					icon: 'note_add'
+				}, {
+					text: 'Editar esta página',
+					condition: !this.options.editMode && this.options.page.ref,
+					action: this.editPage,
+					icon: 'edit'
+				}, {
+					text: 'Comunidade',
+					condition: !this.options.editMode && this.options.page.ref,
+					action: this.goTo,
+					payload: `/page/${this.options.page.url}/community?p=1`,
+					href: `/page/${this.options.page.url}/community?p=1`,
+					icon: 'forum'
+				}, {
+					text: 'Vincular Usuário',
+					condition: this.options.editMode && this.user.superadmin,
+					action: this.options.attachUserModal,
+					icon: 'person_add'
+				}, {
+					text: 'Excluir Página',
+					condition: this.options.editMode,
+					action: this.options.sendToDelete,
+					icon: 'delete_forever'
+				}, {
+					text: 'Histórico desta Página',
+					condition: this.user.admin && this.options.page.feedbackDate,
+					action: this.goTo,
+					payload: '/logs/' + this.options.page.ref,
+					href: '/logs/' + this.options.page.ref,
+					icon: 'library_books'
+				}]
+			},
+
+			userItems() {
+				return [{
+					text: 'Atualizações',
+					condition: this.user.name,
+					action: this.goTo,
+					payload: '/',
+					href: '/',
+					icon: 'public'
+				}, {
+					text: 'Explorar',
+					condition: this.user.name,
+					action: this.goTo,
+					payload: '/explore',
+					href: '/explore',
+					icon: 'explore'
+				}, {
+					text: 'Minhas Edições',
+					condition: this.user.name,
+					action: this.goTo,
+					payload: '/editions',
+					href: '/editions',
+					icon: 'view_list'
+				}, {
+					text: 'Gerenciar Revisões',
+					condition: this.user.admin,
+					action: this.goTo,
+					payload: '/feedback',
+					href: '/feedback',
+					icon: 'rate_review'
+				}]
+			},
+
+			adminItems() {
+				const vue = this
+				return [{
+					text: 'Gerenciar Usuários',
+					condition: this.user.superadmin,
+					action: this.goTo,
+					payload: '/managerusers',
+					href: '/managerusers',
+					icon: 'people'
+				}, {
+					text: 'Gerenciar Páginas',
+					condition: this.user.superadmin,
+					action: this.goTo,
+					payload: '/manager-pages',
+					href: '/manager-pages',
+					icon: 'library_books'
+				}, {
+					text: 'Gerenciar Categorias',
+					condition: this.user.superadmin,
+					action: this.goTo,
+					payload: '/manager-categories',
+					href: '/manager-categories',
+					icon: 'list_alt'
+				}, {
+					text: 'Convidar',
+					condition: this.user.admin,
+					action: (val) => {vue.invite = val},
+					payload: !vue.invite,
+					href: false,
+					icon: 'send'
+				}, {
+					text: 'Bugs Reportados',
+					condition: this.user.superadmin,
+					action: (val) => {vue.reportbugs = val},
+					payload: !vue.reportbugs,
+					href: false,
+					icon: 'error_outline'
+				}]
+			}
+		},
+		data() {
+			const isTimeline = location.href === '<%= settings.url %>/' || location.href.includes('/post/')
+			const store = {
+				drawer: localStorage.hasOwnProperty('sd-drawer') && window.innerWidth > 600  ? JSON.parse(localStorage.getItem('sd-drawer')).state : false,
+				mini: localStorage.hasOwnProperty('sd-mini') ? JSON.parse(localStorage.getItem('sd-mini')).state : false
+			}
+			if (!isTimeline) this.toggleSideBar(store.drawer)
+			return {
+				invite: false,
+				drawer: isTimeline ? false : store.drawer,
+				mini: isTimeline ? false : store.mini,
+				loading: false,
+				firstRequest: false,
+				bugmodal: false,
+				reportbugs: false,
+				href: location.href,
+				permission: false
+			}
+		},
+		async mounted() {
+			const vm = this
+			var { user } = vm
+			user = JSON.parse(JSON.stringify(user))
+			vm.$nextTick(async () => {
+				if (user.pages && vm.$vuetify.breakpoint.mdAndDown || (vm.href !== '<%= settings.url %>/' && !vm.href.includes('/post/'))) {
+					vm.requestUserPages(7)
+				}
+				// SET ONESGINAL PERMISSION
+				if (vm.$OneSignal.getNotificationPermission) {
+					vm.permission = await vm.$OneSignal.getNotificationPermission()
+				} else {
+					vm.permission = Notification.permission
+				}
+			})
+			if (user._id) {
+				const device = await OneSignal.getUserId()
+				if (!user.devices.some(d => d === device) && device) {
+					user.devices.push(device)
+					vm.$http.put('/user', { user })
+				}
+			}
+		},
+		methods: {
+			...mapActions('app', [
+				'toggleSideBar',
+				'goTo',
+				'setUserMenu',
+				'showDialog',
+				'setUser',
+				'setUserPages'
+			]),
+
+			async activeNotification ({ showHttpPrompt, getNotificationPermission }) {
+				const vue = this
+				vue.$Lstore.removeItem('onesignal-notification-prompt')
+				await showHttpPrompt()
+				if (getNotificationPermission) {
+					vue.permission = await getNotificationPermission()
+				} else {
+					vue.permission = Notification.permission
+				}
+			},
+
+			checkUser (event, action, payload) {
+				if (this.user.name) action(payload)
+				else this.setUserMenu(true)
+				return false
+			},
+
+			verifyLocation(string) {
+				return location.pathname === string
+			},
+
+			setDefaultImage(event) {
+				event.target.src = '/assets/img/avatardefault.jpeg'
+			},
+
+			requestUserPages (limit) {
+				const vm = this
+				if (vm.user._id) {
+					vm.loading = true
+					vm.$http.post('/pages-info', {
+							pages: vm.user.pages.filter((item, index) => {
+								return !vm.userPages.some(page => page.id === item) && index < limit
+							})
+						})
+						.then(res => {
+							const { data } = res
+							const { user } = vm
+							data.map(page => {
+								if (user.notifications.some(n => n.pageId === page.id)) {
+									page.notifications = user.notifications.filter(n => n.pageId === page.id && n.new).length
+								} else {
+									page.notifications = 0
+								}
+								vm.userPages.push(page)
+							})
+							vm.setUserPages(vm.userPages.sort((a, b) => b.notifications - a.notifications))
+							if (limit === vm.user.pages.length && vm.userPages.length !== vm.user.pages.length) {
+								const { user } = vm
+								user.pages = vm.userPages.map(page => {
+									return page.id
+								})
+								vm.$http.put('/user', { user }).then(res => {
+									if (res.data.status) {
+										vm.setUser(user)
+									}
+								})
+							}
+							vm.loading = false
+							vm.firstRequest = true
+						})
+				}
+			},
+
+			editPage() {
+				if (!this.user.name) {
+					this.showDialog({
+						message: 'Por favor, faça o login para editar esta página',
+						color: 'info',
+						icon: 'info'
+					})
+					this.setUserMenu(true)
+				} else {
+					window.onbeforeunload = () => {
+						return ''
+					}
+					let {
+						page
+					} = this.options
+					if(!page.changes) page.changes = []
+					this.options.setPage(page)
+					this.options.setEditMode(true)
+					if (this.$vuetify.breakpoint.width < 600) {
+						this.toggleSideBar(false)
+					} else {
+						this.mini = true
+					}
+				}
+			}
+		}
+	})
+
+</script>
+
+<style>
+	aside.v-navigation-drawer--mini-variant {
+		overflow-y: auto !important;
+	}
+	.v-navigation-drawer--mini-variant .v-divider {
+		display: block !important;
+	}
+</style>

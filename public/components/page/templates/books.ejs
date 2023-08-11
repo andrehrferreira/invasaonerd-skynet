@@ -1,0 +1,106 @@
+<template id="in-template-books">
+	<section class=" animated fadeIn" ref="books">
+    
+    <div class="row justify-end">
+			<div class="in-edit-block-position text-left justify-end" v-if="editMode">
+				<v-btn fab color="" class=" move mr-1" title="<%= __('Mover') %>" v-if="1 === 2">
+					<v-icon color="primary">zoom_out_map</v-icon>
+				</v-btn>
+
+				<v-tooltip :open-delay="50" :close-delay="50" bottom>
+					<v-btn
+						slot="activator"
+						class="mr-1 animated zoomIn faster" fab small
+						@click.stop="editType('books')"
+					>
+						<v-icon color="green">edit</v-icon>
+					</v-btn>
+					<span>Editar Livros</span>
+				</v-tooltip>
+
+				<v-tooltip :open-delay="50" :close-delay="50" bottom>
+					<v-btn slot="activator" fab small class="animated zoomIn faster" @click.stop="removeType('books')">
+						<v-icon color="#ef001c">delete</v-icon>
+					</v-btn>
+					<span>Deletar Livros</span>
+				</v-tooltip>
+			</div>
+		</div>
+
+		<h3 class="mt-3">
+			<%= __('Livros/Quadrinhos') %>
+		</h3>
+
+		<div class="in-editor-section in-books-preview" id="books">
+			<swiper :options="swiperOption">
+				<swiper-slide v-for="(book, index) in page.books" :key="index" class="in-books-preview-item">
+					<div :title="book.title" @click.stop="seeBookDetails(book)">
+						<img :src="book.thumbnail" class="in-books-preview-item-thumb" />
+						<div class="in-books-preview-item-title" v-html="resume(book.title)"></div>
+						<div class="in-books-preview-item-author">{{book.authors}}</div>
+						<div class="in-books-preview-item-author" v-if="book.isbn">ISBN: {{book.isbn.identifier}}</div>
+					</div>
+				</swiper-slide>
+				<div class="swiper-button-prev" slot="button-prev"></div>
+				<div class="swiper-button-next" slot="button-next"></div>
+				<div class="swiper-scrollbar" slot="scrollbar"></div>
+				<div class="swiper-pagination" slot="pagination"></div>
+			</swiper>
+		</div>
+		<div class="andre-margin-in-page"></div>
+	</section>
+</template>
+
+<script>
+	Vue.component("in-template-books", {
+		template: "#in-template-books",
+		computed: {
+			...mapGetters('page', [
+				'page',
+				'editMode',
+				'swiperOption'
+			])
+		},
+		methods: {
+			...mapActions('page', [
+				'toggleModal',
+				'setAdding',
+				'setEditingType',
+				'removeType',
+				'setBookDetails',
+				'setBookModal'
+			]),
+			...mapActions('app', [
+				'scrollPageTo'
+			]),
+
+			resume(text) {
+				return text.split('').filter((letter, index) => {
+					return index <= 30
+				}).join('') + '...'
+			},
+
+			seeBookDetails(movie) {
+				this.setBookDetails(movie)
+				this.setBookModal(true)
+			},
+
+			editType(type) {
+				this.setEditingType(type)
+				this.toggleModal(false)
+				this.setAdding(true)
+				setTimeout(() => {
+					this.scrollPageTo(type)
+				}, 20)
+			}
+		}
+	})
+
+</script>
+
+<style>
+	.in-books-preview-item-title {
+		max-width: 110px;
+	}
+
+</style>

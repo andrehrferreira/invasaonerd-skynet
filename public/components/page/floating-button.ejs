@@ -1,0 +1,294 @@
+<template id="in-floating-button">
+	<div>
+		<div class="btn-group-sm animate" v-if="editMode && buttonState">
+			<v-tooltip :open-delay="50" :close-delay="50" left>
+				<v-btn slot="activator" small dark fixed fab flat v-if="page.changes.length && (!page.status || user.admin) && editingType === ''" @click.stop="sendEdition" :class="aproveBtnPosition() + 'btn btn-success ' + btnAnimate()">
+					<v-icon>check</v-icon>
+				</v-btn>
+				<span v-if="user.admin">Aprovar</span>
+				<span v-else>Enviar para Aprovação</span>
+			</v-tooltip>
+			<div>
+				<in-basic-infos />
+			</div>
+			<v-tooltip :open-delay="50" :close-delay="50" left>
+				<v-btn slot="activator" small dark fixed fab flat v-if="!adding" @click.stop="toggleModal(true)" :class="'btn-second btn btn-info ' + btnAnimate()">
+					<v-icon>add</v-icon>
+				</v-btn>
+				<span>Adicionar Box</span>
+			</v-tooltip>
+			<v-tooltip :open-delay="50" :close-delay="50" left>
+				<v-btn slot="activator" small dark fixed fab flat v-if="editMode && !adding" @click.stop="cancelEdition" :class="'btn-first btn btn-danger ' + btnAnimate()">
+					<v-icon>close</v-icon>
+				</v-btn>
+				<span>Cancelar Edição da página</span>
+			</v-tooltip>
+			<v-tooltip :open-delay="50" :close-delay="50" left>
+				<v-btn slot="activator" small dark fixed fab flat v-if="editMode && adding" @click.stop="cancelAdding" :class="'btn-first btn btn-danger ' + btnAnimate()">
+					<v-icon>close</v-icon>
+				</v-btn>
+				<span>Cancelar Edição do box</span>
+			</v-tooltip>
+		</div>
+		<div class="btn-group">
+			<v-btn slot="activator" dark fixed fab flat flat v-if="editMode" @click.stop="setButtonState(!buttonState)" class="btn-main btn-secondary animated fadeInUp faster">
+				<v-icon v-if="!buttonState" class="animated zoomIn">expand_less</v-icon>
+				<v-icon v-if="buttonState" class="animated zoomIn">expand_more</v-icon>
+			</v-btn>
+			<div v-if="!editMode">
+				<v-tooltip :open-delay="50" :close-delay="50" left>
+					<v-btn slot="activator" dark fixed fab flat v-if="page.status === 'aproved'" @click.stop="confirmRecovery" class="btn-main btn-success animated fadeInUp faster">
+						<v-icon>reply</v-icon>
+					</v-btn>
+					<span>Recuperar Versão</span>
+				</v-tooltip>
+				<v-tooltip :open-delay="50" :close-delay="50" left>
+					<v-btn slot="activator" dark fixed fab flat v-if="page.status === 'pending'" @click.stop="aproveRevision(page)" class="btn-main btn-success animated fadeInUp faster">
+						<v-icon>check</v-icon>
+					</v-btn>
+					<span>Aprovar Edição</span>
+				</v-tooltip>
+			</div>
+		</div>
+	</div>
+</template>
+
+<script>
+	Vue.component('in-floating-button', {
+		template: '#in-floating-button',
+		computed: {
+			...mapGetters('page', [
+				'page',
+				'editMode',
+				'adding',
+				'buttonState',
+				'editingType'
+			]),
+			...mapGetters('app', [
+				'user',
+				'icons'
+			])
+		},
+		data() {
+			return {
+				fab: false
+			}
+		},
+		methods: {
+			...mapActions('page', [
+				'setPage',
+				'toggleModal',
+				'setAdding',
+				'setEditingType',
+				'setEditMode',
+				'setButtonState',
+				'setPageLoading'
+			]),
+			...mapActions('app', [
+				'showDialog',
+				'setUserMenu'
+			]),
+
+			btnAnimate() {
+				return 'btn-fab animated ' + (this.buttonState ? 'fadeInUp faster' : 'fadeOutDown')
+			},
+
+			cancelAdding() {
+				this.setAdding(false)
+				this.setEditingType('')
+				this.showDialog({
+					message: 'Edição de box cancelada',
+					color: 'info',
+					icon: 'info'
+				})
+			},
+
+			aproveBtnPosition() {
+				return this.editingType !== '' ? 'btn-third ' : 'btn-fourth '
+			},
+
+			sendEdition() {
+				const vm = this
+				window.onbeforeunload = () => {}
+				vm.setEditMode(false)
+				vm.setAdding(false)
+				vm.setEditingType('')
+				let {
+					page
+				} = vm
+				let data = {
+					user: vm.user
+				}
+				for (let key in page) {
+					if (key === 'tmpAvatar' || key === 'tmpCover') {
+						key === 'tmpAvatar' && page.tmpAvatar ? data["avatar"] = page.tmpAvatar.generateDataUrl('image/jpeg', 0.3) : ''
+						key === 'tmpCover' && page.tmpCover ? data["cover"] = page.tmpCover.generateDataUrl('image/jpeg', 0.3) : ''
+					} else if (key !== 'boxs' &&
+						key !== 'tmpCover' &&
+						key !== 'tmpAvatar' && key !== 'local' &&
+						key !== 'changed' && key !== 'temp') {
+						data[key] = page[key]
+					}
+				}
+				page.cover = data.cover
+				page.avatar = data.avatar
+				if (page.youtube) {
+					if (page.youtube.url) {
+						data.videos = []
+						data.playlists = []
+					}
+				}
+				vm.editMode ? vm.setEditMode(vm.editMode) : vm.setEditMode(false)
+				vm.setPageLoading({
+					active: true,
+					icon: vm.icons.defaultLoading,
+					text: 'Enviando para edição...'
+				})
+				vm.$http.post("/page/" + encodeURI(vm.page.ref), { page: data }).then(function(res) {
+					vm.setPageLoading({
+						active: false
+					})
+					localStorage.removeItem('page-' + page.ref)
+					if (vm.user.admin) {
+						vm.aproveRevision(res.data)
+					} else {
+						vm.showDialog({
+							message: 'Edição enviada para aprovação',
+							color: 'success',
+							icon: 'check-circle'
+						})
+
+						if (page.local) location.href = '/'
+					}
+					vm.page.changes = []
+				}, function(err) {
+					// vm.editmode = false
+				})
+				vm.setPage(page)
+			},
+
+			cancelEdition() {
+				window.onbeforeunload = () => {}
+				const vue = this
+				const { page } = vue
+				page.changes = []
+				vue.setPage(page)
+				vue.setEditMode(false)
+				vue.setAdding(false)
+				vue.setEditingType('')
+				if (localStorage.hasOwnProperty('page-' + page.ref)) {
+					localStorage.removeItem('page-' + page.ref)
+				}
+				vue.showDialog({
+					message: 'Edição cancelada',
+					color: 'info',
+					icon: 'info'
+				})
+				if (page.local) location.href = '/'
+			},
+
+			aproveRevision(page) {
+				const vm = this
+				window.onbeforeunload = () => {}
+				page.aprovator = {
+					id: vm.user._id,
+					name: vm.user.name
+				}
+				vm.setPageLoading({
+					active: true,
+					icon: vm.icons.defaultLoading,
+					text: 'Aprovando edição...'
+				})
+				vm.$http.put('/feedback/', {page})
+					.then((res) => {
+						vm.setPageLoading({
+							active: false
+						})
+						vm.showDialog({
+							message: vm.page.title + ' aprovado com sucesso',
+							color: 'success',
+							icon: 'check-circle'
+						})
+						setTimeout(() => {
+							if (location.href.includes('/feedback')) {
+								location.href = '/feedback'
+							} else if (this.page.removed) {
+								location.reload()
+							}
+						}, 1500)
+					})
+					.catch(err => {
+						console.log(err)
+						vm.setPageLoading({
+							active: false
+						})
+						vm.showDialog({
+							message: 'Ocorreu um erro na comunicação com o servidor',
+							color: 'red',
+							icon: 'warning'
+						})
+					})
+			},
+
+			confirmRecovery() {
+				window.onbeforeunload = () => {}
+				const page = this.page
+				page.aprovator = this.user
+				if (confirm('Deseja mesmo recuperar essa versão?')) {
+					this.$http.post('/rollback', page)
+						.then(() => {
+							this.showDialog({
+								message: 'Versão recuperada com sucesso',
+								color: 'success',
+								icon: 'check-circle'
+							})
+							setTimeout(() => {
+								location.href = '/page/' + page.title
+							}, 1500)
+						}, err => {
+							console.error(err)
+						})
+				}
+			}
+		}
+	})
+</script>
+
+<style>
+	.btn-group-sm .btn-fab {
+		z-index: 9999px !important;
+		position: fixed !important;
+		border-radius: 25px;
+		right: 29px;
+	}
+
+	.btn-group .v-btn {
+		position: fixed !important;
+		border-radius: 35px;
+		right: 20px;
+	}
+
+	.btn-main {
+		bottom: 20px;
+	}
+
+	.btn-first {
+		bottom: 80px;
+	}
+
+	.btn-second {
+		bottom: 125px;
+	}
+
+	.btn-third {
+		bottom: 170px;
+	}
+
+	.btn-fourth {
+		bottom: 215px;
+	}
+
+	button:focus {
+		outline: none !important;
+	}
+</style>

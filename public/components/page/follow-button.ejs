@@ -1,0 +1,98 @@
+<template id="in-follow-button">
+	<div class="col-12 ">
+		<div v-if="page.id" class="row justify-center mb-3 px-0" style="padding: 0 15px">
+			<div class="col-10 col-sm-6 col-md-4 col-lg-12 px-0" v-if="user.name">
+				<v-btn type="button" class="col-12 p-0 m-0" @click.stop="follow" v-if="!user.pages.includes(page.id)" style="height: 50px" color="#ef001c" :loading="loading" :disabled="loading">INSCREVER-SE</v-btn>
+				<v-btn type="button" class="col-12 p-0 m-0" v-else style="height: 50px" color="#4b4b4b" :loading="loading" @click.stop="unsubscribe = true" :disabled="loading">INSCRITO</v-btn>
+				<v-btn block v-if="!user.pages" @click.stop="needLogin" type="button" class="btn col-12" style="height: 50px;" color="#ef001c">
+					<span>
+						INCREVER-SE {{ page.subscribers ? page.subscribers : '' }}
+					</span>
+				</v-btn>
+			</div>
+			<div v-else class="col-10 col-sm-6 col-md-4 col-lg-12 px-0">
+				<v-btn class="col-12 p-0 m-0" @click.stop="setUserMenu(true)" style="height: 50px" color="#ef001c">INSCREVER-SE</v-btn>
+			</div>
+		</div>
+		<v-dialog v-model="unsubscribe" transition="dialog-transition" max-width="500px">
+			<v-card>
+				<v-card-text>Deseja cancelar a inscrição na página {{page.title}}? </v-card-text>
+				<v-divider></v-divider>
+				<v-card-actions>
+					<v-spacer></v-spacer>
+					<v-btn color="grey" flat @click.native="unsubscribe = false">CANCELAR</v-btn>
+					<v-btn color="#ef001c" flat @click.stop="follow">CANCELAR INSCRIÇÃO</v-btn>
+				</v-card-actions>
+			</v-card>
+		</v-dialog>
+	</div>
+</template>
+
+<script>
+	Vue.component('in-follow-button', {
+		template: '#in-follow-button',
+		computed: {
+			...mapGetters('page', [
+				'page'
+			]),
+			...mapGetters('app', [
+				'user'
+			])
+		},
+		data() {
+			return {
+				loading: false,
+				unsubscribe: false
+			}
+		},
+		methods: {
+			...mapActions('app', [
+				'showDialog',
+				'setUserMenu',
+				'setUser'
+			]),
+
+			follow() {
+				const vm = this
+				var user = JSON.parse(JSON.stringify(vm.user))
+				var {
+					pages
+				} = user
+				var add = !pages.includes(vm.page.id)
+				if (add) {
+					pages.push(vm.page.id)
+				} else {
+					pages = pages.filter(pageId => {
+						return pageId !== vm.page.id
+					})
+				}
+				user.pages = pages
+				vm.loading = true
+				vm.$http.post('/follow', { user, id: vm.page.id, add }).then(() => {
+					vm.setUser(user)
+					vm.loading = false
+					vm.unsubscribe = false
+				}).catch((err) => {
+					console.log(err)
+					vm.showDialog({
+						message: 'Falha na comunicação com o servidor',
+						color: 'red',
+						icon: 'warning'
+					})
+				})
+			},
+
+			needLogin() {
+				this.setUserMenu(true)
+				this.showDialog({
+					message: 'Por favor, faça o login para seguir esta página',
+					color: 'info',
+					icon: 'info'
+				})
+			}
+		}
+	})
+</script>
+
+<style>
+</style>

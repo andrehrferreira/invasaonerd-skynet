@@ -1,0 +1,152 @@
+<template id="in-attach-user">
+	<v-dialog v-model="modal" max-width="400px" dark>
+		<v-card class="in-specialborder">
+			<div class="col-12 animated fadeIn">
+				<div class="row grey darken-4 d-flex justify-center ">
+					<p class="col-12 text-center in-modal-letter pt-5 pb-2 mb-0">
+						Informe o nome de usuário ou e-mail a ser relacionado na página
+					</p>
+					<div class="col-12 px-4" v-if="admins.length">
+						<v-expansion-panel class="elevation-0">
+							<v-expansion-panel-content class="grey darken-4">
+								<div slot="header">Ver Administradores</div>
+								<v-card>
+									<v-list three-line>
+										<template v-for="admin in admins">
+											<v-list-tile :key="admin.user" avatar>
+												<v-list-tile-avatar>
+													<img :src="admin.avatar">
+												</v-list-tile-avatar>
+
+												<v-list-tile-content>
+													<v-list-tile-title v-html="admin.name"></v-list-tile-title>
+													<v-list-tile-sub-title v-html="admin.user"></v-list-tile-sub-title>
+												</v-list-tile-content>
+
+												<v-list-tile-action>
+													<v-tooltip :open-delay="50" :close-delay="50" top>
+														<v-btn slot="activator" icon ripple @click.stop="removeFromAdmins(admin.user)">
+															<v-icon color="red darken-1">close</v-icon>
+														</v-btn>
+														<span>Remover Admin</span>
+													</v-tooltip>
+												</v-list-tile-action>
+											</v-list-tile>
+										</template>
+									</v-list>
+								</v-card>
+							</v-expansion-panel-content>
+						</v-expansion-panel>
+					</div>
+					<v-text-field label="Usuário ou E-mail" v-model="officialUser" dark :loading="loading" clearable class="px-4" :error="error" :error-messages="errorMessage" @keyup="clearError"></v-text-field>
+				</div>
+				<div class="row p-4 d-flex justify-between">
+					<v-btn large color="red darken-1" @click.stop="$emit('close-modal')" :disabled="loading">
+						Voltar
+					</v-btn>
+					<v-btn large @click.stop="processAttachUser(officialUser)" :disabled="loading" color="green darken-1">
+						Vincular
+					</v-btn>
+				</div>
+			</div>
+		</v-card>
+	</v-dialog>
+</template>
+
+<script>
+	Vue.component('in-attach-user', {
+		template: '#in-attach-user',
+		props: ['modal'],
+		computed: {
+			...mapGetters('page', [
+				'page'
+			])
+		},
+		data() {
+			return {
+				officialUser: '',
+				loading: false,
+				error: false,
+				errorMessage: '',
+				admins: [],
+				actions: []
+			}
+		},
+		watch: {
+			modal(val) {
+				val || this.$emit('close-modal')
+			},
+		},
+		mounted() {
+			this.$nextTick(function() {
+				if (this.page.officialPage) this.admins = this.page.officialPage
+			})
+		},
+		methods: {
+			...mapActions('page', [
+				'setPage',
+				'setAdding',
+				'setEditingType'
+			]),
+			...mapActions('app', [
+				'showDialog'
+			]),
+
+			removeFromAdmins(username) {
+				this.admins = this.admins.filter(admin => {
+					return admin.user !== username
+				})
+				// this.actions.push(`Usuário ${username} removido dos admins da página`)
+				this.save()
+			},
+
+			processAttachUser(user) {
+				const vm = this
+				if (user.length) {
+					vm.loading = true
+					vm.$http.get('/checkuser/' + user).then(res => {
+						if (res.data.error) {
+							vm.error = true
+							vm.errorMessage = res.data.message
+						} else {
+							vm.save(res.data)
+						}
+						vm.loading = false
+					})
+				}
+			},
+
+			clearError() {
+				this.error = false
+				this.errorMessage = ''
+			},
+
+			save(user) {
+				const {
+					page
+				} = this
+				if (user) {
+					page.officialPage.push(user)
+					this.officialUser = ''
+					page.changes.push({
+						type: 'officialPage'
+					})
+				} else {
+					page.changes.push({
+						type: 'remove officialPage'
+					})
+				}
+				this.setEditingType('')
+				this.setAdding(false)
+				this.$emit('close-modal')
+				page.officialPage = this.admins
+				this.setPage(page)
+				this.showDialog({
+					message: `Edição de Usuário Oficial gravada para envio`,
+					color: 'success',
+					icon: 'check-circle'
+				})
+			}
+		}
+	})
+</script>

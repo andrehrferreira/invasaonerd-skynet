@@ -1,0 +1,167 @@
+<template id="in-editor-type-featured-pages">
+  <div id="featuredPages">
+    <v-layout row wrap>
+      <v-flex xs12>
+        <v-layout row wrap justify-space-between>
+          <v-flex d-flex>
+            <v-layout justify-start>
+              <h5><%= __('Preview') %></h5>
+            </v-layout>
+          </v-flex>
+          <v-flex d-flex>
+            <v-layout justify-end>
+              <v-tooltip :open-delay="50" :close-delay="50" bottom>
+                <v-btn slot="activator" color="success" dark icon @click.stop="save(selecteds)">
+                  <v-icon>save</v-icon>
+                </v-btn>
+                <span>Salvar Páginas Relacionadas</span>
+              </v-tooltip>
+            </v-layout>
+          </v-flex>
+        </v-layout>
+      </v-flex>
+      <v-flex xs12>
+        <v-autocomplete
+          :search-input.sync="search" dark no-filter @input="pushSelected"
+          v-model="selected" append-icon="" autofocus 
+          :items="results" hide-no-data hide-selected
+          placeholder="Pesquisar páginas" :loading="loading" ref="autocomplete" 
+        >
+          <template slot="selection" slot-scope="data">
+            <span>{{ data.item.title }}</span>
+          </template>
+          <template slot="item" slot-scope="data">
+            <v-layout row align-center >
+              <v-avatar class="my-2" slot="activator" size="36px" >
+                <img :src="`/image/${data.item.url}/miniavatar.jpg`" alt="Avatar" @error="setDefaultImage">
+              </v-avatar>
+              <span class="ml-2" v-html="data.item.title"></span>
+            </v-layout>
+          </template>
+        </v-autocomplete>
+      </v-flex>
+      <v-flex xs12 v-if="selecteds.length">
+        <v-layout row wrap justify-space-around>
+          <v-chip v-for="(page, index) in selecteds" :key="index" color="secondary" class="animated zoomIn fast">
+            <v-avatar>
+              <img :src="page.url ? `/image/${page.url}/miniavatar.jpg` : `/image/${encodeURI(getOnlyTitle(page.title))}/miniavatar.jpg`"  @error="setDefaultImage">
+            </v-avatar>
+            <span class="pr-2 white--text">
+              {{ page.title }}
+            </span>
+            <v-tooltip :open-delay="50" :close-delay="50" top>
+              <v-icon slot="activator" color="#ef001d" small @click="selecteds = selecteds.filter(selected => selected.ref !== page.ref)">close</v-icon>
+              <span>Remover</span>
+            </v-tooltip>
+          </v-chip>
+        </v-layout>
+      </v-flex>
+    </v-layout>
+  </div>
+</template>
+
+<script>
+	Vue.component('in-editor-type-featured-pages', {
+    template: '#in-editor-type-featured-pages',
+    watch: {
+			search (val) {
+				this.updateItems(val)
+			}
+		},
+		computed: {
+      ...mapGetters('page', [
+        'page',
+        'buttonState',
+        'editingType'
+      ])
+    },
+    data () {
+      return {
+        title: 'Páginas Relacionadas',
+        loading: false,
+        search: '',
+        results: [],
+        selected: {},
+        selecteds: []
+      }
+    },
+    mounted() {
+      this.$nextTick(() => {
+        if (this.page.featuredPages) this.selecteds = this.page.featuredPages
+      })
+    },
+		methods: {
+      ...mapActions('page', [
+        'setPage',
+        'setAdding',
+        'setEditingType'
+      ]),
+      ...mapActions('app', [
+        'showDialog',
+      ]),
+
+      pushSelected (payload) {
+        if (payload) {
+          if (!this.selecteds.some(selected => {
+            return selected.url === payload.url
+          })) {
+            this.selecteds.push(payload)
+            this.results = []
+          }
+          this.search = ''
+          this.selected = {}
+        }
+      },
+
+      async updateItems (search) {
+				let vm = this
+        if (!vm.loading && search !== null) {
+          if (search !== '' &&
+            search.length > 2) {
+            vm.loading = true
+            try {
+              const { data } = await vm.$http.get('/search/' + search)
+              vm.results = data.filter(page => {
+                return page.url !== vm.page.url
+              })
+            } catch (err) {
+              console.log(err)
+            }
+            vm.loading = false
+					}
+        }
+      },
+
+      getOnlyTitle (string) {
+        if (string.includes('(') && string.includes(')')) {
+          return string.split(' (')[0]
+        }
+        return string
+      },
+
+      setDefaultImage (event) {
+        event.target.src = '/assets/img/avatardefault.jpeg'
+      },
+
+			save (featuredPages) {
+        const { page } = this
+        if (featuredPages.length) {
+          page.featuredPages = featuredPages.map(page => page.url)
+        } else {
+          delete page.featuredPages
+        }
+        page.changes.push({
+          type: this.editingType
+        })
+        this.setPage(page)
+        this.setAdding(false)
+        this.setEditingType('')
+        this.showDialog({
+          message: `Edições de ${this.title} gravadas para envio`,
+          color: 'success',
+          icon: 'check-circle'
+        })
+      }
+		}
+	})
+</script>

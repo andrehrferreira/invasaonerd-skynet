@@ -1,0 +1,197 @@
+<template id="in-editor-type-games">
+  <div id="games" class="in-editor-box-step animated fadeIn">
+    <div v-if="games.length > 0" class="in-editor-section in-games-preview">
+      <v-layout row wrap justify-space-between>
+        <v-flex d-flex>
+          <v-layout justify-start>
+            <h5><%= __('Preview') %></h5>
+          </v-layout>
+        </v-flex>
+        <v-flex d-flex>
+          <v-layout justify-end>
+            <v-tooltip :open-delay="50" :close-delay="50" bottom>
+              <v-btn slot="activator" color="success" dark icon @click.stop="save(games)">
+                <v-icon>save</v-icon>
+              </v-btn>
+              <span>Salvar Jogos</span>
+            </v-tooltip>
+          </v-layout>
+        </v-flex>
+      </v-layout>
+      <swiper :options="swiperOption">
+        <swiper-slide v-for="(game, index) in games" :key="index" class="in-games-preview-item">
+          <v-card class="transparent" @click.stop="deselect(game)" flat>
+            <v-layout row wrap>
+              <v-flex xs12 class="black">
+                <v-layout fill-height align-center justify-center>
+                  <v-img height="200px" width="200px" :src="game.cover ? game.cover.url : '/assets/img/avatardefault.jpeg'" contain></v-img>
+                </v-layout>
+              </v-flex>
+              <v-layout row wrap class="py-2">
+                <v-flex xs12>
+                  <p class="body-2 mb-0 text-sm-center">{{game.name}}</p>
+                </v-flex>
+                <v-flex xs12>
+                  <p class="caption mb-0 text-sm-center">Avaliação: {{ parseInt(game.rating) ? parseInt(game.rating) : 'ND' }}</p>
+                </v-flex>
+              </v-layout>
+            </v-layout>
+          </v-card>
+        </swiper-slide>
+
+        <div class="swiper-button-prev" slot="button-prev"></div>
+        <div class="swiper-button-next" slot="button-next"></div>
+        <div class="swiper-scrollbar"   slot="scrollbar"></div>
+        <div class="swiper-pagination" slot="pagination"></div>
+      </swiper>
+    </div>
+
+    <h5><%= __('Pesquisar: Jogos') %></h5>
+    <div class="px-0 mx-0 container">
+      <div class="row animated fadeIn" v-if="error">
+        <div class="col-12">
+          <div class="alert alert-danger" role="alert">
+          <span><%= __('Ocorreu erro ao tentar comunicação com o servidor') %></span>
+          <button
+            type="button" class="close" data-dismiss="alert"
+            aria-label="Close" @click.stop="error=false">
+            <span aria-hidden="true">&times;</span>
+          </button>
+          </div>
+        </div>
+      </div>
+
+      <v-layout row wrap>
+        <v-flex sm12 sm8 md9 lg10 xl11>
+          <v-text-field placeholder="<%= __('Buscar por: ') %>" :disabled="loading" @keyup.enter="get('/api/games')" @input="error = false" v-model="search"></v-text-field>
+        </v-flex>
+        <v-flex sm12 sm4 md3 lg2 xl1>
+          <v-layout class="px-2">
+            <v-btn dark block :loading="loading" @click.stop="get('/api/games')" >
+              <v-icon class="mr-2">search</v-icon> Buscar
+            </v-btn>
+          </v-layout>
+        </v-flex>
+      </v-layout>
+
+      <div v-if="!loading">
+        <div class="in-editor-section" v-if="list.length">
+          <div class="in-editor-section-title">
+            <%= __('Jogos') %>
+            <hr/>
+          </div>
+          <div class="in-editor-section-contents">
+            <div class="in-editor-book-container">
+              <div class="in-editor-book-item" v-for="(game, index) in list" :key="index"
+                @click.stop="pushGame(game)" v-if="!games.includes(game)">
+                <img :src="game.cover ? game.cover.url : '/assets/img/avatardefault.jpeg'" class="in-editor-book-thumb"/>
+                <div class="in-editor-book-title">{{game.name}}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div v-else>
+          <div class="row my-3 text-center">
+            <div class="col-12">
+              <span class="bg-danger p-3"><%= __('Não encontramos Jogos relacionados a ') %>{{ search }}</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="in-loading" v-if="loading">
+      <in-loading />
+    </div>
+  </div>
+</template>
+
+<script>
+  Vue.component('in-editor-type-games', {
+    template: '#in-editor-type-games',
+    computed: {
+      ...mapGetters('page', [
+        'page',
+        'swiperOption',
+        'buttonState',
+        'editingType'
+      ])
+    },
+    mounted () {
+      this.search = this.page.title
+      this.games = this.page.games ? this.page.games : []
+      this.get('/api/games')
+    },
+    data () {
+      return {
+        title: 'Jogos',
+        loading: false,
+        games: [],
+        error: false,
+        search: '',
+        list: []
+      }
+    },
+    methods: {
+      ...mapActions('page', [
+        'setPage',
+        'setAdding',
+        'setEditingType'
+      ]),
+      ...mapActions('app', [
+        'showDialog',
+      ]),
+
+      pushGame (toAdd) {
+        this.list = this.list.filter(game => {
+          return game.id !== toAdd.id
+        })
+        this.games.push(toAdd)
+      },
+
+      deselect: function(toRemove) {
+        this.games = this.games.filter(game => {
+          return game.id !== toRemove.id
+        })
+        this.list.push(toRemove)
+      },
+
+      get (url) {
+        this.loading = true
+        const vm = this
+        const ids = vm.games.map(game => game.id)
+        vm.$http.get(url + '/' + encodeURIComponent(vm.search))
+          .then(res => {
+            vm.list = res.data.filter(game => {
+              return !ids.includes(game.id)
+            })
+            vm.loading = false
+          }, err => {
+            vm.loading = false
+            vm.error = true
+          })
+      },
+
+      save (games) {
+        const { page } = this
+        if (games.length) {
+          page.games = games
+        } else {
+          delete page.games
+        }
+        page.changes.push({
+          type: this.editingType
+        })
+        this.setPage(page)
+        this.setAdding(false)
+        this.setEditingType('')
+        this.showDialog({
+          message: `Edições de ${this.title} gravadas para envio`,
+          color: 'success',
+          icon: 'check-circle'
+        })
+      }
+    }
+  })
+</script>

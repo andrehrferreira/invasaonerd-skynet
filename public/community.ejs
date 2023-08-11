@@ -1,0 +1,300 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html lang="pt-br" xmlns="http://www.w3.org/1999/xhtml">
+<%
+	function formatSummary (string) {
+		if (string) return string.split(`'`).join(``).split(`"`).join(``)
+		return ''
+	}
+%>
+<head>
+	<title>
+		<%= page.title %> - <%= __('Appname') %>
+	</title>
+	<link rel="stylesheet" href="<%= settings.url %>/assets/cdns/css/bootstrap.min.css" />
+	<%- include('meta/header') %>
+
+	<link rel="stylesheet" href="<%= settings.url %>/assets/cdns/css/quill.snow.css">
+	<%if (page.wiki) { %>
+	<meta name="description" content="<%- formatSummary(page.wiki.summary) %>">
+	<meta property="og:description" content="<%- formatSummary(page.wiki.summary) %>">
+	<% } %>
+
+	<%if (page.avatar) { %>
+	<meta property="og:image" content="<%- page.avatar %>">
+	<meta property="og:image:type" content="image/jpeg">
+	<meta property="og:image:width" content="200">
+	<meta property="og:image:height" content="200">
+	<% } %>
+	<%if (page.cover) { %>
+	<meta property="og:image" content="<%- page.cover %>">
+	<meta property="og:image:type" content="image/jpeg">
+	<meta property="og:image:width" content="800">
+	<meta property="og:image:height" content="600">
+	<% } %>
+
+	<meta name="og:title" property="og:title" content="<%- page.title %>">
+	<meta property="og:site_name" content="<%= __('Appname') %>">
+	<meta property="og:locale" content="pt-br">
+	<meta property="og:url" content="<%= settings.url %>/page/<%- page.url %>">
+	<meta property="og:type" content="website">
+
+	<link href="<%= settings.url %>/page/<%- page.url %>" rel="canonical">
+	<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+	<link rel="stylesheet" href="<%= settings.url %>/assets/css/pages-editor.css" />
+	<link rel="stylesheet" type="text/css" href="<%= settings.url %>/assets/css/page.css" />
+
+	<%- include('./meta/gtag.ejs') %>
+
+	<script type="application/ld+json">
+		<%- JSON.stringify(breadcrumb) %>
+	</script>
+	<%- include('./components/community/components') %>
+	<div class="in-container in-contents" id="page">
+		<v-app dark>
+			<div v-if="pageLoading.active " class="row in-page-loading">
+				<div class="col-12">
+					<in-loading :in-svg="icons.pacman" :in-text="pageLoading.text" />
+				</div>
+			</div>
+			<div ref="ready" style="display: none;">
+				<div>
+					<in-sidebar :options="{ page: {} }" />
+				</div>
+				<div>
+					<in-navbar :page="page" :editingtype="''" />
+				</div>
+				<v-content>
+					<v-container :fluid="$vuetify.breakpoint.lgAndDown" :class="{ 'pa-0': $vuetify.breakpoint.mdAndDown }">
+						<div>
+							<in-cover />
+						</div>
+						<div class="container-fluid in-subnav" v-if="editingType !== 'cover'">
+							<in-body-community />
+						</div>
+					</v-container>
+				</v-content>
+			</div>
+			<div>
+				<in-snackbar />
+			</div>
+		</v-app>
+	</div>
+	<%- include('./meta/footer') %>
+	<script type="text/javascript" src="https://cdn.jsdelivr.net/sortable/1.4.2/Sortable.min.js"></script>
+	<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/Swiper/4.3.2/js/swiper.min.js"></script>
+	<script src="https://cdn.quilljs.com/1.3.4/quill.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/vue-quill-editor@3.0.4/dist/vue-quill-editor.js"></script>
+	<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/pretty-checkbox-vue@1.1/dist/pretty-checkbox-vue.min.js"></script>
+	<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/vue-deepset@0.6.3/vue-deepset.min.js"></script>
+	<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/vue-carousel@0.8.0/dist/vue-carousel.min.js"></script>
+	<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/vue-awesome-swiper@3.1.3/dist/vue-awesome-swiper.js"></script>
+	<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/vue-croppa@1.3.6/dist/vue-croppa.min.js"></script>
+	<script type='text/javascript' src='//platform-api.sharethis.com/js/sharethis.js#property=5b7e522792774f00113b1509&product=inline-share-buttons'
+	 async='async'></script>
+	 <script src="https://cdn.jsdelivr.net/npm/pretty-checkbox-vue@1.1.9/dist/pretty-checkbox-vue.min.js"></script>
+	<script>
+		Vue.use(Croppa)
+		Vue.use(VueAwesomeSwiper)
+		Vue.use(PrettyCheckbox)
+		Vue.use(VueDeepSet)
+		Vue.use(VueQuillEditor)
+		new Vue({
+			store: new Vuex.Store({
+				modules: {
+					page: {
+						namespaced: true,
+						state: <%- include('store/page/state.js') %>,
+						getters: <%- include('store/page/getters.js') %>,
+						mutations: <%- include('store/page/mutations.js') %>,
+						actions: <%- include('store/page/actions.js') %>
+					},
+					app: {
+						namespaced: true,
+						state: <%- include('store/app/state.js') %>,
+						getters: <%- include('store/app/getters.js') %>,
+						mutations: <%- include('store/app/mutations.js') %>,
+						actions: <%- include('store/app/actions.js') %>
+					}
+				}
+			}),
+			el: '#page',
+			computed: {
+				...mapGetters('page', [
+					'page',
+					'editMode',
+					'editingType',
+					'movieDetails',
+					'bookDetails',
+					'pageLoading',
+					'seasonDetails'
+				]),
+				...mapGetters('app', [
+					'sideBar',
+					'user',
+					'icons'
+				])
+			},
+			data() {
+				return {
+					drag: false,
+					toDeletePage: false,
+					attachUser: false,
+					iconss: [
+						'fab fa-facebook',
+						'fab fa-twitter',
+						'fab fa-instagram'
+					]
+				}
+			},
+			created() {
+				this.setUser(<%- JSON.stringify(user) %>)
+				this.setPage(<%- JSON.stringify(page) %>)
+			},
+			mounted() {
+				this.$nextTick(function () {
+					this.startApplication()
+				})
+			},
+			methods: {
+				...mapActions('page', [
+					'setPage',
+					'setEditMode',
+					'setButtonState',
+					'setPageLoading',
+					'setAdding',
+					'setEditingType'
+				]),
+				...mapActions('app', [
+					'setWindowWidth',
+					'toggleSideBar',
+					'showDialog',
+					'setUserMenu',
+					'setUser'
+				]),
+				closeModal() {
+					this.attachUser = false
+					this.setAdding(false)
+					this.setEditingType('')
+				},
+
+				sendToDelete() {
+					this.toDeletePage = true
+					this.toggleSideBar(false)
+				},
+
+				attachUserModal() {
+					this.attachUser = true
+					this.setAdding(true)
+					this.setEditingType('officialPage')
+					this.toggleSideBar(false)
+				},
+
+				deletePage() {
+					const {
+						page
+					} = this
+					page.removed = true
+					page.changes.push({
+						type: 'removed'
+					})
+					this.setPage(page)
+					this.toDeletePage = false
+				},
+
+				startApplication() {
+					const page = <%- JSON.stringify(page) %>
+					if (!page.order) page.order = []
+					if (!page.changes) page.changes = []
+					if (!page.officialPage) page.officialPage = []
+					if (!page.configs) {
+						page.configs = {
+							images: {
+								avatar: '',
+								cover: ''
+							}
+						}
+					}
+					this.setPage(page)
+					this.$refs.ready.style.display = 'block'
+				},
+
+				showChanges() {
+					var aux = true
+					setTimeout(() => {
+						this.page.changes.map(change => {
+							if (change.type) {
+								const {
+									type
+								} = change
+								const element = document.getElementById(type)
+								if (type === 'website' || type === 'facebook' || type === 'instagram' || type === 'twitter' || type === 'spotify') {
+									if (aux) {
+										this.divChange(document.getElementById('basic-info'), '10px')
+										aux = false
+									}
+								}
+								if (type === 'wiki') {
+									document.querySelectorAll('#wiki').forEach(elem => {
+										this.divChange(elem)
+									})
+								} else if (element) {
+									this.divChange(element)
+								}
+							}
+						})
+					}, 1000)
+				},
+
+				divChange(element, padding) {
+					if (padding) element.style.padding = padding
+					element.classList.add('in-change')
+					element.classList.add('animated')
+					element.classList.add('infinite')
+					element.classList.add('pulse')
+				},
+
+				...<%- include('./methods/routines/youtube.js') %>
+			},
+			beforeMount() {
+				var loading = document.querySelector("#loading")
+				document.body.removeChild(loading)
+			}
+		})
+	</script>
+
+	<style>
+		.in-change {
+			border: 2px solid yellow;
+			border-radius: 5px;
+		}
+
+		.fa-arrows-alt {
+			cursor: grab;
+		}
+
+		.swiper-button-disabled {
+			display: none;
+		}
+
+		.embed-responsive {
+			max-height: 500px;
+		}
+
+		.in-page-loading {
+			z-index: 9999;
+			position: fixed;
+			background-color: rgba(0, 0, 0, 0.7);
+			padding-top: 200px;
+			height: 100vh;
+			width: 100vw;
+		}
+
+		.ql-container {
+			min-height: 150px !important;
+		}
+	</style>
+
+</body>
+
+</html>

@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+	<title>
+		<%= __('Appname') %>
+	</title>
+
+	<%- include('meta/header') %>
+	
+	<meta name="description" content="A maior comunidade nerd do brasil">
+	<meta property="og:description" content="A maior comunidade nerd do brasil">
+
+	<meta property="og:image" content="<%= settings.url %>/assets/img/logo-256-white.png">
+	<meta property="og:image:type" content="image/png">
+	<meta property="og:image:width" content="256">
+	<meta property="og:image:height" content="256">
+
+	<meta name="og:title" property="og:title" content="Invasão Nerd">
+	<meta property="og:site_name" content="<%= __('Appname') %>">
+	<meta property="og:locale" content="pt-br">
+	<meta property="og:url" content="<%= settings.url %>">
+	<meta property="og:type" content="website">
+
+	<%- include('./meta/gtag.ejs') %>
+	<!-- global -->
+	<%- include('components/app/navbar') %>
+	<%- include('components/app/sidebar') %>
+	<%- include('components/app/snackbar') %>
+	<%- include('components/app/loading') %>
+	<%- include('components/app/hero')%>
+	<!-- index -->
+	<%- include('components/index/index-explorer') %>
+	<%- include('components/index/index-slider') %>
+	<%- include('components/index/index-panel') %>
+	<div id="app">
+		<v-app dark>
+			<div ref="ready" style="display: none;">
+				<div>
+					<in-sidebar :options="{ page: {} }" />
+				</div>
+				<div>
+					<in-navbar :categories="categories" :pages="pages" />
+				</div>
+				<v-content>
+					<v-container fill-height fluid class="pa-0">
+						<v-layout justify-center align-center>
+							<v-flex xs12>
+								<v-layout>
+									<v-flex xs12>
+										<in-hero />
+									</v-flex>
+								</v-layout>
+								<v-layout row wrap>
+									<in-explorer :categories="categories" :pages="pages" @set-page="setPages" />
+								</v-layout>
+							</v-flex>
+						</v-layout>
+					</v-container>
+				</v-content>
+				<div>
+					<in-snackbar />
+				</div>
+			</div>
+		</v-app>
+	</div>
+	<%- include('./meta/footer') %>
+	<script>
+		new Vue({
+			store: new Vuex.Store({
+				modules: {
+					app: {
+						namespaced: true,
+						state: <%- include('store/app/state.js') %>,
+						getters: <%- include('store/app/getters.js') %>,
+						mutations: <%- include('store/app/mutations.js') %>,
+						actions: <%- include('store/app/actions.js') %>
+					}
+				}
+			}),
+			el: '#app',
+			computed: {
+				...mapGetters('app', [
+					'user',
+					'scrollTop'
+				])
+			},
+			data() {
+				var pages = [].concat.apply([], (<%- JSON.stringify(pages) %>).sort((a, b) => a.feedbackDate > b.feedbackDate ? -1 : 1))
+				const uniques = []
+				pages.sort((a, b) => {
+					return b.feedbackDate - a.feedbackDate
+				}).map(page => {
+					if (uniques.every(p => p.ref != page.ref)) uniques.push(page)
+				})
+				return {
+					pages: uniques,
+					categories: (<%- JSON.stringify(categories) %>).sort((a, b) => {
+						return ('' + a.text).localeCompare(b.text)
+					}),
+					timer: 0
+				}
+			},
+			methods: {
+				...mapActions('app', [
+					'setUser',
+					'setScrollTop'
+				]),
+				setPages: async function (payload) {
+					const vue = await this
+					await payload.sort((a, b) => {
+						return b.feedbackDate - a.feedbackDate
+					}).map(async page => {
+						if (vue.pages.every(p => p.ref != page.ref)) await vue.pages.push(page)
+					})
+				}
+			},
+			created() {
+				const vue = this
+				vue.setUser(<%- JSON.stringify(user) %>)
+			},
+			mounted() {
+				const vue = this
+				vue.$refs.ready.style.display = 'block'
+				window.onscroll = (e) => {
+					clearTimeout(vue.timer)
+					vue.timer = setTimeout(() => {
+						vue.setScrollTop(e.target.documentElement.scrollTop)
+					}, 100)
+				}
+			},
+			beforeMount() {
+				var loading = document.querySelector("#loading")
+				document.body.removeChild(loading)
+			}
+		})
+	</script>
+
+	<style>
+		.v-parallax__content {
+			padding: 0;
+		}
+	</style>
+	</body>
+
+</html>

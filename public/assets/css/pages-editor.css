@@ -1,0 +1,271 @@
+.in-editor {
+    padding: 20px;
+}
+
+@media (max-width: 780px) {
+    .in-editor {
+        padding: 5px;
+    }
+}
+
+.in-editor-plus, .in-editor-save {
+    position: fixed;
+    right: 20px;
+    width: 100px;
+    height: 100px;
+    bottom: 20px;
+    padding: 20px;
+    -webkit-border-radius: 50px;
+    -moz-border-radius: 50px;
+    border-radius: 50px;
+    color: lightgreen;
+    text-align: center;
+    -webkit-transition: 0.2s ease-in-out;
+    -moz-transition: 0.2s ease-in-out;
+    -o-transition: 0.2s ease-in-out;
+    transition: 0.2s ease-in-out;
+    cursor: pointer;
+}
+
+.in-editor-save {
+    margin-top: 20px;
+}
+
+.in-editor-plus:hover {
+    background-color: #333;
+}
+
+.in-editor-newbox {
+    border: 1px dashed #EFEFEF;
+    background-color: #232323;
+    color: #EFEFEF;
+    padding: 20px;
+}
+
+.in-editor-box {
+    position: relative;
+    border: 1px solid #000;
+    background-color: #232323;
+    min-height: 100px;
+    padding: 10px;
+    margin-top: 20px;
+    -webkit-border-radius: 3px;
+    -moz-border-radius: 3px;
+    border-radius: 3px;
+    -webkit-box-shadow: inset 0px 0px 1px 1px rgba(64, 64, 64, 1);
+    -moz-box-shadow: inset 0px 0px 1px 1px rgba(64, 64, 64, 1);
+    box-shadow: inset 0px 0px 1px 1px rgba(64, 64, 64, 1);
+    margin-bottom: 20px;
+}
+
+.in-editor-box-close {
+    display: none;
+    position: absolute;
+    background-color: #EFEFEF;
+    padding: 5px 10px;
+    color: #FF0000;
+    right: -15px;
+    top: -15px;
+}
+
+.in-editor-box-title {
+    margin: 10px;
+    margin-bottom: 0px;
+}
+
+.in-editor-box-title-input {
+    width: 100%;
+    padding: 20px;
+    font-size: 20px;
+    -webkit-border-radius: 3px;
+    -moz-border-radius: 3px;
+    border-radius: 3px;
+    border: 1px solid #404040;
+    -webkit-transition: 0.2s ease-in-out;
+    -moz-transition: 0.2s ease-in-out;
+    -o-transition: 0.2s ease-in-out;
+    transition: 0.2s ease-in-out;
+}
+
+.in-editor-box-step {
+    display: -webkit-box;
+    display: -moz-box;
+    display: -ms-flexbox;
+    display: -webkit-flex;
+    display: flex;
+    flex-wrap: wrap;
+    color: #EFEFEF;
+    padding: 10px;
+}
+
+.in-editor-type-box, .in-editor-imagebox {
+    width: calc(25% - 20px);
+    height: 150px;
+    padding: 10px;
+    background-color: #333;
+    padding: 0;
+    margin: 10px;
+    padding-top: 20px;
+    cursor: pointer
+}
+
+.in-editor-type-box:hover {
+    background-color: #666;
+}
+
+.in-editor-type-box div {
+    text-align: center;
+    margin: auto;
+    padding: 10px;
+}
+
+.in-editor-box-search-button {
+    background-color: #333;
+    color: #EFEFEF;
+    padding: 10px;
+    border: none;
+    width: 100%;
+    height: 72px;
+    margin: 0px;
+}
+
+.in-editor-imagebox {
+    padding: 5px !important;
+    text-align: center;
+}
+
+.in-editor-imagebox img {
+    max-width: 140px;
+    height: auto;
+    max-height: 140px;
+}
+
+.in-editor-section {
+    margin-top: 20px;
+}
+
+.in-editor-section hr {
+    display: block;
+    height: 1px;
+    border: 0;
+    border-top: 1px solid #666;
+    margin: 1em 0;
+    padding: 0;
+}
+
+.in-editor-section-contents {
+    overflow: hidden;
+}
+
+.in-editor-section-contents ul {
+    margin: 0px;
+    padding: 0px;
+    list-style: none;
+}
+
+.in-editor-imagebox-container {
+    display: -webkit-box;
+    display: -moz-box;
+    display: -ms-flexbox;
+    display: -webkit-flex;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.in-loading {
+    text-align: center;
+    padding: 20px;
+    margin: auto;
+}
+
+/* Books */
+
+.in-editor-book-container {
+    text-align: left;
+    display: -webkit-box;
+    display: -moz-box;
+    display: -ms-flexbox;
+    display: -webkit-flex;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    flex-direction: row;
+    color: #333;
+}
+
+.in-editor-book-container img {
+    width: 120px;
+    height: 183px;
+    display: block;
+    border: 0;
+    position: relative;
+    -webkit-border-radius: 3px;
+    -moz-border-radius: 3px;
+    border-radius: 3px;
+}
+
+.in-editor-book-item {
+    width: 120px;
+    height: 260px;
+    margin: auto;
+    -webkit-border-radius: 3px;
+    -moz-border-radius: 3px;
+    border-radius: 3px;
+    align-self: center;
+    margin-bottom: 10px
+}
+
+.in-editor-book-title {
+    margin-left: 5px;
+    margin-right: 5px;
+    margin-top: 10px;
+    text-shadow: none;
+    padding-top: 0px;
+    line-height: 18px;
+    color: white;
+    font-size: 13px;
+    text-overflow: ellipsis;
+    white-space: normal;
+    overflow: hidden;
+    font-size: 12px;
+}
+
+.in-editor-book-author {
+    margin-left: 5px;
+    margin-right: 5px;
+    text-shadow: none;
+    padding-top: 0px;
+    line-height: 18px;
+    color: #757575;
+    font-size: 13px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 10px;
+}
+
+/* Fix */
+
+fieldset.scheduler-border {
+    width: calc(100% - 20px);
+    border: 1px solid #000 !important;
+    padding: 0 1.4em 1.4em 1.4em !important;
+    margin: auto;
+    margin-bottom: 20px;
+    -webkit-border-radius: 3px;
+    -moz-border-radius: 3px;
+    border-radius: 3px;
+    -webkit-box-shadow: inset 0px 0px 1px 1px rgba(64, 64, 64, 1);
+    -moz-box-shadow: inset 0px 0px 1px 1px rgba(64, 64, 64, 1);
+    box-shadow: inset 0px 0px 1px 1px rgba(64, 64, 64, 1);
+}
+
+legend.scheduler-border {
+    font-size: 1.2em !important;
+    font-weight: bold !important;
+    text-align: left !important;
+    width: auto;
+    padding: 0 10px;
+    border-bottom: none;
+}

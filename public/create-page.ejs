@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<title>
+		<%= __('Appname') %>
+	</title>
+
+	<%- include('./meta/header.ejs') %>
+
+	<meta name="description" content="A maior comunidade nerd do brasil">
+	<meta property="og:description" content="A maior comunidade nerd do brasil">
+
+	<meta property="og:image" content="<%= settings.url %>/assets/img/logo-256-white.png">
+	<meta property="og:image:type" content="image/png">
+	<meta property="og:image:width" content="256">
+	<meta property="og:image:height" content="256">
+
+	<meta name="og:title" property="og:title" content="Invasão Nerd">
+	<meta property="og:site_name" content="<%= __('Appname') %>">
+	<meta property="og:locale" content="pt-br">
+	<meta property="og:url" content="<%= settings.url %>">
+	<meta property="og:type" content="website">
+
+	<%- include('./meta/gtag.ejs') %>
+
+	<%- include('components/create-page/imports.ejs') %>
+	<div id="app">
+		<v-app dark>
+			<div ref="ready" style="display: none;">
+				<div>
+					<in-sidebar :options="{ page: {} }" />
+				</div>
+				<div>
+					<in-navbar />
+				</div>
+				<v-content>
+					<in-content />
+				</v-content>
+				<div>
+					<in-snackbar />
+				</div>
+			</div>
+		</v-app>
+	</div>
+	<script>
+		new Vue({
+			el: '#app',
+			store: new Vuex.Store({
+				modules: {
+					"create-page": {
+						namespaced: true,
+						state: <%- include('store/create-page/state.js') %>,
+						getters: <%- include('store/create-page/getters.js') %>,
+						mutations: <%- include('store/create-page/mutations.js') %>,
+						actions: <%- include('store/create-page/actions.js') %>
+					},
+					app: {
+						namespaced: true,
+						state: <%- include('store/app/state.js') %>,
+						getters: <%- include('store/app/getters.js') %>,
+						mutations: <%- include('store/app/mutations.js') %>,
+						actions: <%- include('store/app/actions.js') %>
+					}
+				}
+			}),
+			methods: {
+				...mapActions('app', [
+					'setUser',
+					'setWindowWidth'
+				])
+			},
+			created() {
+				this.setUser(<%- JSON.stringify(user) %>)
+			},
+			mounted() {
+				const vm = this
+				vm.$nextTick(() => {
+					vm.$refs.ready.style.display = 'block'
+					window.addEventListener('resize', () => {
+						vm.setWindowWidth = window.innerWidth
+					})
+				})
+			},
+			beforeMount() {
+				var loading = document.querySelector("#loading")
+				document.body.removeChild(loading)
+			}
+		})
+
+	</script>
+	</body>
+
+</html>

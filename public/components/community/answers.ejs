@@ -1,0 +1,586 @@
+<%- include('./report-modal.ejs') %>
+<template id="in-community-answers">
+	<v-layout row wrap>
+		<v-flex xs12>
+			<ol v-if="!pageLoaded">
+				<% breadcrumb.itemListElement.map(bread => { %>
+					<li>
+						<a href="<%= bread.item %>">
+							<%= bread.name %>
+						</a>
+					</li>
+				<% }) %>
+			</ol>
+			<v-breadcrumbs v-else :items="items" class="pb-0 pl-3">
+				<v-icon slot="divider">forward</v-icon>
+				<template slot="item" slot-scope="props">
+					<a v-if="props.item.name !== topic.title" :href="props.item.item">{{ props.item.name.toUpperCase() }}</a>
+					<a href="#" v-else class="text-truncate grey--text">{{ formatTitle(props.item.name.toUpperCase()) }}</a>
+				</template>
+			</v-breadcrumbs>
+		</v-flex>
+		<v-flex xs12 class="pt-2 pl-3">
+			<a href="<%= breadcrumb.itemListElement[2].item %>">
+				<span class="in-community-title">Comunidade</span>
+			</a>
+		</v-flex>
+		<v-flex xs12 :class="$vuetify.breakpoint.width > 500 ? 'px-3' : ''">
+			<v-card dark class="elevation-8">
+				<v-card-title class="pb-0 pt-1">
+					<v-layout row wrap>
+						<v-flex xs12>
+							<v-layout justify-end>
+								<v-btn flat class="my-0 px-0" href="<%= breadcrumb.itemListElement[2].item %>">
+									<v-icon>keyboard_arrow_left</v-icon>
+									VOLTAR
+								</v-btn>
+							</v-layout>
+						</v-flex>
+						<v-flex xs12>
+							<p class="display-1 mb-1" v-text="topic.title"></p>
+							<p class="caption mb-1">
+								<span>Criado em {{ new Date(topic._id).toLocaleDateString() }}</span>
+								<span class="red--text ml-2">{{ topic.comments }} {{ topic.comments > 1 ? 'Comentários' : 'Comentário' }}</span>
+							</p>
+						</v-flex>
+					</v-layout>
+				</v-card-title>
+				<v-card-text id="answers" v-if="!loading">
+					<v-card
+						v-for="(answer, index) of answers" :key="index"
+						v-if="index < 10" :ref="'answer-' + answer._id"
+						dark class="elevation-10 pa-2 mb-3 animated fadeIn"
+						:color="answer.removed ? 'grey darken-4' : '#313131'"
+						:id="'answer-' + answer._id"
+					>	
+						<v-card-text class="pa-0">
+							<v-layout row wrap>
+								<v-flex xs12>
+									<v-layout justify-end>
+										<p class="mb-0 mt-1 mr-1 caption grey--text" v-text="new Date(answer._id).toLocaleString()"></p>
+										<v-menu bottom left>
+											<v-btn v-if="!answer.removed" slot="activator" dark icon small class="ma-0">
+												<v-icon small>more_vert</v-icon>
+											</v-btn>
+											<v-list class="py-0">
+												<v-list-tile @click="reportAnswer(answer)">
+													<v-list-tile-title class="caption">DENUNCIAR</v-list-tile-title>
+												</v-list-tile>
+											</v-list>
+										</v-menu>
+									</v-layout>
+								</v-flex>
+								<v-flex xs12 md1 v-if="!answer.removed">
+									<v-layout
+										fill-height column :class="bp.smAndDown ? 'pb-2' : ''"
+										:align-center="bp.mdAndUp"
+										:align-start="bp.smAndDown"
+									>
+										<v-flex>
+											<v-layout row wrap>
+												<v-flex xs12>
+													<v-layout :justify-center="bp.mdAndUp" :justify-start="bp.smAndDown">
+														<v-avatar size="50px">
+															<img :src="`/image/${answer.author._id}/useravatar.jpg`" alt="Avatar">
+														</v-avatar>
+													</v-layout>
+												</v-flex>
+												<v-flex xs12>
+													<v-layout :justify-center="bp.mdAndUp" :justify-start="bp.smAndDown">
+														<small v-if="answer.author.superadmin" class="red darken-4 mt-2">SuperAdmin</small>
+														<small v-else-if="answer.author.admin" lass="orange darken-4 mt-2">Admin</small>
+													</v-layout>
+												</v-flex>
+											</v-layout>
+										</v-flex>
+									</v-layout>
+								</v-flex>
+								<v-flex xs12 md11 :class="bp.mdAndUp ? 'pl-2' : ''">
+									<v-layout row wrap>
+										<v-flex xs12 v-if="answer.reply._id && !answer.removed">
+											<v-card style="cursor: pointer;" @click="showAnswerCard(answer)" class="grey darken-4 font-italic grey--text">
+												<v-card-text class="px-3 py-2 mb-2">
+													<p class="mb-1">
+														<small v-text="'Em resposta a ' + answer.reply.author.name"></small>
+													</p>
+													<p class="mb-0">
+														<small v-html="answer.reply.comment"></small>
+													</p>
+												</v-card-text>
+											</v-card>
+										</v-flex>
+										<v-flex xs12 v-if="!answer.removed">
+											<p class="title mb-1" v-text="answer.author.name"></p>
+										</v-flex>
+										<v-flex xs12 v-if="answer.removed">
+											<p class="font-italic grey--text"> - Este comentário foi removido por um administrador</p>
+										</v-flex>
+										<v-flex v-else xs12>
+											<p class="mb-0" v-html="answer.comment"></p>
+										</v-flex>
+									</v-layout>
+								</v-flex>
+							</v-layout>
+						</v-card-text>
+						<v-card-actions v-if="!answer.removed" class="py-0">
+							<v-spacer></v-spacer>
+							<v-btn
+								flat small color="#ef001c" :loading="commentToDelete._id === answer._id"
+								v-if="(user.admin || user._id === answer.authorId) && topic._id !== answer._id"
+								:disabled="reply.answer._id === answer._id"
+								@click.stop="deleteComment(answer)"
+							>
+								<v-icon small class="mr-2">close</v-icon>
+								<small>{{ user._id === answer.authorId ? 'DELETAR' : 'REMOVER' }}</small>
+							</v-btn>
+							<v-btn flat small color="green" v-if="topic._id !== answer._id" @click.stop="replyComment(answer)">
+								<v-icon small class="mr-2">reply</v-icon>
+								<small>Responder</small>
+							</v-btn>
+						</v-card-actions>
+					</v-card>
+				</v-card-text>
+				<v-card-text v-else>
+					<in-loading />
+				</v-card-text>
+				<v-card-text v-if="answersLength > 10" :class="'pt-0 ' + ($vuetify.breakpoint.width < 500 ? 'px-0' : '')">
+					<v-layout justify-end>
+						<div class="text-xs-center">
+							<v-pagination
+								v-model="pagination.page"
+								value="pagination.page"
+								:length="pagination.length"
+								:total-visible="$vuetify.breakpoint.width > 500 ? 7 : 5" @input="loadComments"
+								circle dark color="#ef001c" :disabled="loading"
+							></v-pagination>
+						</div>
+					</v-layout>
+				</v-card-text>
+				<v-card-text>
+					<v-layout row wrap>
+						<v-flex xs12 md1>
+							<v-layout
+								fill-height column :class="bp.smAndDown ? 'pb-2' : 'pt-2'"
+								:align-center="bp.mdAndUp"
+								:align-start="bp.smAndDown"
+							>
+								<v-flex>
+									<v-layout row wrap>
+										<v-flex xs12>
+											<v-layout :justify-center="bp.mdAndUp" :justify-start="bp.smAndDown">
+												<v-avatar	size="50px">
+													<img :src="user.name ? `/image/${user._id}/useravatar.jpg` : '/assets/img/useravatar.png'" alt="Avatar" >
+												</v-avatar>
+											</v-layout>
+										</v-flex>
+										<v-flex xs12>
+											<v-layout :justify-center="bp.mdAndUp" :justify-start="bp.smAndDown">
+												<small v-if="user.superadmin" class="red darken-4 mt-2">SuperAdmin</small>
+												<small v-else-if="user.admin" lass="orange darken-4 mt-2">Admin</small>
+											</v-layout>
+										</v-flex>
+									</v-layout>
+								</v-flex>
+							</v-layout>
+						</v-flex>
+						<v-flex xs12 md11 :class="bp.mdAndUp ? 'pl-2' : ''">
+							<v-layout row wrap>
+								<v-flex xs12 v-if="reply.status" class="animated zoomIn faster">
+									<v-card class="elevation-0" color="#313131">
+										<v-card-title>
+											<v-layout row wrap>
+												<v-flex xs12>
+													<v-btn
+														dark fab top right color="#ef001c"
+														absolute small @click.stop="reply = { status: false, answer: {} }"
+													>
+														<v-tooltip :open-delay="50" :close-delay="50" left>
+															<v-icon slot="activator">close</v-icon>
+															<span>Cancelar Resposta</span>
+														</v-tooltip>
+													</v-btn>
+												</v-flex>
+												<v-flex xs12 class="font-italic grey--text">
+													<p class="mb-1" v-text="reply.answer.author.name + ': '"></p>
+													<p class="mb-0" v-html="reply.answer.comment"></p>
+												</v-flex>
+											</v-layout>
+										</v-card-title>
+									</v-card>
+								</v-flex>
+								<v-flex xs12 class="animated fadeIn faster white black--text" @click="checkLogin">
+									<quill-editor
+										id="comment-box" ref="quilleditor"
+										v-model="comment.comment"
+										:options="editorOption"
+										:disabled="loading"
+										@blur="active = false"
+										@change="event => textLength = event.text.length"
+									/>
+								</v-flex>
+								<v-flex>
+									<v-layout justify-end>
+										<small>{{ textLength }} / 1000</small>
+									</v-layout>
+								</v-flex>
+							</v-layout>
+						</v-flex>
+					</v-layout>
+				</v-card-text>
+				<v-card-text class="py-0">
+					<v-layout row wrap>
+						<v-flex>
+							<v-layout justify-end>
+								<v-btn
+									dark class="mx-0" color="green" @click.stop="postComment(comment)"
+									:disabled="(textLength > 1024 || textLength < 10) || (user.name === '' || user.name === undefined)"
+									:loading="postingComment"
+								>
+									<v-icon class="mr-2">send</v-icon>
+									{{ reply.status ? 'Responder' : 'Comentar' }}
+								</v-btn>
+							</v-layout>
+						</v-flex>
+					</v-layout>
+				</v-card-text>
+			</v-card>
+		</v-flex>
+		<v-dialog v-model="dialog" max-width="390" persistent >
+      <v-card dark>
+				<v-card-title class="title">Deseja mesmo {{ commentToDelete.authorId === user._id ? 'deletar' : 'remover' }} este comentário?</v-card-title>
+				<v-card-text>
+					<p class="mb-0 text-truncate font-italic grey--text">- {{ commentToDelete.comment }}</p>
+				</v-card-text>
+				<v-divider></v-divider>
+        <v-card-actions>
+          <v-spacer></v-spacer>
+          <v-btn dark flat @click="cancelDelete">NÃO</v-btn>
+          <v-btn color="green" flat @click="sendCommentToDelete">SIM</v-btn>
+        </v-card-actions>
+      </v-card>
+		</v-dialog>
+		<in-report-modal :modal="reportModal" :answer="answerToReport" @close-modal="(val) => reportModal = val" />
+	</v-layout>
+</template>
+<script>
+	Vue.component('in-community-answers', {
+		template: '#in-community-answers',
+		computed: {
+			...mapGetters('page', [
+				'page'
+			]),
+			...mapGetters('app', [
+				'user',
+				'windowWidth'
+			]),
+
+			bp () {
+				return this.$vuetify.breakpoint
+			}
+		},
+		data () {
+			const page = parseInt(new URL(location.href).searchParams.get('p'))
+			const vue = this
+			return {
+				postingComment: false,
+				reportModal: false,
+				answers: (<%- JSON.stringify(answers.list) %>),
+				answersLength: (<%- JSON.stringify(answers.length) %>),
+				topic: (<%- JSON.stringify(topic) %>),
+				items: (<%- JSON.stringify(breadcrumb.itemListElement) %>),
+				pageLoaded: true,
+				loading: false,
+				dialog: false,
+				commentToDelete: {},
+				textLength: 0,
+				active: false,
+				answerToReport: {},
+				comment: {
+					comment: ''
+				},
+				reply: {
+					status: false,
+					answer: {}
+				},
+				pagination: {
+					page: page ? page : 1,
+					length: 0
+				},
+				originalPage: page ? page : 1,
+				rules: {
+					length: len => v => (v || '').length <= len || `Quantidade inválida de caracteres, o máximo é ${len}`,
+					required: len => v => (v.length > len || v === '') || `Este campo é obrigatório e deve conter pelo menos ${len} caracteres`
+				},
+				editorOption: {
+					modules: {
+						toolbar: {
+							container: [
+								['bold', 'italic', 'underline', 'strike'],
+								[{ 'indent': '-1'}, { 'indent': '+1' }],
+								[{ 'header': [1, 2, 3, 4, 5, 6, false] }],
+								[ 'image', 'video' ]
+							]
+						}
+					},
+					theme: 'snow',
+					placeholder: 'Deixe seu comentário...'
+				}
+			}
+		},
+		mounted () {
+			const vue = this
+			vue.$nextTick(() => {
+				setTimeout(() => {
+					const ref = new URL(location.href).searchParams.get('ref')
+					if (ref) {
+						if (document.getElementById('answer-' + ref)) {
+							vue.showAnswerCard({ reply: { _id: ref } })
+							window.history.pushState('', '', location.href.replace('&ref=' + ref, ''))
+							if (localStorage.hasOwnProperty('sa')) localStorage.removeItem('sa')
+						} else if (localStorage.getItem('sa') === ref) {
+							location.href = location.href.replace(`p=${vue.pagination.page}`, `p=${vue.pagination.page - 1}`)
+						} else {
+							vue.$http.get(`/check/:topicId/comment/:id`).then((response) => {
+								const { data } = response
+								if (data) {
+									localStorage.setItem('sa', ref)
+									location.href = location.href.replace(`p=${vue.pagination.page}`, `p=${vue.pagination.page - 1}`)
+								} else {
+									vue.showDialog({
+										message: 'O comentário que você está buscando foi removido',
+										color: 'info',
+										icon: 'info'
+									})
+									window.history.pushState('', '', location.href.replace('&ref=' + ref, ''))
+								}
+							})
+						}
+					}
+				}, 50)
+
+				if (vue.answersLength > 10) {
+					vue.pagination.length = vue.answersLength % 10 === 0 ? vue.answersLength / 10 : parseInt(vue.answersLength / 10) + 1
+				}
+				window.onpopstate = function(e){
+					if(e.state){
+						vue.pagination.page = parseInt(e.state.split('-')[1])
+						vue.loadComments(parseInt(e.state.split('-')[1]))
+					}
+				}
+			})
+		},
+		methods: {
+			...mapActions('app', [
+				'showDialog',
+				'scrollPageTo',
+				'setUserMenu'
+			]),
+
+			reportAnswer (answer) {
+				this.answerToReport = answer
+				this.reportModal = true
+			},
+
+			showAnswerCard (answer) {
+				const vue = this
+				var card = vue.$refs['answer-' + answer.reply._id]
+				if (card) {
+					if (card.length) {
+						card = card[0].$el
+						vue.scrollPageTo('answer-' + answer.reply._id)
+						card.style.background = "#616161"
+						return setTimeout(() => {
+							card.style.background = "#313131"
+						}, 2000)
+					}
+				}
+				return location.href = location.href.replace('p=' + vue.pagination.page, `p=${answer.reply.page}&ref=${answer.reply._id}`)
+			},
+
+			checkLogin () {
+				const vue = this
+				if (!vue.user.email) {
+					vue.setUserMenu(true)
+					vue.showDialog({
+						message: 'Você deve estar logado para postar um comentário',
+						color: 'info',
+						icon: 'info'
+					})
+					return false
+				}
+				vue.active = true
+				return true
+			},
+
+			deleteComment (answer) {
+				const vue = this
+				if (vue.checkLogin()) {
+					vue.commentToDelete = answer
+					vue.dialog = true
+				}
+			},
+
+			sendCommentToDelete: async function () {
+				const vue = await this
+				vue.dialog = await false
+				const { commentToDelete } = await vue
+				const action = vue.user._id === vue.commentToDelete.authorId ? 'deleted' : 'removed'
+				try {
+					const { data } = await vue.$http.post(`/comments/delete`, { comment: commentToDelete, action })
+					if (!data.error) {
+						if (action === 'deleted') vue.answers = await vue.answers.filter(a => a._id !== commentToDelete._id)
+						else vue.answers = await vue.answers.map(a => {
+							if (a._id === commentToDelete._id) a.removed = true
+							return a
+						})
+						vue.answersLength = await vue.answers.length
+						if (vue.answersLength === 0) location.href = location.href.replace('p=' + vue.pagination.page, 'p=' + (vue.pagination.page - 1))
+						return await vue.showDialog({
+							message: `Comentário ${ action === 'deleted' ? 'deletado' : 'removido' } com sucesso`,
+							color: 'green',
+							icon: 'info'
+						})
+					}
+					throw data
+				} catch (err) {
+					console.log(err)
+					await vue.showDialog({
+						message: 'Ocorreu um erro na comunicação com o servidor',
+						color: 'red',
+						icon: 'warning'
+					})
+				}
+				vue.commentToDelete = {}
+			},
+
+			cancelDelete () {
+				this.dialog = false
+				this.commentToDelete = {}
+			},
+
+			replyComment (answer) {
+				const vue = this
+				if (vue.checkLogin()) {
+					this.reply = {
+						status: true,
+						answer
+					}
+					vue.scrollPageTo('comment-box')
+				}
+			},
+
+			loadComments: async function (page) {
+				const vue = await this
+				if (page !== vue.originalPage) {
+					window.history.pushState('page-' + page, '', location.href.replace('p=' + vue.originalPage, 'p=' + page))
+					vue.originalPage = page
+					vue.loading = await true
+					try {
+						const { data } = await vue.$http.get(`/comments?p=${page}&ref=${vue.topic._id}`)
+						vue.answers = await data.list
+					} catch (err) {
+						console.log(err)
+						vue.showDialog({
+							message: 'Ocorreu um erro na comunicação com o servidor',
+							color: 'red',
+							icon: 'warning'
+						})
+					}
+					vue.loading  = await false
+				}
+			},
+
+			formatTitle(title) {
+				if (title.length > 30) return title.split('').filter((l, i) => i < 25).join('') + '...'
+				return title
+			},
+
+			postComment: async function (comment) {
+				const vue = await this
+				vue.postingComment = await true
+				if (vue.reply.status) {
+					comment.reply = vue.reply.answer
+					vue.reply = {
+						status: false,
+						answer: {}
+					}
+				}
+				else comment.reply = {}
+				comment.page = await (vue.answers.length === 10 ? (vue.pagination.page + 1) : vue.pagination.page)
+				try {
+					const { data } = await vue.$http.post('/comments', { comment: {
+						...comment,
+						authorId: vue.user._id,
+						authorName: vue.user.name,
+						authorAvatar: `/image/${vue.user._id}/useravatar.jpg`,
+						pageUrl: vue.page.url,
+						pageRef: vue.page.ref,
+						topicId: vue.topic._id,
+						topicTitle: vue.topic.title,
+						topicAuthorId: vue.topic.authorId
+					}})
+					if (!data.error) {
+						await vue.showDialog({
+							message: 'Comentário postado com sucesso!',
+							color: 'success',
+							icon: 'info'
+						})
+						vue.topic.comments += 1
+						data.comment.author = {
+							_id: vue.user._id,
+							points: vue.user.points,
+							name: vue.user.name,
+							email: vue.user.email,
+							avatar: `/image/${vue.user._id}/useravatar.jpg`,
+							admin: vue.user.admin,
+							superadmin: vue.user.superadmin
+						}
+						await vue.answers.push(data.comment)
+						vue.answersLength += await 1
+						if (vue.answersLength > 10 * vue.pagination.page) {
+							vue.pagination.length = await vue.answersLength % 10 === 0 ? parseInt(vue.answersLength / 10) : parseInt(vue.answersLength / 10) + 1
+							vue.loadComments(vue.pagination.page + 1)
+							vue.pagination.page += 1
+						}
+						vue.comment = await {
+							comment: ''
+						}
+						if (document.getElementById('answer-' + data.comment._id)) {
+							setTimeout(() => {
+								vue.scrollPageTo('answer-' + data.comment._id)
+							}, 50)
+						}
+					} else {
+						await vue.showDialog({
+							message: 'Ocorreu um erro na comunicação com o servidor',
+							color: 'red',
+							icon: 'warning'
+						})
+					}
+				} catch (err) {
+					console.log(err)
+					await vue.showDialog({
+						message: 'Ocorreu um erro na comunicação com o servidor',
+						color: 'red',
+						icon: 'warning'
+					})
+				}
+				vue.postingComment = await false
+			}
+		}
+	})
+</script>
+	
+<style>
+	.in-community-title {
+		padding: 0px;
+		padding-bottom: 0px;
+		font-size: 32px;
+		letter-spacing: 2px;
+		font-weight: 300;
+		color: rgba(255, 255, 255, 0.8)
+	}
+	p.mb-0 p {
+		margin-bottom: 0 !important;
+	}
+</style>

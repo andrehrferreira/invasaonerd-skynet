@@ -1,0 +1,144 @@
+<template id="in-third-step">
+    <v-container fluid grid-list-xl>
+        <v-layout align-center row wrap>
+            <v-flex v-if="loading">
+                <in-loading />
+            </v-flex>
+            <v-flex v-else>
+                <v-layout row wrap v-if="user.admin || finish">
+                    <v-flex xs12 md6 offset-md3 lg4 offset-lg4>
+                        <p class="text-xs-center" v-html="icons.page"></p>
+                    </v-flex>
+                </v-layout>
+                <v-layout row wrap justify-center v-else>
+                    <v-flex xs12 sm10 md8 lg6 xl4>
+                        <p class="text-xs-center">
+                            Já temos informações o suficiente para enviar sua sugestão para um aprovador avaliar porém,
+                            você tem a opção de continuar editando e acrescentar mais informações a sua sugestão.
+                        </p>
+                        <v-layout row wrap>
+                            <v-btn color="success" @click.stop="continueEditing">CONTINUAR EDITANDO</v-btn>
+                            <v-spacer></v-spacer>
+                            <v-btn @click.stop="sendEdition" color="success">ENVIAR PARA APROVAÇÃO</v-btn>
+                        </v-layout>
+                    </v-flex>
+                </v-layout>
+            </v-flex>
+        </v-layout>
+    </v-container>
+</template>
+
+<script>
+    Vue.component('in-third-step', {
+        template: '#in-third-step',
+        computed: {
+            ...mapGetters('create-page', [
+                'pageInfos'
+            ]),
+            ...mapGetters('app', [
+                'icons',
+                'user'
+            ])
+        },
+        data() {
+            return {
+                loading: false,
+                finish: false
+            }
+        },
+        mounted() {
+            const vm = this
+            const { pageInfos } = vm
+            pageInfos.user = vm.user
+            pageInfos.changes = Object.entries(pageInfos).filter(([key, value]) => {
+                return key !== 'ref' && key !== 'order' && key !== 'configs' && value !== ''
+            }).map(([key, value]) => {
+                return {
+                    type: key
+                }
+            })
+            pageInfos.categories = pageInfos.categories.map(cat => cat.text)
+            pageInfos.url = vm.filterUrl(pageInfos.title)
+            vm.setPageInfos(pageInfos)
+            if (vm.user.admin) vm.sendEdition()
+        },
+        methods: {
+            ...mapActions('create-page', [
+                'setPageInfos',
+                'setValidStep'
+            ]),
+            ...mapActions('app', [
+                'showDialog'
+            ]),
+
+            filterUrl (title) {
+                return title.toLowerCase()
+                            .split(' ').join('-')
+                            .split('')
+                            .filter(e => e !== '?' && e !== '#' && e !== '&' && e !== '$')
+                            .join('')
+            },
+
+            continueEditing () {
+                const vm = this
+                vm.loading = true
+                const { pageInfos } = vm
+                localStorage.setItem(`page-${pageInfos.url}`, JSON.stringify(pageInfos))
+                setTimeout(() => {
+                    location.href = '/editpage/' + pageInfos.url
+                }, 100)
+            },
+
+            sendEdition() {
+                const vm = this
+                vm.finish = true
+                const { pageInfos } = vm
+                pageInfos.ref = new Date().getTime()
+                pageInfos.url = vm.filterUrl(pageInfos.title)
+                vm.$http.post("/page/" + encodeURI(pageInfos.ref), { page: pageInfos }).then(function (res) {
+                    vm.loading = false
+                    if (vm.user.admin) {
+                        vm.aproveRevision(res.data)
+                    } else {
+                        setTimeout(() => {
+                            location.href = '/'
+                        }, 2000)
+                        vm.showDialog({
+                            message: 'Página enviada para aprovação',
+                            color: 'success',
+                            icon: 'check-circle'
+                        })
+                    }
+                }, function (err) {
+                    console.log(err)
+                    vm.loading = false
+                    vm.showDialog({
+                        message: 'Ocorreu um erro no servidor',
+                        color: 'red',
+                        icon: 'warning'
+                    })
+                })
+            },
+
+            aproveRevision(page) {
+                const vm = this
+                page.aprovator = {
+                    id: vm.user._id,
+                    name: vm.user.name
+                }
+                vm.loading = true
+                vm.$http.put('/feedback/', { page }).then((res) => {
+                    vm.loading = false
+                    vm.showDialog({
+                        message: page.title + ' aprovada com sucesso',
+                        color: 'success',
+                        icon: 'check-circle'
+                    })
+                })
+                setTimeout(() => {
+                    location.href = '/page/' + page.url
+                }, 2000)
+            }
+        }
+    })
+</script>

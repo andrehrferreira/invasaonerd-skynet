@@ -1,0 +1,238 @@
+html, body {
+    height: 100%;
+    font-family: 'Roboto', sans-serif;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    background-color: #333;
+}
+
+*, ::after, ::before {
+    box-sizing: border-box;
+}
+
+.in-container {
+    height: 100%;
+    padding: 0;
+    margin: 0;
+    display: -webkit-box;
+    display: -moz-box;
+    display: -ms-flexbox;
+    display: -webkit-flex;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.in-login-box {
+    position: relative;
+    min-width: 750px;
+    width: 100%;
+    max-width: 1366px;
+    min-height: 615px;
+    height: 100%;
+    max-height: 728px;
+    background-color: #000;
+    -webkit-background-size: cover;
+    -moz-background-size: cover;
+    -o-background-size: cover;
+    background-size: cover;
+    -webkit-border-radius: 3px;
+    -moz-border-radius: 3px;
+    border-radius: 3px;
+    border: 1px solid #404040;
+    outline: 1px solid #000;
+    -webkit-box-shadow: 0px 15px 40px -17px rgba(0, 0, 0, 0.75);
+    -moz-box-shadow: 0px 15px 40px -17px rgba(0, 0, 0, 0.75);
+    box-shadow: 0px 15px 40px -17px rgba(0, 0, 0, 0.75);
+}
+
+.in-login-box:before {
+    content: "";
+    display: block;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0.5;
+    z-index: -1;
+    content: border-box;
+}
+
+.in-login-form {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    padding: 20px
+}
+
+.in-login-input-container {
+    margin-bottom: 5px;
+    text-align: center;
+}
+
+.in-login-brand {
+    margin: auto;
+    margin-top: 20px;
+    margin-bottom: 15px;
+    max-width: 156px;
+    height: auto;
+}
+
+/* .in-login-form input[type=text], .in-login-form input[type=password], .in-login-form input[type=email] {
+    padding: 12px 110px 12px 10px;
+    font-size: 12px;
+    -webkit-border-radius: 3px;
+    -moz-border-radius: 3px;
+    border-radius: 3px;
+    border: 1px solid #404040;
+    -webkit-transition: 0.2s ease-in-out;
+    -moz-transition: 0.2s ease-in-out;
+    -o-transition: 0.2s ease-in-out;
+    transition: 0.2s ease-in-out;
+} */
+
+.in-login-form input[type=text]:focus, .in-login-form input[type=password]:focus, .in-login-form input[type=submit]:hover, .in-login-form input[type=email]:focus {
+    transform: scale(1.03);
+    -webkit-transform: scale(1.03);
+    -moz-transform: scale(1.03);
+    -o-transform: scale(1.03);
+    -ms-transform: scale(1.03);
+}
+
+.in-login-form input[type=submit] {
+    width: 100%;
+    padding: 12px;
+    font-size: 12px;
+    border: 1px solid #404040;
+    -webkit-border-radius: 3px;
+    -moz-border-radius: 3px;
+    border-radius: 3px;
+    color: #333;
+    background: #ffd65e;
+    /* Old browsers */
+    background: -moz-linear-gradient(top, #ffd65e 0%, #febf04 100%);
+    /* FF3.6-15 */
+    background: -webkit-linear-gradient(top, #ffd65e 0%, #febf04 100%);
+    /* Chrome10-25,Safari5.1-6 */
+    background: linear-gradient(to bottom, #ffd65e 0%, #febf04 100%);
+    /* W3C, IE10+, FF16+, Chrome26+, Opera12+, Safari7+ */
+    filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#ffd65e', endColorstr='#febf04', GradientType=0);
+    /* IE6-9 */
+    -webkit-transition: 0.2s ease-in-out;
+    -moz-transition: 0.2s ease-in-out;
+    -o-transition: 0.2s ease-in-out;
+    transition: 0.2s ease-in-out;
+    cursor: pointer;
+}
+
+.in-login-lostpassword {
+    text-align: left;
+    margin-left: 5px;
+}
+
+.in-login-lostpassword a {
+    color: #FFF;
+}
+
+.in-login-divide {
+    display: flex;
+    margin-bottom: 1.5rem;
+    align-items: center;
+    color: #EFEFEF;
+    flex-wrap: wrap;
+    margin-right: -15px;
+    margin-left: -15px;
+}
+
+.in-login-trace {
+    height: 3px;
+    background-color: #EFEFEF;
+    flex: 0 0 41.666667%;
+    max-width: 41.666667%;
+    position: relative;
+    padding-right: 15px;
+    padding-left: 15px;
+}
+
+.in-login-or {
+    font-weight: 600;
+    color: #EFEFEF;
+    flex: 0 0 16.666667%;
+    max-width: 16.666667%;
+    position: relative;
+    padding-right: 15px;
+    padding-left: 15px;
+}
+
+.in-login-facebook, .in-login-twitter {
+    width: 100%;
+    padding: 5px 20px;
+    font-size: 16px;
+    border: 1px solid rgba(0, 0, 0, 0.35);
+    -webkit-border-radius: 3px;
+    -moz-border-radius: 3px;
+    border-radius: 3px;
+    color: #333;
+    display: block;
+    -webkit-transition: 0.2s ease-in-out;
+    -moz-transition: 0.2s ease-in-out;
+    -o-transition: 0.2s ease-in-out;
+    transition: 0.2s ease-in-out;
+    text-decoration: none !important;
+    color: #FFF !important;
+}
+
+.in-login-facebook {
+    background-color: #3b5998;
+}
+
+.in-login-twitter {
+    background-color: #15a7ff;
+}
+
+.in-login-facebook:hover, .in-login-twitter:hover {
+    transform: scale(1.03);
+    -webkit-transform: scale(1.03);
+    -moz-transform: scale(1.03);
+    -o-transform: scale(1.03);
+    -ms-transform: scale(1.03);
+}
+
+.in-login-register:hover {
+    transform: scale(1.03);
+    -webkit-transform: scale(1.03);
+    -moz-transform: scale(1.03);
+    -o-transform: scale(1.03);
+    -ms-transform: scale(1.03);
+}
+
+.in-login-register {
+    text-align: center;
+    width: 100%;
+    padding: 12px;
+    font-size: 12px;
+    border: 1px solid #404040;
+    -webkit-border-radius: 3px;
+    -moz-border-radius: 3px;
+    border-radius: 3px;
+    color: #333;
+    background: #87d3ff;
+    background: -moz-linear-gradient(top, #87d3ff 0%, #2d80b1 100%);
+    background: -webkit-linear-gradient(top, #87d3ff 0%, #2d80b1 100%);
+    background: linear-gradient(to bottom, #87d3ff 0%, #2d80b1 100%);
+    filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#87d3ff', endColorstr='#2d80b1', GradientType=0);
+    -webkit-transition: 0.2s ease-in-out;
+    -moz-transition: 0.2s ease-in-out;
+    -o-transition: 0.2s ease-in-out;
+    transition: 0.2s ease-in-out;
+    cursor: pointer;
+}
+

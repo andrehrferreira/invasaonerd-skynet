@@ -1,0 +1,196 @@
+<template id="in-editor-type-lives">
+  <div id="lives" class="in-editor-box-step animated fadeIn">
+    <v-layout row wrap justify-space-between>
+      <v-flex d-flex>
+        <v-layout justify-start>
+          <h5><%= __('Preview') %></h5>
+        </v-layout>
+      </v-flex>
+      <v-flex d-flex>
+        <v-layout justify-end>
+          <v-tooltip :open-delay="50" :close-delay="50" bottom>
+            <v-btn slot="activator" color="success" dark icon @click.stop="save(lives)">
+              <v-icon>save</v-icon>
+            </v-btn>
+            <span>Salvar Lives</span>
+          </v-tooltip>
+        </v-layout>
+      </v-flex>
+    </v-layout>
+    <div class="container" style="padding: 0px">
+      <div class="row animated fadeIn" v-if="error">
+        <div class="col-12">
+          <div class="alert alert-danger" role="alert">
+          <span><%= __('Ocorreu erro ao tentar comunicação com o servidor') %></span>
+          <button
+            type="button" class="close" data-dismiss="alert"
+            aria-label="Close" @click.stop="error=false">
+            <span aria-hidden="true">&times;</span>
+          </button>
+          </div>
+        </div>
+      </div>
+
+      <v-layout row wrap>
+        <v-flex sm12 sm8 md9 lg10 xl11>
+          <v-text-field placeholder="<%= __('Buscar por: ') %>" :disabled="loading" @keyup.enter="get('/api/lives')" @input="error = false" v-model="lives"></v-text-field>
+        </v-flex>
+        <v-flex sm12 sm4 md3 lg2 xl1>
+          <v-layout class="px-2">
+            <v-btn dark block :loading="loading" @click.stop="get('/api/lives')" >
+              <v-icon class="mr-2">search</v-icon> Buscar
+            </v-btn>
+          </v-layout>
+        </v-flex>
+      </v-layout>
+
+    </div>
+    <div class="in-loading" v-if="loading">
+      <in-loading />
+    </div>
+    <div v-if="list.length > 0" class="in-editor-section in-videos-preview">
+      <h5><%= __('Preview') %></h5>
+      
+      <div v-if="toPlay._id" :id="'id-' + toPlay.channel.name">
+        <v-layout row wrap justify-end v-if="toPlay._id">
+          <v-tooltip :open-delay="50" :close-delay="50" left>
+            <v-btn slot="activator" icon color="#ef001c" @click.stop="toPlay = {}">
+              <v-icon>close</v-icon>
+            </v-btn>
+            <span>Fechar Vídeo</span>
+          </v-tooltip>
+        </v-layout>
+        <div class="row">
+          <div v-if="toPlay._id" class="col-12 embed-responsive embed-responsive-16by9">
+            <div :id="toPlay.channel.name"></div>
+          </div>
+        </div>
+      </div>
+
+      <swiper :options="swiperOption">
+        <swiper-slide v-for="(live, index) in list" :key="index" class="in-videos-preview-item">
+          <div :title="live.channel.status" @click.stop="play(live)">
+            <img
+              class="in-videos-preview-item-thumb" frameborder="0"
+              allow="autoplay; encrypted-media" allowfullscreen
+              :src="live.preview.medium"
+            />
+            <div class="in-videos-preview-item-title">
+              <h5>{{ live.channel.display_name }}</h5>
+              <p>{{live.channel.status}}</p>
+            </div>
+            <div class="in-videos-preview-item-author">
+              Inicio da Stream: {{ new Date(live.created_at).toLocaleString() }}
+            </div>
+          </div>
+        </swiper-slide>
+
+        <!-- Optional controls -->
+        <div class="swiper-button-prev" slot="button-prev"></div>
+        <div class="swiper-button-next" slot="button-next"></div>
+        <div class="swiper-scrollbar"   slot="scrollbar"></div>
+        <div class="swiper-pagination" slot="pagination"></div>
+      </swiper>
+    </div>
+    <div class="row my-3 text-center" v-else>
+      <div class="col-12">
+        <span class="bg-danger p-3"><%= __('Não encontramos Lives relacionadas a ') %>{{ lives }}</span>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script src= "https://player.twitch.tv/js/embed/v1.js"></script>
+<script>
+  Vue.component('in-editor-type-lives', {
+    template: '#in-editor-type-lives',
+    computed: {
+      ...mapGetters('page', [
+        'page',
+        'swiperOption',
+        'buttonState',
+        'editingType'
+      ])
+    },
+    mounted () {
+      this.lives = this.page.lives ? this.page.lives : this.page.title
+      this.get('/api/lives')
+    },
+    data () {
+      return {
+        title: 'Lives',
+        loading: false,
+        lives: '',
+        error: false,
+        list: [],
+        toPlay: {}
+      }
+    },
+    methods: {
+      ...mapActions('page', [
+        'setPage',
+        'setAdding',
+        'setEditingType'
+      ]),
+      ...mapActions('app', [
+        'showDialog',
+        'scrollPageTo'
+      ]),
+      get (url) {
+        this.loading = true
+        const vm = this
+        vm.error = false
+        vm.$http.get(url + '/' + encodeURIComponent(vm.lives))
+          .then(res => {
+            vm.list = res.data.streams.filter(stream => {
+              return stream.game.toLowerCase().includes(vm.lives.toLowerCase())
+            })
+            vm.loading = false
+          }, err => {
+            vm.loading = false
+            vm.error = true
+            vm.showDialog({
+              message: `Não há nenhuma Stream Online referente a ${vm.lives}`,
+              color: 'orange',
+              icon: 'warning'
+            })
+          })
+      },
+
+      play (live) {
+        this.toPlay = {}
+        setTimeout(() => {
+          this.toPlay = live
+        }, 25)
+        setTimeout(() => {
+          const options = {
+            width: 854,
+            height: 480,
+            channel: live.channel.name,
+          }
+          var player = new Twitch.Player(live.channel.name, options)
+          player.setVolume(0.5)
+        }, 50)
+        setTimeout(() => {
+          this.scrollPageTo('id-' + live.channel.name)
+        }, 75)
+      },
+
+      save (lives) {
+        const { page } = this
+        page.lives = lives
+        page.changes.push({
+          type: this.editingType
+        })
+        this.setPage(page)
+        this.setAdding(false)
+        this.setEditingType('')
+        this.showDialog({
+          message: `Edições de ${this.title} gravadas para envio`,
+          color: 'success',
+          icon: 'check-circle'
+        })
+      }
+    }
+  })
+</script>

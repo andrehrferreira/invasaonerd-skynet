@@ -1,0 +1,402 @@
+<template id="in-serie-season-modal">
+	<v-layout justify-center>
+		<v-dialog v-model="modal" :max-width="1000" id="modal-season" persistent :fullscreen="$vuetify.breakpoint.smAndDown">
+			<v-card max-width="1000px" v-if="!loading">
+				<v-toolbar dark color="#212121" absolute>
+					<v-toolbar-title>{{ fullInfoSeason.name }}</v-toolbar-title>
+					<v-spacer></v-spacer>
+					<v-btn icon dark @click.stop="modal = false">
+						<v-icon>close</v-icon>
+					</v-btn>
+				</v-toolbar>
+				<v-img :src="fullInfoSeason.poster_path ? 'https://image.tmdb.org/t/p/w500' + fullInfoSeason.poster_path : '/assets/img/default_cover.jpg'" cover>
+					<v-container fluid fill-height style="background-color: rgba(0,0,0,0.75); overflow-y: auto;">
+						<v-layout fill-height row wrap>
+							<v-flex xs12 class="pt-5">
+								<div class="row">
+									<div class="col-12">
+										<p>{{ fullInfoSeason.overview }}</p>
+									</div>
+								</div>
+								<div class="row">
+									<div class="col-12">
+										<v-layout row justify-space-between class="animated fadeIn">
+											<v-flex xs12>
+												<v-layout row wrap>
+													<v-btn
+														:href="`https://www.google.com.br/search?q=tv+serie+${fullInfoSeason.serieName.toLowerCase().split(' ').join('+')}+${fullInfoSeason.name.toLowerCase().split(' ').join('+')}&source=lnms&tbm=shop&sa=X`"
+														class="in-button-link-redirect text-white in-movie-modal-links" target="_blank">
+														<div class="in-basic-infos-form-icons">
+															<span v-html="icons.buy + 'Onde comprar?'"></span>
+														</div>
+													</v-btn>
+													<div v-if="serie.links">
+														<div v-if="serie.links[''+fullInfoSeason.id]" id="serie-links">
+															<v-btn
+																v-if="serie.links[''+fullInfoSeason.id].netflix"
+																:href="serie.links[''+fullInfoSeason.id].netflix"
+																class="in-button-link-redirect text-white in-movie-modal-links" target="_blank">
+																<div class="in-basic-infos-form-icons">
+																	<span v-html="icons.netflix + 'Netflix'"></span>
+																</div>
+															</v-btn>
+															<v-btn
+																v-if="serie.links[''+fullInfoSeason.id].hbo"
+																:href="serie.links[''+fullInfoSeason.id].hbo"
+																class="in-button-link-redirect text-white in-movie-modal-links" target="_blank">
+																<div class="in-basic-infos-form-icons">
+																	<span v-html="icons.hbo + 'HBO GO'"></span>
+																</div>
+															</v-btn>
+															<v-btn
+																v-if="serie.links[''+fullInfoSeason.id].youtube"
+																:href="serie.links[''+fullInfoSeason.id].youtube"
+																class="in-button-link-redirect text-white in-movie-modal-links" target="_blank">
+																<div class="in-basic-infos-form-icons">
+																	<span v-html="icons.youtube + 'Youtube Premium'"></span>
+																</div>
+															</v-btn>
+															<v-btn v-if="editMode" color="#ef001c" class="mt-1 hidden-sm-and-up" @click.stop="addLinks">
+																<v-icon>add</v-icon>
+																{{ serie.links[''+fullInfoSeason.id] ? 'Editar' : 'Adicionar' }} Links
+															</v-btn>
+														</div>
+													</div>
+												</v-layout>
+											</v-flex>
+											<v-flex v-if="editMode" class="hidden-xs-only">
+												<v-btn color="#ef001c" class="mt-1" @click.stop="addLinks">
+													<v-icon>add</v-icon>
+													<span v-if="!serie.links">
+														Adicionar Links
+													</span>
+													<span v-else>
+														{{ serie.links[''+fullInfoSeason.id] ? 'Editar' : 'Adicionar' }} Links
+													</span>
+												</v-btn>
+											</v-flex>
+											<v-dialog v-model="addingLinks" width="600px">
+												<v-card dark>
+													<v-card-title>
+														<p class="title mb-0">Adicione Links de {{ fullInfoSeason.serieName }} - {{ fullInfoSeason.name }}</p>
+													</v-card-title>
+													<v-card-text>
+														<v-layout row wrap>
+															<v-flex xs12>
+																<v-layout row>
+																	<v-avatar size="32" class="mt-3 mr-2">
+																		<span style="height: 100%; width: 100%;" v-html="icons.netflix"></span>
+																	</v-avatar>
+																	<v-text-field
+																		label="Netflix"
+																		v-model="links.netflix"
+																	></v-text-field>
+																</v-layout>
+															</v-flex>
+															<v-flex xs12>
+																<v-layout row>
+																	<v-avatar size="32" class="mt-3 mr-2">
+																		<span style="height: 100%; width: 100%;" v-html="icons.hbo"></span>
+																	</v-avatar>
+																	<v-text-field
+																		label="HBO GO"
+																		v-model="links.hbo"
+																	></v-text-field>
+																</v-layout>
+															</v-flex>
+															<v-flex xs12>
+																<v-layout row>
+																	<v-avatar size="32" class="mt-3 mr-2">
+																		<span style="height: 100%; width: 100%;" v-html="icons.youtube"></span>
+																	</v-avatar>
+																	<v-text-field
+																		label="Youtube Premium"
+																		v-model="links.youtube"
+																	></v-text-field>
+																</v-layout>
+															</v-flex>
+														</v-layout>
+													</v-card-text>
+													<v-card-actions>
+														<v-btn dark flat @click.stop="addingLinks = !addingLinks">CANCELAR</v-btn>
+														<v-spacer></v-spacer>
+														<v-btn dark color="success" flat @click.stop="saveLinks(links)">SALVAR</v-btn>
+													</v-card-actions>
+												</v-card>
+											</v-dialog>
+										</v-layout>
+									</div>
+								</div>
+								<div class="row">
+									<div class="col-12">
+										<h4>Episódios:</h4>
+										<swiper :options="swiperOption" ref="swiper">
+											<swiper-slide v-for="(episode, index) in fullInfoSeason.episodes" :key="index" class="in-movie-cover animated fadeIn"
+											 :style="`background-image: url(${(episode.still_path ? 'https://image.tmdb.org/t/p/w500' + episode.still_path : '')});`">
+												<div class="in-movie-preview-fade pa-1">
+													<div class="container-fluid d-flex align-items-end in-movie-height" style="min-height: 500px">
+														<div class="row">
+															<div class="col-12 animated fadeIn" v-if="bottomNav === 'details'">
+																<h2 class="mb-0">{{ episode.name }}</h2>
+																<p class="in-movie-small mb-1">{{ new Date(episode.air_date).toLocaleDateString() }}</p>
+																<p class="in-movie-small mb-2 "><span v-for="number in numbers" :title="episode.vote_average">
+																		<i :class="starsRate(episode.vote_average, number)"></i>
+																	</span>
+																	{{ (episode.vote_average/2).toFixed(1) }}
+																</p>
+																<p class="in-movie-text">
+																	{{ formatOverview(episode.overview) }}
+																</p>
+															</div>
+															<div class="col-12 animated fadeIn" v-else-if="bottomNav === 'guest'">
+																<div v-if="episode.guest_stars.length">
+																	<div class="row text-center pt-2">
+																		<div class="col-12">
+																			<h4>Elenco</h4>
+																		</div>
+																	</div>
+																	<v-layout>
+																		<v-flex xs12>
+																			<v-container grid-list-sm fluid>
+																				<v-layout row wrap>
+																					<v-flex v-for="(actor, index) in episode.guest_stars" :key="actor.id + '-' + index" xs12 sm6 md4 lg3
+																					 v-if="actor.profile_path">
+																						<v-card color="transparent" class="in-movie-preview-fade" target="_blank" :href="'https://invasaonerd.com.br/page/' + actor.character.split(' ').join('-') + '?ref=' + page.title">
+																							<v-layout row>
+																								<v-flex xs7>
+																									<v-card-title>
+																										<p class="title font-weight-thin m-0 p-0">{{ actor.character }}</p><br>
+																										<small class="caption font-italic">{{ actor.name }}</small>
+																									</v-card-title>
+																								</v-flex>
+																								<v-flex xs5>
+																									<div class="p-2">
+																										<v-img :src="'https://image.tmdb.org/t/p/w200' + actor.profile_path" lazy-src="/assets/img/loading.gif"
+																										 container></v-img>
+																									</div>
+																								</v-flex>
+																							</v-layout>
+																						</v-card>
+																					</v-flex>
+																				</v-layout>
+																			</v-container>
+																		</v-flex>
+																	</v-layout>
+																</div>
+															</div>
+															<div class="col-12 animated fadeIn embed-responsive embed-responsive-16by9" v-else>
+																<div v-if="previewloading">
+																	<in-loading />
+																</div>
+																<div>
+																	<iframe v-for="(video, index) in episode.videos" :key="index" class="in-videos-item-player-iframe" :src="'https://www.youtube.com/embed/' + video.key + '?autoplay=1'"
+																	frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+																</div>
+															</div>
+															<div class="col-12 text-center" style="z-index: 1000;">
+																<v-bottom-nav :active.sync="bottomNav" :value="true" color="transparent">
+																	<v-btn color="white" flat value="details">
+																		<span>Detalhes</span>
+																		<v-icon small>list_alt</v-icon>
+																	</v-btn>
+																	<v-btn :disabled="!episode.crew.length || !episode.guest_stars.length" color="white" flat value="guest">
+																		<span>Elenco</span>
+																		<v-icon small>grade</v-icon>
+																	</v-btn>
+																	<v-btn v-if="episode.videos" color="white" flat value="preview">
+																		<span>{{ episode.videos ? 'Preview' : 'Sem Preview' }}</span>
+																		<v-icon small>{{ episode.videos ? 'play_arrow' : 'cancel_presentation' }}</v-icon>
+																	</v-btn>
+																</v-bottom-nav>
+															</div>
+														</div>
+													</div>
+												</div>
+											</swiper-slide>
+											<div class="swiper-button-prev" slot="button-prev"></div>
+											<div class="swiper-button-next" slot="button-next"></div>
+											<div class="swiper-scrollbar" slot="scrollbar"></div>
+											<div class="swiper-pagination" slot="pagination"></div>
+										</swiper>
+									</div>
+								</div>
+							</v-flex>
+						</v-layout>
+					</v-container>
+				</v-img>
+			</v-card>
+			<in-loading v-else />
+		</v-dialog>
+	</v-layout>
+</template>
+
+<script>
+	Vue.component('in-serie-season-modal', {
+		template: '#in-serie-season-modal',
+		computed: {
+			...mapGetters('page', [
+				'seasonDetails',
+				'seasonModal',
+				'editMode',
+				'page'
+			]),
+			...mapGetters('app', [
+				'user',
+				'windowWidth',
+				'icons'
+			])
+		},
+		data() {
+			return {
+				numbers: [1, 2, 3, 4, 5],
+				modal: true,
+				loading: true,
+				previewloading: false,
+				fullInfoSeason: {},
+				limit: 10,
+				bottomNav: 'details',
+				addingLinks: false,
+				serie: {
+					links: {}
+				},
+				links: {
+					netflix: '',
+					hbo: '',
+					youtube: ''
+				},
+				swiperOption: {
+					autoHeight: true,
+					effect: 'coverflow',
+					centeredSlides: true,
+					grabCursor: true,
+					slidesPerView: 1,
+					coverflowEffect: {
+						rotate: 50,
+						stretch: 0,
+						depth: 100,
+						modifier: 1,
+						slideShadows: true
+					},
+					navigation: {
+						nextEl: '.swiper-button-next',
+						prevEl: '.swiper-button-prev'
+					},
+					pagination: {
+						el: '.swiper-pagination',
+						type: 'progressbar'
+					}
+				}
+			}
+		},
+		watch: {
+			modal(val) {
+				val || this.closeModal();
+			},
+		},
+		mounted() {
+			const vue = this
+			vue.serie = vue.page.series.filter(serie => {
+				return serie.id === vue.seasonDetails.serieId
+			})[0]
+			vue.$http.get(
+				`/api/season-details?serieId=${vue.seasonDetails.serieId}&seasonNumber=${vue.seasonDetails.season_number}`).then(
+				response => {
+					const {
+						data
+					} = response
+					vue.fullInfoSeason = {
+						...data,
+						...vue.seasonDetails
+					}
+					if (vue.serie.links) {
+						if (vue.serie.links[vue.seasonDetails.id]) {
+							vue.links = vue.serie.links[vue.seasonDetails.id]
+						}
+					}
+					vue.loading = false
+				})
+		},
+		methods: {
+			...mapActions('page', [
+				'setSeasonDetails',
+				'setseasonModal',
+				'setPage'
+			]),
+			...mapActions('app', [
+				'showDialog'
+			]),
+
+			addLinks () {
+				if (this.fullInfoSeason.links) {
+					this.links = this.fullInfoSeason.links
+				}
+				this.addingLinks = !this.addingLinks
+			},
+
+			saveLinks (links) {
+				const vue = this
+				const { page } = vue
+				const seasonId = ''+vue.fullInfoSeason.id
+				const serie = page.series.filter(serie => {
+					return serie.id === vue.fullInfoSeason.serieId
+				})[0]
+				if (!serie.links[seasonId]) {
+					serie.links[seasonId] = {
+						netflix: '',
+						hbo: '',
+						youtube: ''
+					}
+				}
+				if (links.netflix !== serie.links[seasonId].netflix) serie.links[seasonId].netflix = links.netflix
+				if (links.hbo !== serie.links[seasonId].hbo) serie.links[seasonId].hbo = links.hbo
+				if (links.youtube !== serie.links[seasonId].youtube) serie.links[seasonId].youtube = links.youtube
+				page.changes.push({
+					type: 'serie-links'
+				})
+				vue.fullInfoSeason.links = serie.links
+				page.series = page.series.map(s => {
+					if (s.id === serie.id) return serie
+					return s
+				})
+				vue.addingLinks = false
+				vue.setPage(page)
+			},
+
+			redirectTo(link) {
+				window.open(link, '_blank')
+			},
+
+			starsRate(rate, number) {
+				return number <= (parseInt(rate) / 2) ? 'fa fa-star text-warning' : 'far fa-star'
+			},
+
+			closeModal() {
+				this.setSeasonDetails('')
+				this.modal = !this.modal
+			},
+
+			play(video) {
+				this.toPlay = {}
+				setTimeout(() => {
+					this.toPlay = video
+				}, 50)
+			},
+
+			setDefaultImage(event) {
+				event.target.src = '/assets/img/avatardefault.jpeg'
+			},
+
+			starsRate(rate, number) {
+				return number <= (parseInt(rate) / 2) ? 'fa fa-star text-warning' : 'far fa-star'
+			},
+
+			formatOverview(text) {
+				if (this.$vuetify.breakpoint.width <= 500) {
+					return text.split(' ').slice(0, 70).join(' ') + '...'
+				}
+				return text
+			}
+		}
+	})
+
+</script>

@@ -1,0 +1,125 @@
+<template id="in-template-movies-tab">
+		<section class=" animated fadeIn" ref="movies">	
+			<p class="pl-2 in-videos-tab-h3 mb-0 py-3">
+				<%= __('Filmes') %>
+			</p>
+			<div class="in-editor-section" id="movies">
+				<v-layout row wrap>
+					<v-flex xs12 v-if="movies.length" v-for="(movie, index) in movies" :key="index" class="in-movie-cover animated fadeIn mb-3"
+						:style="`background-image: url(${(movie.cover ? movie.cover : '')});
+						height: ${$vuetify.breakpoint.width < 768 ? '500px' : '420px'}; cursor: pointer;`">
+						<div @click.stop="seeMovieDetails(movie)" :title="movie.title" class="in-movie-preview-fade pa-1 ">
+							<div class="container-fluid d-flex align-items-end in-movie-height">
+								<div class="row">
+									<div class="col-12">
+										<h2 class="mb-0">{{ movie.title }}</h2>
+										<p class="in-movie-small mb-1">{{ movie.release_date }}</p>
+										<p class="in-movie-small mb-2 "><span v-for="number in numbers" :title="movie.vote_average">
+												<i :class="starsRate(movie.vote_average, number)"></i>
+											</span>
+											{{ (movie.vote_average/2) }} <img class="imdb_img" src="<%= settings.url %>/assets/img/IMDB_Logo_2016.png">
+										</p>
+										<p class="in-movie-text pr-5">
+											{{ formatOverview(movie.overview) }}
+										</p>
+									</div>
+								</div>
+							</div>
+						</div>
+					</v-flex>
+				</v-layout>
+			</div>
+		</section>
+	</template>
+	
+	<script>
+		Vue.component("in-template-movies-tab", {
+			template: "#in-template-movies-tab",
+			computed: {
+				...mapGetters('page', [
+					'page',
+					'editMode'
+				]),
+				...mapGetters('app', [
+					'windowWidth'
+				])
+			},
+			data() {
+				return {
+					numbers: [1, 2, 3, 4, 5],
+					movies: [],
+					swiperOption: {
+						slidesPerView: 1,
+						spaceBetween: 20,
+						pagination: {
+							el: '.swiper-pagination',
+							clickable: true
+						},
+						navigation: {
+							nextEl: '.swiper-button-next',
+							prevEl: '.swiper-button-prev'
+						}
+					}
+				}
+			},
+			mounted() {
+				const movies = JSON.parse(JSON.stringify(this.page.movies))
+				this.movies = movies.map(movie => {
+					return this.formatDate(movie)
+				}).sort((a, b) => {
+					return new Date(b.release_date).getTime() - new Date(a.release_date).getTime()
+				})
+			},
+			methods: {
+				...mapActions('page', [
+					'toggleModal',
+					'setAdding',
+					'setEditingType',
+					'removeType',
+					'setMovieDetails',
+					'setMovieModal'
+				]),
+				...mapActions('app', [
+					'scrollPageTo',
+				]),
+	
+				seeMovieDetails(movie) {
+					this.setMovieDetails(movie)
+					this.setMovieModal(true)
+				},
+	
+				formatDate(movie) {
+					const dataArray = movie.release_date.split('/')
+					const [day, mounth, year] = dataArray
+					const newDataArray = [mounth, day, year]
+					movie.release_date = newDataArray.join('/')
+					return movie
+				},
+	
+				starsRate(rate, number) {
+					return number <= (parseInt(rate) / 2) ? 'fa fa-star text-warning' : 'far fa-star'
+				},
+	
+				formatOverview(text) {
+					if (text.length === 0) {
+						return text
+					} else if (text.length > 100 && this.$vuetify.breakpoint.width > 769) {
+						return text.split(' ').slice(0, 50).join(' ') + '...'
+					} else if (this.$vuetify.breakpoint.width <= 769) {
+						return text.split(' ').slice(0, 15).join(' ') + '...'
+					}
+					return text + '...'
+				},
+	
+				editType(type) {
+					this.setEditingType(type)
+					this.toggleModal(false)
+					this.setAdding(true)
+					setTimeout(() => {
+						this.scrollPageTo(type)
+					}, 20)
+				}
+			}
+		})
+	
+	</script>

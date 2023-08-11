@@ -1,0 +1,397 @@
+<template id="in-community-topics">
+	<v-layout row wrap>
+		<v-flex xs12>
+			<ol v-if="!pageLoaded">
+				<% breadcrumb.itemListElement.map(bread => { %>
+				<li>
+					<a href="<%= bread.item %>">
+						<%= bread.name %>
+					</a>
+				</li>
+				<% }) %>
+			</ol>
+			<v-breadcrumbs v-else :items="items" class="pb-0 pl-3">
+				<v-icon slot="divider">forward</v-icon>
+				<template slot="item" slot-scope="props">
+					<a v-if="props.item.name !== 'Comunidade'" :href="props.item.item">{{ props.item.name.toUpperCase() }}</a>
+					<a href="#" v-else class="grey--text">{{ props.item.name.toUpperCase() }}</a>
+				</template>
+			</v-breadcrumbs>
+		</v-flex>
+		<v-flex xs12 class="pt-2 pl-3">
+			<span class="in-community-title">Comunidade</span>
+		</v-flex>
+		<v-flex xs12 :class="$vuetify.breakpoint.width> 500 ? 'px-3' : ''">
+			<v-card dark class="elevation-8">
+				<v-card-title>
+					<span class="title">Tópicos</span>
+				</v-card-title>
+				<v-card-text class="pt-0">
+					<p class="mb-0">
+						Regras são um conjunto de normas estabelecidas a fim de manter a ordem e o bom funcionamento de uma organização.
+						Este Fórum possui regras pre-estabelecidas, elaboradas criteriosamente com a finalidade de proporcionar aos
+						usuários um local para discutir e debater os assuntos relacionados a página escolhida. Ao confirmar o cadastro, o
+						membro concorda em cumprir à risca todas as regras aqui estipuladas. Portanto, termos como LIBERDADE DE
+						EXPRESSÃO, CENSURA, DITADURA e outros similares não devem ser utilizados para justificar o descumprimento das
+						regras. Dessa forma, quaisquer meios de expressão utilizados neste Fórum que não forem condizentes com o mesmo
+						e/ou que afrontem as regras serão passíveis de intervenções por parte dos Administradores, Coordenadores ou
+						Moderadores, que tomarão as medidas cabíveis para restabelecer a ordem, o bom andamento do Fórum e o cumprimento
+						incondicional das Regras.
+					</p>
+				</v-card-text>
+				<v-card-text id="topics" v-if="!loading">
+					<v-card v-for="(topic, index) of topics" :key="index" v-if="index < 10" :href="`/page/${page.url}/community/${topic.title.toLowerCase().split(' ').join('-')}_${topic._id}?p=1`"
+					 dark class="elevation-10 pa-2 mb-4 animated fadeIn" color="#313131">
+						<v-btn absolute right bottom fab small v-if="user.superadmin" color="#ef001c" @click.prevent="deleteTopic(topic)">
+							<v-tooltip :open-delay="50" :close-delay="50" top>
+								<v-icon slot="activator" small>close</v-icon>
+								<span>Excluir Tópico</span>
+							</v-tooltip>
+						</v-btn>
+						<v-layout row>
+							<v-flex xs1>
+								<v-layout fill-height align-center column justify-center>
+									<v-icon dark :large="$vuetify.breakpoint.width> 500" color="#ef001c">forum</v-icon>
+								</v-layout>
+							</v-flex>
+							<v-flex xs11 class="pl-2">
+								<v-layout row wrap>
+									<v-flex xs12>
+										<p class="mb-0 text-xs-right caption" v-text="new Date(topic._id).toLocaleDateString()"></p>
+									</v-flex>
+									<v-flex xs12>
+										<p class="text-truncate title mb-0" style="text-align: justify;" v-text="topic.title"></p>
+										<small class="caption mb-1 red--text">{{ topic.comments }} {{ topic.comments > 1 ? 'Comentários' :
+											'Comentário' }}</small>
+									</v-flex>
+									<v-flex xs12>
+										<p class="text-truncate grey--text mb-0" v-html="topic.content"></p>
+									</v-flex>
+								</v-layout>
+							</v-flex>
+						</v-layout>
+					</v-card>
+				</v-card-text>
+				<v-card-text v-else>
+					<in-loading />
+				</v-card-text>
+				<v-card-text v-if="topicsLength > 10" :class="$vuetify.breakpoint.width < 500 ? 'px-0' : ''">
+					<v-layout justify-end>
+						<div class="text-xs-center">
+							<v-pagination v-model="pagination.page" value="pagination.page" :length="pagination.length" :total-visible="$vuetify.breakpoint.width > 500 ? 7 : 5"
+							 @input="loadTopics" circle dark color="#ef001c" :disabled="loading"></v-pagination>
+						</div>
+					</v-layout>
+				</v-card-text>
+				<v-card-text v-if="creatingTopic">
+					<v-layout row wrap class="animated zoomIn faster">
+						<v-flex xs12 v-show="topic.title || topic.content" class="animated zoomIn">
+							<p class="display-1 mb-1">Preview</p>
+							<v-card dark class="elevation-20 pa-2 mb-2" color="#313131">
+								<v-layout row>
+									<v-flex xs1>
+										<v-layout fill-height align-center column justify-center>
+											<v-icon dark :large="$vuetify.breakpoint.width > 500" color="#ef001c">forum</v-icon>
+										</v-layout>
+									</v-flex>
+									<v-flex xs11 class="pl-2">
+										<v-layout row wrap>
+											<v-flex xs12>
+												<p class="mb-0 text-xs-right" v-text="new Date().toLocaleDateString()"></p>
+											</v-flex>
+											<v-flex xs12>
+												<p class="text-truncate title mb-0" style="text-align: justify;" v-text="topic.title"></p>
+											</v-flex>
+											<v-flex xs12>
+												<p class="text-truncate grey--text mb-0" v-html="topic.content"></p>
+											</v-flex>
+										</v-layout>
+									</v-flex>
+								</v-layout>
+							</v-card>
+						</v-flex>
+						<v-flex xs12>
+							<v-text-field label="Título" v-model="topic.title" type="text" counter="126" :rules="[rules.required(3), rules.length(126)]"
+							 validate-on-blur autofocus box :disabled="postingTopic"></v-text-field>
+						</v-flex>
+						<v-flex xs12 class="white black--text">
+							<quill-editor v-model="topic.content" :options="editorOption" :disabled="loading" @change="event => textLength = event.text.length">
+								<div id="toolbar" slot="toolbar">
+									<button class="ql-bold">Bold</button>
+									<button class="ql-italic">Italic</button>
+								</div>
+							</quill-editor>
+						</v-flex>
+						<v-flex>
+							<v-layout justify-end>
+								<small>{{ textLength }} / 1000</small>
+							</v-layout>
+						</v-flex>
+					</v-layout>
+				</v-card-text>
+				<v-card-actions class="pt-0" id="creatingTopic">
+					<v-layout row wrap>
+						<v-flex>
+							<v-layout justify-start>
+								<v-btn dark class="mx-0" :color="creatingTopic ? 'red' : 'white'" flat @click.stop="createPost">
+									<v-icon>{{ creatingTopic ? 'close' : 'add' }}</v-icon>
+									{{ creatingTopic ? 'Cancelar' : 'Novo Tópico' }}
+								</v-btn>
+							</v-layout>
+						</v-flex>
+						<v-flex>
+							<v-layout justify-end>
+								<v-btn v-if="creatingTopic" dark class="mx-0" color="green" @click.stop="postTopic(topic)" :disabled="(textLength > 1024 || topic.title.length > 126) || (topic.title.length < 3 || textLength < 10)"
+								 :loading="postingTopic">
+									<v-icon>send</v-icon>
+									Postar Tópico
+								</v-btn>
+							</v-layout>
+						</v-flex>
+					</v-layout>
+				</v-card-actions>
+			</v-card>
+		</v-flex>
+		<v-dialog v-model="dialog" max-width="390" persistent>
+			<v-card dark>
+				<v-card-title class="title">Deseja mesmo excluir este tópico?</v-card-title>
+				<v-card-text>
+					<p class="mb-0 text-truncate font-italic grey--text">- {{ topicToDelete.title }}</p>
+				</v-card-text>
+				<v-divider></v-divider>
+				<v-card-actions>
+					<v-spacer></v-spacer>
+					<v-btn dark flat @click="cancelDelete">NÃO</v-btn>
+					<v-btn color="green" flat @click="sendTopicToDelete">SIM</v-btn>
+				</v-card-actions>
+			</v-card>
+		</v-dialog>
+	</v-layout>
+</template>
+
+<script>
+	Vue.component('in-community-topics', {
+		template: '#in-community-topics',
+		computed: {
+			...mapGetters('page', [
+				'page'
+			]),
+			...mapGetters('app', [
+				'user',
+				'windowWidth'
+			])
+		},
+		data() {
+			const page = parseInt(new URL(location.href).searchParams.get('p'))
+			return {
+				creatingTopic: false,
+				postingTopic: false,
+				topics: (<%- JSON.stringify(topics.list) %>),
+				topicsLength: (<%- JSON.stringify(topics.length) %>),
+				items: (<%- JSON.stringify(breadcrumb.itemListElement) %>),
+				pageLoaded: true,
+				loading: false,
+				dialog: false,
+				topicToDelete: {},
+				editorOption: {
+					modules: {
+						toolbar: '#toolbar'
+					},
+					placeholder: 'Deixe seu comentário...'
+				},
+				textLength: 0,
+				active: false,
+				pagination: {
+					page: page ? page : 1,
+					length: 0
+				},
+				originalPage: page ? page : 1,
+				topic: {
+					title: '',
+					content: ''
+				},
+				rules: {
+					length: len => v => (v || '').length <= len || `Quantidade inválida de caracteres, o máximo é ${len}`,
+					required: len => v => v.length > len || `Este campo é obrigatório e deve conter pelo menos ${len} caracteres`
+				}
+			}
+		},
+		mounted() {
+			const vue = this
+			vue.$nextTick(() => {
+				if (vue.topicsLength > 10) {
+					vue.pagination.length = vue.topicsLength % 10 === 0 ? vue.topicsLength / 10 : parseInt(vue.topicsLength / 10) + 1
+				}
+
+				window.onpopstate = function (e) {
+					if (e.state) {
+						vue.pagination.page = parseInt(e.state.split('-')[1])
+						vue.loadTopics(parseInt(e.state.split('-')[1]))
+					}
+				}
+			})
+		},
+		methods: {
+			...mapActions('app', [
+				'showDialog',
+				'scrollPageTo',
+				'setUserMenu'
+			]),
+
+			deleteTopic(topic) {
+				this.topicToDelete = topic
+				this.dialog = true
+			},
+
+			cancelDelete() {
+				this.dialog = false
+				this.topicToDelete = {}
+			},
+
+			sendTopicToDelete: async function () {
+				const vue = await this
+				vue.dialog = await false
+				const {
+					topicToDelete
+				} = await vue
+				const {
+					data
+				} = await vue.$http.delete(`/topics?topic=${encodeURI(JSON.stringify(topicToDelete))}`)
+				if (!data.error) {
+					vue.topics = await vue.topics.filter(t => {
+						return t._id !== topicToDelete._id
+					})
+					await vue.showDialog({
+						message: `Comentário deletado com sucesso`,
+						color: 'green',
+						icon: 'info'
+					})
+				} else {
+					await vue.showDialog({
+						message: 'Ocorreu um erro na comunicação com o servidor',
+						color: 'red',
+						icon: 'warning'
+					})
+				}
+				vue.topicToDelete = {}
+			},
+
+			createPost() {
+				const vue = this
+				if (vue.user.email) {
+					vue.creatingTopic = !vue.creatingTopic
+					vue.scrollPageTo('creatingTopic')
+				} else {
+					vue.setUserMenu(true)
+					vue.showDialog({
+						message: 'Você deve estar logado para postar um tópico',
+						color: 'info',
+						icon: 'info'
+					})
+				}
+			},
+
+			loadTopics: async function (page) {
+				const vue = await this
+				if (page !== vue.originalPage) {
+					window.history.pushState('page-' + page, '', location.href.replace('p=' + vue.originalPage, 'p=' + page))
+					vue.originalPage = page
+					vue.loading = await true
+					try {
+						const {
+							data
+						} = await vue.$http.get(`/topics?p=${page}&ref=${vue.page.ref}`)
+						vue.topics = await data.list
+					} catch (err) {
+						console.log(err)
+						vue.showDialog({
+							message: 'Ocorreu um erro na comunicação com o servidor',
+							color: 'red',
+							icon: 'warning'
+						})
+					}
+					vue.loading = await false
+				}
+			},
+
+			postTopic: async function (topic) {
+				const vue = await this
+				vue.postingTopic = await true
+				try {
+					const {
+						data
+					} = await vue.$http.post('/topics', {
+						topic: {
+							...topic,
+							authorId: vue.user._id,
+							pageUrl: vue.page.url,
+							pageRef: vue.page.ref,
+							pageId: vue.page.id,
+							pageTitle: vue.page.title,
+							comments: 1
+						},
+						comment: {
+							comment: topic.content,
+							authorId: vue.user._id,
+							pageUrl: vue.page.url,
+							pageRef: vue.page.ref,
+							reply: {}
+						}
+					})
+					if (!data.error) {
+						await vue.showDialog({
+							message: 'Tópico postado com sucesso!',
+							color: 'success',
+							icon: 'info'
+						})
+						if (vue.pagination.page !== 1) {
+							return location.href = await `/page/${vue.page.url}/community?p=1`
+						} else {
+							await vue.topics.unshift(data.topic)
+							vue.topicsLength += await 1
+							if (this.topicsLength > 10) {
+								this.pagination.length = await this.topicsLength % 10 === 0 ? parseInt(this.topicsLength / 10) : parseInt(
+									this.topicsLength / 10) + 1
+							}
+							vue.topic = await {
+								title: '',
+								content: ''
+							}
+							vue.creatingTopic = await false
+							setTimeout(() => {
+								vue.scrollPageTo('topics')
+							}, 50)
+						}
+					} else {
+						await vue.showDialog({
+							message: 'Ocorreu um erro na comunicação com o servidor',
+							color: 'red',
+							icon: 'warning'
+						})
+					}
+				} catch (err) {
+					console.log(err)
+					await vue.showDialog({
+						message: 'Ocorreu um erro na comunicação com o servidor',
+						color: 'red',
+						icon: 'warning'
+					})
+				}
+				vue.postingTopic = await false
+			}
+		}
+	})
+
+</script>
+
+<style>
+	.in-community-title {
+		padding: 0px;
+		padding-bottom: 0px;
+		font-size: 32px;
+		letter-spacing: 2px;
+		font-weight: 300;
+		color: rgba(255, 255, 255, 0.8)
+	}
+
+</style>

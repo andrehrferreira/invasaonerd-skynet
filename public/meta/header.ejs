@@ -1,0 +1,95 @@
+
+<%- include('./loading') %>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="X-UA-Compatible" content="ie=edge">
+<meta name="theme-color" content="#333" />
+
+<link href="https://fonts.googleapis.com/css?family=Lato:100,300,400,700,900|Material+Icons" rel="stylesheet">
+
+
+<%- include('./cssbundler.ejs') %>
+
+<link rel="manifest" href="/manifest.json"/>
+<script src="https://cdn.onesignal.com/sdks/OneSignalSDK.js" async=""></script>
+
+<% if (mode === 'dev') { %>
+	<script>
+		<%- include('../assets/cdns/js/vue.js') %>
+		var OneSignal = window.OneSignal || [];
+		OneSignal.push(function() {
+			OneSignal.init({
+				allowLocalhostAsSecureOrigin: true,
+				appId: "a1086ce9-2451-4a49-89d6-9dfe9248da30",
+			});
+		});
+	</script>
+<% } else if (mode === 'stg') { %>
+	<script>
+		<%- include('../assets/cdns/js/vue.js') %>
+		var OneSignal = window.OneSignal || [];
+		OneSignal.push(function() {
+			OneSignal.init({
+				allowLocalhostAsSecureOrigin: true,
+				appId: "ba58787c-09ac-41b4-8038-0cca4a359807",
+			});
+		});
+	</script>
+<% } else { %>
+	<script>
+		<%- include('../assets/cdns/js/vue.min.js') %>
+	</script>
+	<script>
+		var OneSignal = window.OneSignal || [];
+		OneSignal.push(function() {
+			OneSignal.init({
+				appId: "bf5a32c1-0986-48e8-9f65-77cb1c6fb905"
+			});
+		});
+	</script>
+<% }%>
+
+<link href="<%= settings.url %>" rel="canonical">
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+
+<%- include('./jsbundle.ejs') %>
+
+<script>
+	const { mapGetters, mapActions } = Vuex
+</script>
+
+<link rel="apple-touch-icon" sizes="57x57" href="/assets/favicon/apple-icon-57x57.png">
+<link rel="apple-touch-icon" sizes="60x60" href="/assets/favicon/apple-icon-60x60.png">
+<link rel="apple-touch-icon" sizes="72x72" href="/assets/favicon/apple-icon-72x72.png">
+<link rel="apple-touch-icon" sizes="76x76" href="/assets/favicon/apple-icon-76x76.png">
+<link rel="apple-touch-icon" sizes="114x114" href="/assets/favicon/apple-icon-114x114.png">
+<link rel="apple-touch-icon" sizes="120x120" href="/assets/favicon/apple-icon-120x120.png">
+<link rel="apple-touch-icon" sizes="144x144" href="/assets/favicon/apple-icon-144x144.png">
+<link rel="apple-touch-icon" sizes="152x152" href="/assets/favicon/apple-icon-152x152.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/assets/favicon/apple-icon-180x180.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/assets/favicon/android-icon-192x192.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="96x96" href="/assets/favicon/favicon-96x96.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon/favicon-16x16.png">
+<link rel="manifest" href="/assets/favicon/manifest.json">
+<meta name="msapplication-TileImage" content="/ms-icon-144x144.png">
+
+<script>
+	(function (h, o, t, j, a, r) {
+		h.hj = h.hj || function () {
+			(h.hj.q = h.hj.q || []).push(arguments)
+		};
+		h._hjSettings = {
+			hjid: 1129001,
+			hjsv: 6
+		};
+		a = o.getElementsByTagName('head')[0];
+		r = o.createElement('script');
+		r.async = 1;
+		r.src = t + h._hjSettings.hjid + j + h._hjSettings.hjsv;
+		a.appendChild(r);
+	})(window, document, 'https://static.hotjar.com/c/hotjar-', '.js?sv=');
+</script>
+
+<%- include('./../components/app/vue-utils-plugins.ejs') %>

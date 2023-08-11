@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+	<title>
+		<%= __('Appname') %>
+	</title>
+	<%- include('meta/header') %>
+
+	<meta name="description" content="A maior comunidade nerd do brasil">
+	<meta property="og:description" content="A maior comunidade nerd do brasil">
+
+	<meta property="og:image" content="<%= settings.url %>/assets/img/logo-256-white.png">
+	<meta property="og:image:type" content="image/png">
+	<meta property="og:image:width" content="256">
+	<meta property="og:image:height" content="256">
+
+	<meta name="og:title" property="og:title" content="Invasão Nerd">
+	<meta property="og:site_name" content="<%= __('Appname') %>">
+	<meta property="og:locale" content="pt-br">
+	<meta property="og:url" content="<%= settings.url %>">
+	<meta property="og:type" content="website">
+
+	<%- include('./meta/gtag.ejs') %>
+
+	<%- include('components/app/navbar') %>
+	<%- include('components/app/sidebar') %>
+	<%- include('components/app/snackbar') %>
+	<div id="app">
+		<v-app dark>
+			<div ref="ready" style="display: none;">
+				<div>
+					<in-sidebar :options="{ page: {} }" />
+				</div>
+				<div>
+					<in-navbar />
+				</div>
+				<v-content>
+					<v-container fluid fill-height :class="$vuetify.breakpoint.width < 500 ? 'px-0' : ''">
+						<v-layout justify-center align-center>
+							<v-flex>
+								<v-layout row wrap>
+									<v-flex xs12>
+										<v-toolbar flat dark>
+											<v-toolbar-title>Gerenciar Categorias</v-toolbar-title>
+											<v-spacer></v-spacer>
+											<v-dialog v-model="dialog" max-width="500px">
+												<v-btn class="hidden-sm-and-up" slot="activator" color="#ef001c" icon small>
+													<v-icon>add</v-icon>
+												</v-btn>
+												<v-btn class="hidden-xs-only" slot="activator" color="#ef001c">
+													<v-icon>add</v-icon>
+													Nova Categoria
+												</v-btn>
+												<v-card>
+													<v-card-title>
+														<span class="headline">{{ formTitle }}</span>
+													</v-card-title>
+													<v-divider></v-divider>
+													<v-card-text>
+														<v-layout row wrap class="px-2">
+															<v-flex xs12>
+																<v-text-field v-model="editedItem.text" label="Nome"></v-text-field>
+															</v-flex>
+														</v-layout>
+														<v-layout row wrap class="px-2">
+															<v-flex xs12>
+																<v-text-field v-model="editedItem.alias" label="Alias"></v-text-field>
+															</v-flex>
+														</v-layout>
+													</v-card-text>
+
+													<v-card-actions>
+														<v-spacer></v-spacer>
+														<v-btn flat @click.native="close">Cancelar</v-btn>
+														<v-btn color="success" flat @click.native="save">Salvar</v-btn>
+													</v-card-actions>
+												</v-card>
+											</v-dialog>
+										</v-toolbar>
+										<v-data-table
+											:headers="headers"
+											:items="categories"
+											hide-actions
+											class="elevation-8"
+											:loading="loading"
+      								item-key="date"
+										>
+											<template slot="items" slot-scope="props">
+												<tr>
+													<td class="py-0">
+														<p class="text-xs-center my-1">{{ props.item.text }}</p>
+													</td>
+
+													<td class="py-0">
+														<p class="text-xs-center my-1">{{ props.item.alias }}</p>
+													</td>
+
+													<td class="py-0">
+														<p class="text-xs-center my-1">{{ new Date(props.item.date).toLocaleString() }}</p>
+													</td>
+
+													<td class="py-0">
+														<p class="text-xs-center my-1">{{ props.item.user }}</p>
+													</td>
+
+													<td class="justify-center layout py-0">
+														<v-tooltip :open-delay="50" :close-delay="50" top>
+															<v-btn slot="activator" small class="mr-2" icon @click="() => { props.expanded = !props.expanded; editItem(props.item)}">
+																<v-icon color="success" small>edit</v-icon>
+															</v-btn>
+															<span>Editar</span>
+														</v-tooltip>
+													</td>
+												</tr>
+											</template>
+											<template slot="expand" slot-scope="{ item }">
+												<v-card flat>
+													<v-card-title primary-title>
+														<v-layout row wrap justify-center>
+															<v-flex xs12 sm10 md8 lg6 xl4>
+																<v-text-field
+																	label="Alias"
+																	v-model="editedItem.alias"
+																></v-text-field>
+															</v-flex>
+														</v-layout>
+													</v-card-title>
+													<v-card-text>
+														<v-layout row wrap>
+															<v-flex xs12 sm6>
+																<p class="mb-0 text-xs-center">Boxs Laterais</p>
+																<v-layout row wrap justify-center v-for="(box, index) of sideBoxs" :key="index">
+																	<v-flex xs12 sm10 md8 lg6 xl4>
+																		<v-select
+																			:items="sideBoxs"
+																			:label="`${index + 1}º item`"
+																			@input="(val) => checkOrder(val, 'sideOrder')"
+																			v-model="editedItem.order.sideOrder[index]"
+																		>
+																		<template slot="item" slot-scope="{ item }">
+																			<div :class="'px-1 ' + (editedItem.order.sideOrder.includes(item.value) ? 'grey darken-2' : '')">
+																				{{ item.text }}
+																			</div>
+																		</template>
+																		<template slot="selection" slot-scope="{ item }">
+																			{{ editedItem.order.sideOrder[index] ? item.text : '' }}
+																		</template>
+																		</v-select>
+																	</v-flex>
+																</v-layout>
+															</v-flex>
+															<v-divider :vertical="$vuetify.breakpoint.xs"></v-divider>
+															<v-flex xs12 sm6>
+																	<p class="mb-0 text-xs-center">Boxs Principais</p> 
+																<v-layout row wrap justify-center v-for="(box, index) of mainBoxs" :key="index">
+																	<v-flex xs12 sm10 md8 lg6 xl4>
+																		<v-select
+																			:items="mainBoxs"
+																			:label="`${index + 1}º item`"
+																			@input="(val) => checkOrder(val, 'mainOrder')"
+																			v-model="editedItem.order.mainOrder[index]"
+																		>
+																			<template slot="item" slot-scope="{ item }">
+																				<div :class="'px-1 ' + (editedItem.order.mainOrder.includes(item.value) ? 'grey darken-2' : '')">
+																					{{ item.text }}
+																				</div>
+																			</template>
+																			<template slot="selection" slot-scope="{ item }">
+																				{{ editedItem.order.mainOrder[index] ? item.text : '' }}
+																			</template>
+																		</v-select>
+																	</v-flex>
+																</v-layout>
+															</v-flex>
+														</v-layout>
+													</v-card-text>
+													<v-card-actions>
+														<v-spacer></v-spacer>
+														<v-btn
+															@click.stop="save" color="success" :loading="loading"
+															:disabled="editedItem.order.mainOrder.length !== mainBoxs.length || editedItem.order.sideOrder.length !== sideBoxs.length"
+														>SALVAR</v-btn>
+													</v-card-actions>
+												</v-card>
+											</template>
+											<template slot="pageText" slot-scope="props">
+												Lignes {{ props.pageStart }} - {{ props.pageStop }} de {{ props.itemsLength }}
+											</template>
+											<template slot="no-data">
+												<p class="text-xs-center mt-3">Nenhuma Categoria foi cadastrada</p>
+											</template>
+										</v-data-table>
+									</v-flex>
+							</v-flex>
+						</v-layout>
+					</v-container>
+				</v-content>
+				<div>
+					<in-snackbar />
+				</div>
+			</div>
+		</v-app>
+	</div>
+	<%- include('./meta/footer') %>
+	<script>
+		new Vue({
+			store: new Vuex.Store({
+				modules: {
+					app: {
+						namespaced: true,
+						state: <%- include('store/app/state.js') %>,
+						getters: <%- include('store/app/getters.js') %>,
+						mutations: <%- include('store/app/mutations.js') %>,
+						actions: <%- include('store/app/actions.js') %>
+					}
+				}
+			}),
+			el: '#app',
+			watch: {
+				dialog(val) {
+					val || this.close()
+				}
+			},
+			computed: {
+				...mapGetters('app', [
+					'user',
+					'windowWidth'
+				]),
+				formTitle() {
+					return this.editedIndex === -1 ? 'Nova Categoria' : 'Editar Categoria'
+				}
+			},
+			data: () => ({
+				categories: <%- JSON.stringify(categories) %>,
+				dialog: false,
+				loading: false,
+				headers: [{
+					text: 'Nome',
+					align: 'center',
+					sortable: true,
+					value: 'text'
+				}, {
+					text: 'Alias',
+					align: 'center',
+					sortable: true,
+					value: 'alias'
+				}, {
+					text: 'Data de Criação',
+					align: 'center',
+					sortable: true,
+					value: 'date'
+				}, {
+					text: 'Criador',
+					align: 'center',
+					sortable: true,
+					value: 'user'
+				}, {
+					text: 'Ações',
+					align: 'center',
+					value: 'text',
+					sortable: false
+				}, ],
+				editedIndex: -1,
+				editedItem: {
+					text: '',
+					text: '',
+					order: {
+						mainOrder: [],
+						sideOrder: []
+					}
+				},
+				defaultItem: {
+					text: '',
+					text: '',
+					order: {
+						mainOrder: [],
+						sideOrder: []
+					}
+				},
+				sideBoxs: [{
+					text: 'Facebook',
+					value: 'facebook'
+				}, {
+					text: 'Twitter',
+					value: 'twitter'
+				}, {
+					text: 'Spotify',
+					value: 'spotify'
+				}, {
+					text: 'Informações de Wiki',
+					value: 'wiki'
+				}, {
+					text: 'Páginas Relacionadas',
+					value: 'featuredPages'
+				}],
+				mainBoxs: [{
+					text: 'Séries',
+					value: 'series'
+				}, {
+					text: 'Livros',
+					value: 'books'
+				}, {
+					text: 'Filmes',
+					value: 'movies'
+				}, {
+					text: 'Jogos',
+					value: 'games'
+				}, {
+					text: 'Instagram',
+					value: 'instagram'
+				}, {
+					text: 'Canais Relacionados',
+					value: 'channels'
+				}, {
+					text: 'Vídeos do Youtube',
+					value: 'videos'
+				}, {
+					text: 'Vídeo em destaque',
+					value: 'featuredVideo'
+				}, {
+					text: 'Lives',
+					value: 'lives'
+				}, {
+					text: 'Playlists do Youtube',
+					value: 'playlists'
+				}, {
+					text: 'Wiki',
+					value: 'wiki'
+				}].sort((a, b) => a.alias > b.alias ? 1 : -1)
+			}),
+			created() {
+				this.setUser(<%- JSON.stringify(user) %>)
+			},
+			mounted() {
+				this.$refs.ready.style.display = 'block'
+			},
+			methods: {
+				...mapActions('app', [
+					'setUser',
+					'showDialog'
+				]),
+
+				checkOrder (val, order) {
+					this.editedItem.order[order] = this.editedItem.order[order].filter(function(item, pos, a) {
+							return a.indexOf(item) == pos;
+					})
+				},
+
+				editItem(item) {
+					if (this.editedIndex === -1) {
+						this.editedIndex = this.categories.indexOf(item)
+					} else {
+						this.editedIndex = -1
+						this.editedItem = this.defaultItem
+					}
+					if (!item.order) this.editedItem = Object.assign(this.editedItem, item)
+						else this.editedItem = Object.assign({}, item)		
+				},
+
+				deleteItem(item) {
+					const index = this.categories.indexOf(item)
+					if (confirm(`Tem certeza que quer deletar "${item.text}" ?`)) {
+						item.deleted = true
+						this.postCategorie(item).then((res) => {
+								this.showDialog({
+									message: 'Categoria Deletada com sucesso',
+									color: 'success'
+								})
+								const {
+									categories
+								} = res.data
+								this.categories = categories
+							})
+							.catch(() => {
+								this.showDialog({
+									message: 'Falha na comunicação com o servidor',
+									color: 'danger'
+								})
+							})
+					}
+				},
+
+				close() {
+					this.dialog = false
+					setTimeout(() => {
+						this.editedItem = Object.assign({}, this.defaultItem)
+						this.editedIndex = -1
+					}, 300)
+				},
+
+				save() {
+					const {
+						editedItem
+					} = this
+					if (this.editedIndex === -1) {
+						const date = new Date().getTime()
+						editedItem.date = date
+						editedItem.user = this.user.email
+					}
+					this.postCategorie(editedItem).then((res) => {
+							this.showDialog({
+								message: 'Categoria ' + (this.editedIndex === -1 ? 'criada' : 'editada') + ' com sucesso',
+								color: 'success'
+							})
+							const {
+								categories
+							} = res.data
+							this.categories = categories
+						})
+						.catch(() => {
+							this.showDialog({
+								message: 'Falha na comunicação com o servidor',
+								color: 'danger'
+							})
+							setTimeout(() => {
+								location.reload()
+							}, 2000)
+						})
+				},
+
+				postCategorie(categorie) {
+					this.loading = true
+					return new Promise((resolve, reject) => {
+						this.$http.post('/crud-categories', {
+								categorie
+							}).then(res => {
+								this.loading = false
+								resolve(res)
+							})
+							.catch((err) => {
+								this.loading = false
+								reject(err)
+							})
+					})
+				}
+			},
+			beforeMount() {
+				var loading = document.querySelector("#loading")
+				document.body.removeChild(loading)
+			}
+		})
+	</script>
+</body>
+
+</html>

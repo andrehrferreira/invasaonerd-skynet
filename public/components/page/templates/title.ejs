@@ -1,0 +1,78 @@
+<template id="in-title">
+	<section class=" animated fadeIn">
+		<v-layout row wrap>
+			<v-flex xs12 v-if="editMode">
+				<v-layout justify-end>
+					<v-tooltip :open-delay="50" :close-delay="50" bottom>
+						<v-btn
+							slot="activator"
+							class="mr-1 animated zoomIn faster" fab small
+							@click.stop="editType('title')"
+						>
+							<v-icon color="green">edit</v-icon>
+						</v-btn>
+						<span>Editar Título</span>
+					</v-tooltip>
+				</v-layout>
+			</v-flex>
+		</v-layout>
+		<v-layout row wrap>
+			<v-flex xs12 id="title">
+				<h1 v-text="page.title">
+					<%- page.title %>
+					<v-tooltip bottom>
+						<span slot="activator" v-if="page.officialPage.length" style="cursor: default">
+							<v-icon class="py-1" color="green">verified_user</v-icon>
+						</span>
+						<span>Usuário Verificado</span>
+					</v-tooltip>
+				</h1>
+				<h2 class="body-1" v-if="page.nickname" v-text="'(' + page.nickname + ')'">
+					<%if (page.nickname) { %>
+						<%- page.nickname %>
+					<% } %>
+				</h2>
+				<h2 class="body-1 font-italic" v-if="page.englishTitle" v-text="page.englishTitle">
+					<%if (page.englishTitle) { %>
+						<%- page.englishTitle %>
+					<% } %>
+				</h2>
+			</v-flex>
+		</v-layout>
+	</section>
+</template>
+
+<script>
+	Vue.component('in-title', {
+		template: '#in-title',
+		computed: {
+			...mapGetters('page', [
+				'page',
+				'editMode'
+			]),
+			...mapGetters('app', [
+				'windowWidth'
+			])
+		},
+		methods: {
+			...mapActions('page', [
+				'toggleModal',
+				'setAdding',
+				'setEditingType'
+			]),
+			...mapActions('app', [
+				'scrollPageTo',
+			]),
+
+			editType(type) {
+				this.setEditingType(type)
+				this.toggleModal(false)
+				this.setAdding(true)
+				setTimeout(() => {
+					this.scrollPageTo(type)
+				}, 20)
+			}
+		}
+	})
+
+</script>

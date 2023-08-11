@@ -1,0 +1,118 @@
+<template id="in-editor-type-categories">
+		<div class="row py-3 mb-5" id="categories">
+			<div v-if="loading">
+				<in-loading />
+			</div>
+			<div class="col-12" v-if="categories.length && !loading">
+				<v-layout row wrap justify-space-between>
+          <v-flex d-flex>
+            <v-layout justify-start>
+              <h5><%= __('Preview') %></h5>
+            </v-layout>
+          </v-flex>
+          <v-flex d-flex>
+            <v-layout justify-end>
+              <v-tooltip :open-delay="50" :close-delay="50" bottom>
+                <v-btn slot="activator" color="success" dark icon @click.stop="save()">
+                  <v-icon>save</v-icon>
+                </v-btn>
+                <span>Salvar Categorias</span>
+              </v-tooltip>
+            </v-layout>
+          </v-flex>
+        </v-layout>
+				<v-combobox
+					v-model="selecteds" :items="categories" clearable dont-fill-mask-blanks
+				  label="Categoria *" @input="checkSelectes" multiple color="white"
+					hint="OBS: Selecione pelo menos uma categoria" persistent-hint
+				>
+					<template slot="selection" slot-scope="{ item, parent, selected }">
+						<v-chip class="grey lighten-3 black--text" :selected="selected">
+							<v-avatar color="#ef001c" class="white--text" :size="20">
+								<small>{{ item.slice(0, 1).toUpperCase() }}</small>
+							</v-avatar>
+							<span class="pr-2">
+								{{ item }}
+							</span>
+							<v-icon small @click="parent.selectItem(item)">close</v-icon>
+						</v-chip>
+					</template>
+				</v-combobox>
+			</div>
+		</div>
+	</template>
+	
+	<script>
+		Vue.component('in-editor-type-categories', {
+			template: '#in-editor-type-categories',
+			computed: {
+				...mapGetters('page', [
+					'page',
+					'editingType',
+					'buttonState'
+				])
+			},
+			data () {
+				return {
+					categories: [],
+					selecteds: [],
+					loading: true
+				}
+			},
+			beforeCreate() {
+				const vue = this
+				vue.loading = true
+				vue.$http.get('/crud-categories').then(res => {
+					vue.categories = res.data.map(c => c.text)
+					if (this.page.categories) this.selecteds = this.page.categories
+					vue.loading = false
+				}).catch(err => {
+					console.log(err)
+					vue.loading = false
+					vue.showDialog({
+						message: `Ocorreu um erro na comunicação com o servidor`,
+						color: 'red',
+						icon: 'warning'
+					})
+				})
+			},
+			methods: {
+				...mapActions('page', [
+					'setPage',
+					'setAdding',
+					'setEditingType'
+				]),
+				...mapActions('app', [
+					'showDialog'
+				]),
+
+				checkSelectes(payload) {
+					console.log(payload)
+				},
+	
+				save () {
+					const { page } = this
+					if (this.selecteds.length) {
+						page.categories = this.selecteds
+						page.changes.push({
+							type: this.editingType
+						})
+						this.setPage(page)
+						this.setAdding(false)
+						this.setEditingType('')
+						this.showDialog({
+							message: `Edições de categorias gravadas para envio`,
+							color: 'success',
+							icon: 'check-circle'
+						})
+					} else {
+						this.showDialog({
+							message: `Selecione pelo menos uma categoria`,
+							color: 'orange',
+							icon: 'warning'
+						})
+					}
+				}
+			}
+		})
+	</script>

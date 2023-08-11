@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+	<title>
+		<%= __('Appname') %>
+	</title>
+	<link rel="stylesheet" href="<%= settings.url %>/assets/cdns/css/bootstrap.min.css" />
+	<%- include('meta/header') %>
+
+	<meta name="description" content="A maior comunidade nerd do brasil">
+	<meta property="og:description" content="A maior comunidade nerd do brasil">
+
+	<meta property="og:image" content="<%= settings.url %>/assets/img/logo-256-white.png">
+	<meta property="og:image:type" content="image/png">
+	<meta property="og:image:width" content="256">
+	<meta property="og:image:height" content="256">
+
+	<meta name="og:title" property="og:title" content="Invasão Nerd">
+	<meta property="og:site_name" content="<%= __('Appname') %>">
+	<meta property="og:locale" content="pt-br">
+	<meta property="og:url" content="<%= settings.url %>">
+	<meta property="og:type" content="website">
+
+	<style type="text/css">
+		.in-login-box:before {
+			background: url('<%= wallpaper %>') no-repeat center center fixed;
+		}
+	</style>
+	<link rel="stylesheet" type="text/css" href="<%= settings.url %>/assets/css/login.css" />
+	<link rel="stylesheet" media="(max-width: 720px)" href="<%= settings.url %>/assets/css/login.mobile.css" />
+
+	<%- include('./meta/gtag.ejs') %>
+
+	<%- include('components/app/snackbar') %>
+	<div id="app" class="in-container">
+		<div id="ready" class="in-login-box animated fadeIn" style="display: none;">
+			<div class="in-login-form">
+				<!-- <div v-if="!registering" class="animated fadeIn">
+					<div class="in-login-input-container">
+						<img class="in-login-brand" src="<%= settings.url %>/assets/img/logo-256-white.png" alt="<%= __('Appname') %>" tabindex="-1" />
+					</div>
+					<form>
+						<v-text-field autofocus color="white" id="user" color="info" dark v-model="login.username" type="text" label="<%= __('Usuário ou e-mail') %>" box append-icon="account_circle" required browser-autocomplete></v-text-field>
+						<v-text-field dark color="white" v-model="login.password" type="password" autocomplete label="<%= __('Senha') %>" box append-icon="lock" required browser-autocomplete @keyup.enter="postLogin"></v-text-field>
+					</form>
+					<div class="in-login-input-container in-login-lostpassword">
+						<a href="#" tabindex="3">
+							<%= __('Esqueceu sua senha?') %>
+						</a>
+					</div>
+
+					<div class="in-login-input-container">
+						<v-btn dark block color="#28a745" @click.stop="postLogin" tabindex="4">
+							<%= __('ENTRAR') %>
+						</v-btn>
+						<v-btn dark block outline flat @click.stop="toRegister" tabindex="5">
+							<%= __('Cadastrar') %>
+						</v-btn>
+					</div>
+
+					<div class="in-login-input-container">
+						<div class="in-login-divide">
+							<div class="in-login-trace"></div>
+							<div class="in-login-or">
+								<%= __('OU') %>
+							</div>
+							<div class="in-login-trace"></div>
+						</div>
+					</div>
+
+					<div class="in-login-input-container">
+						<a href="#" class="in-login-facebook" title="<%= __('Logar com Facebook') %>" tabindex="6">
+							<i class="fab fa-facebook-square"></i>
+							<%= __('Logar com Facebook') %>
+						</a>
+					</div>
+
+					<div class="in-login-input-container">
+						<a href="#" class="in-login-twitter" title="<%= __('Logar com Twitter') %>" target="7">
+							<i class="fab fa-twitter"></i>
+							<%= __('Logar com Twitter') %>
+						</a>
+					</div>
+				</div> -->
+
+				<div class="animated fadeIn">
+					<div class="in-login-input-container">
+						<v-layout row wrap>
+							<v-flex xs12>
+								<img width="180px" src="<%= settings.url %>/assets/img/logo-256-white.png" alt="<%= __('Appname') %>" />
+							</v-flex>
+							<v-flex xs12>
+								<p class="white--text">A maior comunidade Wiki Nerd do Brasil</p>
+							</v-flex>
+						</v-layout>
+					</div>
+					<form style="max-width: 450px" @submit.prevent="postUser">
+						<v-layout row wrap>
+							<v-flex xs12>
+								<v-text-field
+									autofocus color="white" color="info" :loading="loading"
+									dark v-model="register.name" type="text"
+									label="<%= __('Nome') %>" required box tabindex="1"
+									browser-autocomplete placeholder="<%= __('Nome Completo') %>"
+								></v-text-field>
+							</v-flex>
+
+							<v-flex xs12>
+								<v-text-field
+									color="white" color="info" dark v-model="register.user" :loading="loading"
+									type="text" label="<%= __('Usuário') %>" box required tabindex="2"
+									browser-autocomplete placeholder="<%= __('Nome de Usuário') %>"
+								></v-text-field>
+							</v-flex>
+
+							<v-flex xs12>
+								<v-text-field
+									color="white" color="info" dark v-model="register.email" :loading="loading"
+									type="email" label="<%= __('e-mail') %>" box required tabindex="3"
+									browser-autocomplete placeholder="<%= __('E-mail') %>"
+								></v-text-field>
+							</v-flex>
+
+							<v-flex xs12>
+								<v-text-field
+									color="white" color="info" dark v-model="register.pass" :loading="loading"
+									type="password" autocomplete label="<%= __('Senha') %>" tabindex="4"
+									box required browser-autocomplete placeholder="<%= __('Senha') %>"
+								></v-text-field>
+							</v-flex>
+
+							<v-flex xs12>
+								<v-text-field
+									color="white" color="info" dark v-model="register.confirm" :loading="loading"
+									type="password" autocomplete label="<%= __('Senha') %>" tabindex="5"
+									box required browser-autocomplete placeholder="<%= __('Confirme a senha') %>"
+								></v-text-field>
+							</v-flex>
+						</v-layout>
+						<v-layout justify-end>
+							<v-btn :loading="loading" dark color="#28a745" type="submit" tabindex="6">
+								<%= __('Cadastrar') %>
+							</v-btn>
+						</v-layout>
+					</form>
+				</div>
+			</div>
+		</div>
+		<div>
+			<in-snackbar />
+		</div>
+	</div>
+	<%- include('./meta/footer') %>
+	<script>
+		var app = new Vue({
+			el: '#app',
+			store: new Vuex.Store({
+				modules: {
+					app: {
+						namespaced: true,
+						state: <%- include('store/app/state.js') %>,
+						getters: <%- include('store/app/getters.js') %>,
+						mutations: <%- include('store/app/mutations.js') %>,
+						actions: <%- include('store/app/actions.js') %>
+					}
+				}
+			}),
+			data() {
+				return {
+					invite: <%- JSON.stringify(invite) %>,
+					loading: false,
+					registering: true,
+					register: {
+						name: '',
+						user: '',
+						email: '',
+						pass: '',
+						confirm: ''
+					}
+				}
+			},
+			mounted() {
+				document.getElementById('ready').style.display = 'block'
+			},
+			methods: {
+				...mapActions('app', [
+					'showDialog'
+				]),
+
+				postLogin(login) {
+					const vue = this
+					vue.loading = true
+					vue.$http.post('/login', login)
+						.then((res) => {
+							const {
+								data
+							} = res
+							if (data.error) {
+								return vue.showDialog({
+									message: data.message,
+									color: data.message !== 'Usuário Banido' ? 'orange' : 'red',
+									icon: 'warning'
+								})
+							}
+							return location.href = '/'
+						}).catch(err => {
+							console.log(err)
+							vue.loading = false
+						})
+				},
+
+				toRegister() {
+					this.registering = true
+				},
+
+				postUser() {
+					const vue = this
+					let user = JSON.parse(JSON.stringify(vue.register))
+					vue.register = {
+						name: '',
+						user: '',
+						email: '',
+						pass: '',
+						confirm: ''
+					}
+					const { invite } = vue
+					invite.invited = user.user
+					invite.status = false
+					if (user.pass === user.confirm) {
+						delete user.confirm
+						user['avatar'] = '/assets/img/useravatar.png'
+						vue.loading = true
+						vue.$http.post('/register', { user, invite })
+							.then((res) => {
+								vue.processRegister(res.data, user)
+								vue.loading = false
+							}).catch(err => {
+								console.log(err)
+								vue.loading = false
+							})
+					} else {
+						vue.showDialog({
+							message: 'As senhas não conferem',
+							color: 'orange',
+							icon: 'warning'
+						})
+					}
+				},
+
+				processRegister(verify, user) {
+					if (verify.error) return this.showDialog({
+						message: verify.error,
+						color: 'red',
+						icon: 'warning'
+					})
+					else this.showDialog({
+						message: verify.success,
+						color: 'green',
+						icon: 'check-circle'
+					})
+					setTimeout(() => {
+						this.postLogin({
+							username: user.email,
+							password: user.pass
+						})
+					}, 1000)
+				}
+			},
+			beforeMount() {
+				var loading = document.querySelector("#loading")
+				document.body.removeChild(loading)
+			}
+		})
+	</script>
+</body>
+
+</html>

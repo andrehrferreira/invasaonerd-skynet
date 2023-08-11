@@ -1,0 +1,130 @@
+<template id="in-serie-info">
+	<v-card dark>
+		<v-card-title primary-title class="pb-0">
+			<v-flex xs12 v-if="!serie">
+				<v-flex xs12 md6>
+					<v-text-field
+						label="Nome da série" v-model="search" color="white"
+						:loading="loading" prepend-icon="tv" :disabled="loading"
+						@keyup.enter="requestSerie(search)"
+					></v-text-field>
+				</v-flex>
+				<v-flex xs12 md6 v-if="loading">
+					<span v-text="loadingMessage"></span>
+				</v-flex>
+				<v-flex xs12 md v-if="error">
+					Série não encontrada, verifique o termo digitado ou tente buscar pelo título original da série
+				</v-flex>
+			</v-flex>
+			<v-flex v-else class="animated zoomIn">
+				<v-img class="white--text" height="200px" cover :src="serie.cover">
+					<v-container fill-height fluid>
+						<v-layout fill-height>
+							<v-flex xs12 align-end flexbox>
+								<v-avatar>
+									<v-img :src="serie.poster"></v-img>
+								</v-avatar>
+								<span class="headline" v-text="serie.name"></span>
+							</v-flex>
+						</v-layout>
+					</v-container>
+				</v-img>
+				<v-layout row wrap class="mt-2">
+					<v-flex xs12 v-if="serie.statistics">
+						<span class="grey--text" v-html="'No Youtube desde ' + new Date(channelInfo.publishedAt).toLocaleDateString()"></span><br>
+						<span v-html="'Inscritos: ' + formatNumbers(channelInfo.statistics.subscriberCount)"></span><br>
+						<span v-html="'Vídeos: ' + formatNumbers(channelInfo.statistics.videoCount)"></span><br>
+						<span v-html="'Views: ' + formatNumbers(channelInfo.statistics.viewCount)"></span><br>
+					</v-flex>
+					<v-flex xs12 class="mt-2">
+						<p class="text-xs-center">As Informações acima estão corretas?</p>
+					</v-flex>
+				</v-layout>
+			</v-flex>
+		</v-card-title>
+
+		<v-card-actions>
+			<v-spacer></v-spacer>
+			<v-btn v-if="e6 !== 1 && !serie" flat @click.stop="$emit('push-step', e6 - 1)">ANTERIOR</v-btn>
+			<v-btn v-if="e6 === 1 && !serie" flat @click.stop="setStep(step - 1)">RECATEGORIZAR</v-btn>
+			<v-btn v-if="serie" flat @click.stop="serie = ''">NÃO</v-btn>
+			<v-btn color="#ef001c" @click="requestSerie(search)" :loading="loading" :disabled="loading || search.length < 2" v-if="!serie">BUSCAR</v-btn>
+			<v-btn v-if="serie" color="#ef001c" @click.stop="saveSerieInfos(serie)">SIM</v-btn>
+		</v-card-actions>
+	</v-card>
+</template>
+
+<script>
+	Vue.component('in-serie-info', {
+		template: '#in-serie-info',
+		props: ['e6'],
+		computed: {
+			...mapGetters('create-page', [
+				'pageInfos',
+				'step'
+			])
+		},
+		data() {
+			return {
+				loading: false,
+				loadingMessage: 'Aguarde...',
+				search: '',
+				serie: '',
+				error: false
+			}
+		},
+		mounted() {
+			const vm = this
+			vm.$nextTick(() => {
+				if (vm.pageInfos.title) {
+					vm.search = vm.pageInfos.title
+					vm.requestSerie(vm.search)
+				}
+			})
+		},
+		methods: {
+			...mapActions('create-page', [
+				'setPageInfos',
+				'setStep'
+			]),
+			
+			requestSerie(search) {
+				const vm = this
+				vm.error = false
+				vm.loading = true
+				vm.$http.get('/api/series/' + encodeURIComponent(vm.search) + '?links=1')
+					.then(res => {
+						if (res.data.length) {
+							vm.serie = res.data.map((serie) => {
+								if (serie.backdrop_path) serie.cover = 'https://image.tmdb.org/t/p/original' + serie.backdrop_path
+								if (serie.poster_path) serie.poster = 'https://image.tmdb.org/t/p/w200' + serie.poster_path
+								serie.first_air_date = new Date(serie.first_air_date).toLocaleDateString()
+								return serie
+							})[0]
+						} else {
+							vm.error = true
+						}
+						vm.loading = false
+					}, err => {
+						vm.loading = false
+						vm.error = true
+					})
+			},
+
+			saveSerieInfos (info) {
+				const vm = this
+				const { pageInfos } = vm
+				if (!pageInfos.title) pageInfos.title = infos.title
+				if (infos.links.length) {
+					infos.links.map(link => {
+						pageInfos[this.formatLinkType(link.type)] = { url: link.link }
+					})
+				}
+				pageInfos.youtube = infos
+				vm.setPageInfos(pageInfos)
+				this.$emit('push-step', this.e6 + 1)
+			}
+		}
+	})
+
+</script>

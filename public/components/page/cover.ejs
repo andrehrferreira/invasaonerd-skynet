@@ -1,0 +1,128 @@
+<template id="in-cover-template">
+	<div class="container-fluid in-cover animated fadeIn px-0">
+		<div>
+			<div v-if="adding && editingType === 'cover'">
+				<croppa
+					:height="500"
+					v-model="imgCover"
+					auto-sizing prevent-white-space
+					canvas-color="lightgray"
+					placeholder="<%= __('Adicionar uma capa') %>"
+					:initial-image="page.cover">
+				</croppa>
+			</div>
+			<div v-else>
+				<v-img :height="$vuetify.breakpoint.width/4" max-height="500px" min-height="200px" width="100%" v-if="page.cover" :src="page.cover" cover id="cover">
+					<div v-if="hasSocialLinks(page)">
+						<in-social-links />
+					</div>
+					<v-tooltip :open-delay="50" :close-delay="50" right>
+						<v-btn slot="activator" v-show="editMode && $vuetify.breakpoint.mdAndUp" class="animated zoomIn faster" fab dark small @click.stop="editCover" style="position: relative;">
+							<v-icon color="success">edit</v-icon>
+						</v-btn>
+						<span>Editar Cover</span>
+					</v-tooltip>
+				</v-img>
+				<div v-else class="in-cover-default">
+					<v-tooltip :open-delay="50" :close-delay="50" right>
+						<v-btn slot="activator" v-show="editMode" class="animated zoomIn faster" fab dark small @click.stop="editCover" style="position: relative;" color="success">
+							<v-icon color="success">edit</v-icon>
+						</v-btn>
+						<span>Editar Cover</span>
+					</v-tooltip>
+				</div>
+			</div>
+		</div>
+		<div class="btn-group-sm" v-if="adding && editingType === 'cover'">
+			<v-tooltip :open-delay="50" :close-delay="50" left>
+				<v-btn slot="activator" dark small fab flat fixed @click.stop="setImage" class="btn-second btn btn-info btn-fab animated fadeInUp faster" v-if="buttonState">
+					<v-icon>save</v-icon>
+				</v-btn>
+				<span>Salvar Cover</span>
+			</v-tooltip>
+		</div>
+	</div>
+</template>
+
+<script>
+	Vue.component('in-cover', {
+		template: "#in-cover-template",
+		computed: {
+			...mapGetters('page', [
+				'page',
+				'editMode',
+				'buttonState',
+				'adding',
+				'editingType'
+			]),
+			...mapGetters('app', [
+				'user',
+				'userMenu'
+			])
+		},
+		data() {
+			return {
+				imgCover: {},
+				editingCover: false
+			}
+		},
+		methods: {
+			...mapActions('page', [
+				'setPage',
+				'setEditingType',
+				'setAdding'
+			]),
+			...mapActions('app', [
+				'showDialog',
+				'setUserMenu'
+			]),
+
+			setImage() {
+				let page = this.page
+				window.imgCover = this.imgCover
+				page.changes.push({
+					type: 'cover'
+				})
+				page.cover = this.imgCover.generateDataUrl('image/jpeg', 0.3)
+				this.setPage(page)
+				this.setAdding(false)
+				this.setEditingType('')
+				this.showDialog({
+					message: 'Cover salvo para envio',
+					color: 'success',
+					icon: 'check-circle'
+				})
+			},
+
+			hasSocialLinks(page) {
+				if (page.website)
+					if (page.website.url) return true
+				if (page.youtube)
+					if (page.youtube.url) return true
+				if (page.facebook)
+					if (page.facebook.url) return true
+				if (page.instagram)
+					if (page.instagram.url) return true
+				if (page.twitter)
+					if (page.twitter.url) return true
+				if (page.spotify)
+					if (page.spotify.url) return true
+				return false
+			},
+
+			editCover() {
+				this.setEditingType('cover')
+				this.setAdding(true)
+			}
+		}
+	})
+</script>
+
+<style>
+ #cover > .v-responsive__content {
+	border: 1px solid #000 !important;
+	-webkit-box-shadow: inset 0px 0px 1px 1px rgba(64, 64, 64, 1) !important;
+	-moz-box-shadow: inset 0px 0px 1px 1px rgba(64, 64, 64, 1) !important;
+	box-shadow: inset 0px 0px 1px 1px rgba(64, 64, 64, 1) !important;
+ }
+</style>

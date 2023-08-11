@@ -1,0 +1,122 @@
+<template id="in-social-links">
+	<div class="in-social-links animated fadeIn" v-if="!editMode">
+		<v-layout row id="basic-info">
+			<v-tooltip v-if="itHas(page.website)" :open-delay="50" :close-delay="50" bottom>
+				<a slot="activator" class="in-social-links-icon" :href="page.website.url" target="_blank">
+					<v-avatar size="30" slot="prepend" @error="form.website.icon = ''">
+						<v-img :src="src" @error="setDefaultImage"></v-img>
+					</v-avatar>
+				</a>
+				<span>{{ 'Website ' + page.website.title }}</span>
+			</v-tooltip>
+			<v-tooltip v-if="itHas(page.facebook)" :open-delay="50" :close-delay="50" bottom>
+				<a slot="activator" class="in-social-links-icon" :href="page.facebook.url" target="_blank">
+					<v-avatar size="30" slot="prepend">
+						<span style="width: 100%" v-html="icons.facebook"></span>
+					</v-avatar>
+				</a>
+				<span>Facebook</span>
+			</v-tooltip>
+			<v-tooltip v-if="itHas(page.twitter)" :open-delay="50" :close-delay="50" bottom>
+				<a slot="activator" class="in-social-links-icon" :href="page.twitter.url" target="_blank">
+					<v-avatar size="30" slot="prepend">
+						<span style="width: 100%" v-html="icons.twitter"></span>
+					</v-avatar>
+				</a>
+				<span>Twitter</span>
+			</v-tooltip>
+
+			<v-tooltip v-if="itHas(page.instagram)" :open-delay="50" :close-delay="50" bottom>
+				<a slot="activator" class="in-social-links-icon" :href="page.instagram.url" target="_blank">
+					<v-avatar size="30" slot="prepend">
+						<span style="width: 100%" v-html="icons.instagram"></span>
+					</v-avatar>
+				</a>
+				<span>Instagram</span>
+			</v-tooltip>
+			<v-tooltip v-if="itHas(page.spotify)" :open-delay="50" :close-delay="50" bottom>
+				<a slot="activator" class="in-social-links-icon" :href="page.spotify.url" target="_blank">
+					<v-avatar size="30" slot="prepend">
+						<span style="width: 100%" v-html="icons.spotify"></span>
+					</v-avatar>
+				</a>
+				<span>Spotify</span>
+			</v-tooltip>
+			<v-tooltip v-if="itHas(page.youtube)" :open-delay="50" :close-delay="50" bottom>
+				<a slot="activator" class="in-social-links-icon" :href="page.youtube.url" target="_blank">
+					<v-avatar size="30" slot="prepend">
+						<span style="width: 100%" v-html="icons.youtube"></span>
+					</v-avatar>
+				</a>
+				<span>Youtube</span>
+			</v-tooltip>
+		</v-layout>
+	</div>
+</template>
+<script>
+	Vue.component('in-social-links', {
+		template: '#in-social-links',
+		computed: {
+			...mapGetters('page', [
+				'page',
+				'editMode'
+			]),
+			...mapGetters('app', [
+				'icons'
+			])
+		},
+		data() {
+			return {
+				src: '/assets/img/avatardefault.jpeg'
+			}
+		},
+		mounted() {
+			const vue = this
+			vue.$nextTick(() => {
+				if (vue.itHas(vue.page.website)) {
+					vue.src = vue.page.website.icon
+				}
+			})
+		},
+		methods: {
+			itHas(page) {
+				if (page)
+					if (page.url) return true
+				return false
+			},
+
+			setDefaultImage() {
+				this.src = '/assets/img/avatardefault.jpeg'
+				console.clear()
+			}
+		}
+	})
+</script>
+
+<style>
+	.in-social-links-website-text {
+		bottom: -3px;
+		position: relative;
+	}
+
+	.in-social-links {
+		position: absolute;
+		top: 10px;
+		right: 10px;
+		background-color: rgba(0, 0, 0, 0.6);
+		border-radius: 5px;
+		padding: 8px 8px;
+	}
+
+	.in-social-links-icon {
+		position: relative;
+		width: 30px;
+		height: 30px;
+		margin: 0 6px;
+	}
+
+	.in-social-links-icon>img {
+		border-radius: 15px;
+		margin: 0 3px;
+	}
+</style>

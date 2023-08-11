@@ -1,0 +1,153 @@
+<%- include('./types/instagram.ejs') %>
+<%- include('./types/youtube.ejs') %>
+
+<template id="in-timeline">
+	<v-layout row wrap>
+		<v-flex xs12 v-for="(feed, index) in feeds" :key="index">
+			<v-card class="mb-2">
+				<v-card-title primary-title class="pa-2">
+					<v-layout row wrap>
+						<v-flex xs2 sm1>
+							<v-layout row justify-center>
+								<a :href="'<%= settings.url %>/page/' + feed.feeder.url">
+									<v-avatar size="40">
+										<img :src="feed.photo" height="40" width="40" :alt="feed.feeder.title">
+									</v-avatar>
+								</a>
+							</v-layout>
+						</v-flex>
+						<v-flex xs8 sm10>
+							<v-layout row wrap>
+								<v-flex xs12>
+									<a :href="'<%= settings.url %>/page/' + feed.feeder.url">
+										<p class="mb-0 white--text">{{ feed.feeder.title }}</p>
+									</a>
+								</v-flex>
+								<v-flex xs12>
+									<p class="mb-0 caption grey--text">
+										<a class="grey--text" :href="'<%= settings.url %>/post/' + feed._id">
+											{{ formatType(feed) }}
+										</a> - {{ new Date(feed.publishedAt).toLocaleString() }}
+									</p>
+								</v-flex>
+							</v-layout>
+						</v-flex>
+						<v-flex xs2 sm1>
+							<v-layout row justify-end>
+								<v-menu transition="slide-x-transition" bottom left>
+									<v-btn slot="activator" dark icon>
+										<v-icon>more_horiz</v-icon>
+									</v-btn>
+									<v-list>
+										<v-list-tile v-if="user.pages" @click.stop="followUnfollow(feed.idpage)" :inactive="loading">
+											<v-list-tile-title>
+												{{ user.pages.includes(feed.idpage) ? 'Deixar de seguir' : 'Seguir' }} {{ feed.feeder.title }}
+											</v-list-tile-title>
+										</v-list-tile>
+										<v-list-tile v-else @click.stop="setUserMenu(true)" :inactive="loading">
+											<v-list-tile-title>
+												Seguir {{ feed.feeder.title }}
+											</v-list-tile-title>
+										</v-list-tile>
+									</v-list>
+								</v-menu>
+							</v-layout>
+						</v-flex>
+					</v-layout>
+				</v-card-title>
+				<v-card-text class="py-2">
+					<div v-if="feed.type === 'instagram'">
+						<in-type-instagram :payload="feed.payload" :playing="playing" @play-video="playVideo"/>
+					</div>
+					<div v-else-if="feed.type === 'youtube-video'">
+						<in-type-youtube :feedid="feed._id" :payload="feed.payload" :playing="playing" @play-video="playVideo"/>
+					</div>
+				</v-card-text>
+				<v-card-text class="py-0">
+					<in-comments-likes :opened="opened" :feed="feed" @set-feed="setFeed" @set-opened="(val) => opened = val" />
+				</v-card-text>
+			</v-card>
+		</v-flex>
+	</v-layout>
+</template>
+
+<script>
+	Vue.component('in-timeline', {
+		template: '#in-timeline',
+		props: ['feeds'],
+		computed: {
+			...mapGetters('app', ['user'])
+		},
+		data () {
+			return {
+				playing: '',
+				loading: false,
+				opened: this.feeds.length === 1 ? this.feeds[0]._id : ''
+			}
+		},
+		methods: {
+			...mapActions('app', ['setUser', 'setUserMenu']),
+
+			playVideo (videoId) {
+				this.playing = videoId
+			},
+
+			setFeed ({ feed, remove }) {
+				if (remove) {
+					this.$emit('set-feeds', {
+						feeds: this.feeds.filter((f, index) => f._id === remove)
+					})
+				} else {
+					this.$emit('set-feeds', {
+						feeds: this.feeds.map((f, index) => {
+							if (f._id === feed._id) return feed
+							return f
+						})
+					})
+				}
+			},
+
+			followUnfollow (idpage) {
+				const vm = this
+				var user = JSON.parse(JSON.stringify(vm.user))
+				var {
+					pages
+				} = user
+				var add = !pages.includes(idpage)
+				if (add) {
+					pages.push(idpage)
+				} else {
+					pages = pages.filter(pageId => {
+						return pageId !== idpage
+					})
+				}
+				user.pages = pages
+				vm.loading = true
+				vm.$http.post('/follow', { user, id: idpage, add }).then(() => {
+					vm.setUser(user)
+				}).catch((err) => {
+					console.log(err)
+					vm.showDialog({
+						message: 'Falha na comunicação com o servidor',
+						color: 'red',
+						icon: 'warning'
+					})
+				}).then(() => vm.loading = false)
+			},
+
+			formatType ({ type, payload }) {
+				if (type === 'youtube-video') {
+					return 'Youtube Vídeo'
+				} else if (type === 'instagram') {
+					if (payload.__typename === 'GraphVideo') {
+						return 'Instagram Vídeo'
+					} else if (payload.__typename === 'GraphImage') {
+						return 'Instagram Foto'
+					} else if (payload.__typename === 'GraphSidecar') {
+						return 'Instagram Fotos'
+					}
+				}
+			}
+		}
+	})
+</script>

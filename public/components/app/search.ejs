@@ -1,0 +1,169 @@
+<template id="in-search">
+	<v-layout align-center justify-center row fill-height>
+		<v-flex xs11>
+			<v-autocomplete
+				:search-input.sync="search" :solo="solo" dark no-filter
+				v-model="selected" @input="redirect(selected)" append-icon=""
+				:items="results" :hide-no-data="noData" @keyup="enterSearch"
+				placeholder="Pesquisar" :loading="loading" ref="autocomplete" 
+			>
+				<template slot="no-data">
+					<v-layout row wrap>
+						<v-flex xs12 class="px-2">
+							Nada para exibir
+						</v-flex>
+					</v-layout>
+				</template>
+				<template slot="selection" slot-scope="data">
+					<span class="ml-2" v-html="data.item.title"></span>
+				</template>
+				<template slot="item" slot-scope="data">
+					<v-layout row justify-space-between align-center>
+						<v-flex>
+							<v-avatar class="my-2" slot="activator" size="36px" >
+								<img :src="`/image/${data.item.url}/miniavatar.jpg`" alt="Avatar" @error="setDefaultImage">
+							</v-avatar>
+						</v-flex>
+						<v-flex xs6 sm8 md10>
+							<p class="ml-2 mb-0 text-truncate">
+								{{ data.item.title }}
+							</p>
+						</v-flex>
+						<v-flex v-if="data.item.isHistory">
+							<v-layout row justify-end>
+								<v-btn class="ma-0 pa-1" flat color="primary" small @click.stop="removeItemFromHistory(data.item)">
+									remover
+								</v-btn>
+							</v-layout>
+						</v-flex>
+					</v-layout>
+				</template>
+			</v-autocomplete>
+		</v-flex>
+		<v-flex v-if="!solo || (search !== '' && search !== null)" class="animated zoomIn">
+			<v-btn icon @click.stop="redirect(search)">
+				<v-icon>search</v-icon>
+			</v-btn>
+		</v-flex>
+	</v-layout>
+</template>
+
+<script>
+	Vue.component('in-search', {
+		template: '#in-search',
+		props: {
+			solo: {
+				type: Boolean,
+				default: false,
+				required: false
+			}
+		},
+		data () {
+			return {
+				search: '',
+				results: [],
+				loading: false,
+				selected: '',
+				noData: false,
+				waitEnd: 0,
+				typing: 0,
+				finishTyping: 500
+			}
+		},
+		watch: {
+			search (val) {
+				const vue = this
+				if (vue.typing) clearTimeout(vue.typing)
+				vue.typing = setTimeout(() => {
+					this.updateItems(val)
+				}, vue.finishTyping)
+			}
+		},
+		mounted () {
+			const vue = this
+			if (localStorage.hasOwnProperty('search-history')) {
+				const history = localStorage.getItem('search-history') ? JSON.parse(localStorage.getItem('search-history')) : []
+				if (history.some(i => !i.url)) {
+					localStorage.removeItem('search-history')
+				} else {
+					this.results = history
+				}
+			} else {
+				this.noData = true
+			}
+			const el = document.querySelector('[placeholder="Pesquisar"]')
+			window.addEventListener('scroll', () => {
+				if (document.activeElement === el) vue.$refs.autocomplete.blur()
+			})
+		},
+		methods: {
+			...mapActions('app', [
+				'goTo'
+			]),
+
+			removeItemFromHistory (search) {
+				var history = JSON.parse(localStorage.getItem('search-history'))
+				history = history.filter(item => {
+					return item.ref !== search.ref
+				})
+				this.results = history
+				localStorage.setItem('search-history', JSON.stringify(history))
+			},
+
+			redirect (search) {
+				if (search.url !== null && search.url !== '') {
+					search.isHistory = true
+					if (localStorage.hasOwnProperty('search-history')) {
+						const history = localStorage.getItem('search-history') ? JSON.parse(localStorage.getItem('search-history')) : []
+						if (history.every(item => item.ref !== search.ref)) history.unshift(search)
+						localStorage.setItem('search-history', JSON.stringify(history.filter((item, index) => {
+							return index < 10
+						})))
+					} else {
+						localStorage.setItem('search-history', JSON.stringify([search]))
+					}
+					this.goTo('/page/' + search.url)
+				}
+			},
+
+			enterSearch ({ target, key }) {
+				const { value } = target
+				if (key === 'Enter' && value.url !== '' && value.url !== null) {
+					console.log(event)
+					this.redirect({
+						url: value,
+						ref: value,
+						title: value
+					})
+				}
+			},
+
+			setDefaultImage (event) {
+        event.target.src = '/assets/img/avatardefault.jpeg'
+      },
+
+			async updateItems (search) {
+				let vm = this
+        if (!vm.loading && search !== null) {
+          if (search !== '' &&
+            search.length > 2) {
+            vm.loading = true
+            const { data } = await vm.$http.get('/search/' + search)
+						vm.loading = false
+						if (data.length === 0) vm.noData = true
+						vm.results = data
+					}
+					vm.noData = true
+        } else if (search === '') {
+					if (localStorage.hasOwnProperty('search-history')) {
+						vm.noData = false
+						vm.results = JSON.parse(localStorage.getItem('search-history'))
+					} else {
+						vm.noData = true
+						vm.results = []
+					}
+        }
+      }
+		}
+	})
+</script>

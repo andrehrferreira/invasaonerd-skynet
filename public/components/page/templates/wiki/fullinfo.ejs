@@ -1,0 +1,108 @@
+<template id="in-template-wiki-fullinfo">
+	<section class=" animated fadeIn">
+		<ul class="in-page-fullinfo" id="wiki">
+			<li v-for="([key, value, checked, link], index) of page.wiki.fullinfo" :key="index">
+				<div v-if="link">
+					<b> {{ key }}: </b>
+					<a v-if="typeof value === 'string'" style="text-decoration: underline;" :href="link" target="_blank" class="text-white"
+					 v-html="value"></a>
+					<span v-if="typeof value === 'object'">
+						<span v-for="(item, indx) of value" :key="indx" class="text-white">
+							<a v-if="link[indx]" :href="link[indx]" target="_blank" style="text-decoration: underline; color: white;">{{item}}</a>
+							<span v-else class="text-white">{{ item }}</span>
+							<v-icon :title="'Vincular uma página sobre ' + item" @click.stop="toggleLink(item, link[indx])" v-if="editMode && addingLink !== item"
+							 color="blue" class="in-fullInfo-btn-link">link</v-icon>
+							<v-icon title="Cancelar" @click.stop="toggleLink(item, link[indx])" v-if="addingLink === item" color="#ef001c" class="in-fullInfo-btn-link">close</v-icon><span
+							 v-if="indx+1 !== value.length">, </span>
+							<v-text-field v-if="addingLink === item" :label="item" v-model="newLink" dark :value="link[indx] ? link[indx] : ''"
+							 :placeholder="link[indx] ? link[indx] : ''" clearable append-icon="save" @click:append="saveLink(index, indx)"></v-text-field>
+						</span>
+					</span>
+					<v-icon :title="'Vincular uma página sobre ' + value" @click.stop="toggleLink(key, link)" v-if="editMode && typeof value === 'string' && addingLink !== key"
+					 color="blue" class="in-fullInfo-btn-link">link</v-icon>
+					 <v-icon title="Cancelar" @click.stop="toggleLink(key, link)" v-if="editMode && typeof value === 'string' && addingLink === key"
+					 color="#ef001c" class="in-fullInfo-btn-link">close</v-icon>
+				</div>
+				<div v-else>
+					<span v-html="'<b>' + key + ':</b> ' + value"></span>
+					<v-icon :title="'Vincular uma página sobre ' + value" @click.stop="toggleLink(key, link)" v-if="editMode && addingLink !== key" color="blue"
+					 class="in-fullInfo-btn-link">link</v-icon>
+					 <v-icon title="Cancelar" @click.stop="toggleLink(key, link)" v-if="editMode && addingLink === key" color="#ef001c"
+					 class="in-fullInfo-btn-link">close</v-icon>
+				</div>
+				<v-text-field v-if="addingLink === key" :label="key" v-model="newLink" dark :value="link" :placeholder="link ? link : ''"
+				 clearable append-outer-icon="save" @click:append-outer="saveLink(index)"></v-text-field>
+			</li>
+		</ul>
+	</section>
+</template>
+
+<script>
+	Vue.component("in-template-wiki-fullinfo", {
+		template: "#in-template-wiki-fullinfo",
+		data() {
+			return {
+				addingLink: '',
+				newLink: ''
+			}
+		},
+		computed: {
+			...mapGetters('page', [
+				'page',
+				'editingType',
+				'editMode'
+			])
+		},
+		methods: {
+			...mapActions('page', [
+				'setPage'
+			]),
+			...mapActions('app', [
+				'showDialog'
+			]),
+			toggleLink(key, link) {
+				this.newLink = link
+				if (this.addingLink === key) this.addingLink = ''
+				else this.addingLink = key
+			},
+
+			saveLink(index, linksIndex) {
+				if (this.newLink) {
+					const {
+						page
+					} = this
+					if (linksIndex !== undefined) page.wiki.fullinfo[index][3][linksIndex] = this.newLink
+					else page.wiki.fullinfo[index][3] = this.newLink
+					this.newLink = ''
+					this.addingLink = ''
+					page.changes.push('wiki-link')
+					this.setPage(page)
+					this.showDialog({
+						message: `Link adicionado`,
+						color: 'success',
+						icon: 'check-circle'
+					})
+				} else {
+					this.showDialog({
+						message: `Link inválido`,
+						color: 'orange',
+						icon: 'warning'
+					})
+				}
+			}
+		}
+	})
+
+</script>
+
+<style>
+	.fa-link,
+	.fa-save {
+		cursor: pointer;
+	}
+
+	.in-fullInfo-btn-link {
+		margin-bottom: -4px;
+	}
+
+</style>

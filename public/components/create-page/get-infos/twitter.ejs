@@ -1,0 +1,213 @@
+<template id="in-twitter-info">
+	<v-card dark style="overflow-y: auto;">
+		<v-card-title primary-title class="pb-0">
+            <v-flex v-if="loading && twitterInfos.avatar === undefined && twitterInfos.cover === undefined">
+                <in-loading />
+            </v-flex>
+			<v-flex xs12 v-else class="animated zoomIn">
+                <v-img class="white--text" max-height="230" cover :src="twitterInfos.cover">
+                    <v-container fill-height fluid class="in-fade-image pa-2">
+                        <v-layout fill-height align-end>
+                            <v-flex>
+                                <v-layout row wrap justify-start>
+                                    <v-flex class="ml-2">
+                                        <v-layout row wrap>
+                                            <v-flex xs12 class="mb-2">
+                                                <v-avatar>
+                                                    <v-img :src="twitterInfos.avatar"></v-img>
+                                                </v-avatar>
+                                                <span class="headline ml-2" v-text="pageInfos.title"></span>
+                                            </v-flex>
+                                        </v-layout>
+                                    </v-flex>
+                                </v-layout>
+                            </v-flex>
+                        </v-layout>
+                    </v-container>
+                </v-img>
+                <v-layout row wrap class="mt-3">
+                    <v-flex xs12>
+                        <v-layout row wrap>
+                            <v-flex xs12 class="pl-2">
+                                <v-layout row wrap>
+                                    <v-flex xs12 md4>
+                                        <v-switch :disabled="loading" :loading="loading" 
+                                            label="Deseja exibir o widget do Twitter na página?" v-model="widget" color="#ef001c"
+                                        ></v-switch>
+                                    </v-flex>
+                                    <v-flex xs12 md4 v-if="twitterInfos.avatar">
+                                        <v-switch :disabled="loading" :loading="loading" 
+                                            label="Usar foto avatar do Twitter?" v-model="avatar" color="#ef001c" @change="toggleAvatar"
+                                            :persistent-hint="pageInfos.configs.images.avatar !== '' && pageInfos.avatar !== undefined"
+                                            :hint="pageInfos.configs.images.avatar && pageInfos.avatar ? 'Atualmente usando avatar do ' + pageInfos.configs.images.avatar : ''"
+                                        ></v-switch>
+                                    </v-flex>
+                                    <v-flex xs12 md4 v-if="twitterInfos.cover">
+                                        <v-switch :disabled="loading" :loading="loading" 
+                                            label="Usar foto cover do Twitter?" v-model="cover" color="#ef001c" @change="toggleCover"
+                                            :persistent-hint="pageInfos.configs.images.cover !== '' && pageInfos.cover !== undefined"
+                                            :hint="pageInfos.configs.images.cover && pageInfos.cover ? 'Atualmente usando cover do ' + pageInfos.configs.images.cover : ''"
+                                        ></v-switch>
+                                    </v-flex>
+                                </v-layout>
+                            </v-flex>
+                        </v-layout>
+                    </v-flex>
+                </v-layout>
+            </v-flex>
+        </v-card-title>
+        <v-card-actions>
+            <v-spacer></v-spacer>
+            <v-btn flat @click.stop="$emit('push-step', { payload: e6 - 1 })">VOLTAR</v-btn>
+            <v-btn :disabled="loading" :loading="loading" color="#ef001c" @click.stop="saveTwitterInfos(twitterInfos)" v-if="twitterInfos !== ''">SALVAR</v-btn>
+        </v-card-actions>
+    </v-card>
+</template>
+
+<script>
+    Vue.component('in-twitter-info', {
+        template: '#in-twitter-info',
+        props: ['e6'],
+        computed: {
+            ...mapGetters('create-page', [
+				'pageInfos',
+				'step'
+			])
+        },
+        data () {
+            return {
+                avatar: false,
+                cover: false,
+                widget: false,
+                loading: false,
+                twitterInfos: ''
+            }
+        },
+        mounted () {
+            const vm = this
+            vm.$nextTick(async () => {
+                vm.twitterInfos = await vm.getTwitterPageInfo(vm.pageInfos.twitter)
+            })
+        },
+        methods: {
+            ...mapActions('create-page', [
+				'setPageInfos',
+				'setStep'
+            ]),
+            ...mapActions('app', [
+				'showDialog'
+            ]),
+
+            toggleAvatar (payload) {
+                const vm = this
+				const { pageInfos } = vm
+				if (payload) pageInfos.configs.images.avatar = 'Twitter'
+				else pageInfos.configs.images.avatar = ''
+				vm.setPageInfos(pageInfos)
+            },
+
+            toggleCover (payload) {
+                const vm = this
+				const { pageInfos } = vm
+				if (payload) pageInfos.configs.images.cover = 'Twitter'
+				else pageInfos.configs.images.cover = ''
+				vm.setPageInfos(pageInfos)
+            },
+
+            saveTwitterInfos: async function (infos) {
+				const vm = await this
+				vm.loading = await true
+                const { pageInfos } = await vm
+                pageInfos.twitter.embbed = vm.widget
+				if (vm.avatar) {
+                    pageInfos.configs.images.avatar = 'Twitter'
+                    const base64 = await vm.getImage(vm.twitterInfos.avatar)
+					pageInfos.avatar = await vm.convertImage(base64)
+					if (pageInfos.avatar) pageInfos.miniavatar = await vm.setMiniAvatar(pageInfos.avatar)
+				}
+				if (vm.cover) {
+                    pageInfos.configs.images.cover = 'Twitter'
+                    const base64 = await vm.getImage(vm.twitterInfos.cover)
+                    pageInfos.cover = await vm.convertImage(base64)
+				}
+				await vm.setPageInfos(pageInfos)
+				vm.loading = await false
+				await vm.$emit('push-step', { payload: vm.e6 + 1, change: true })
+			},
+
+            getTwitterPageInfo(twitter) {
+                const vm = this
+                vm.loading = true
+                return new Promise(async resolve => {
+                    const response = await vm.$http.post("/api/twitter", { url: twitter.url })
+                    if (!response.data.error) {
+                        await resolve({
+                            ...twitter,
+                            ...response.data
+                        })
+                    } else {
+                        await vm.showDialog({
+                            message: `Link do Twitter inválido`,
+                            color: "warning",
+                            icon: "info"
+                        })
+                        await resolve('')
+                        await vm.$emit("push-step", { payload: vm.e6 - 1 })
+                    }
+                    vm.loading = await false
+                })
+            },
+
+            getImage(imageLink) {
+				const vm = this
+				return new Promise(async resolve => {
+					try {
+						const res = await vm.$http.get(imageLink, { responseType: 'blob' })
+						const blob = await res.blob()
+						const reader = await new FileReader()
+						await reader.readAsDataURL(blob)
+						const base64 = await new Promise((res, rej) => {
+							reader.onloadend = function () {
+								res(reader.result)
+							}
+						})
+						await resolve(base64)
+					} catch (err) {
+						console.log(err)
+						await resolve('')
+					}
+				})
+			},
+
+			setMiniAvatar(base64) {
+				return new Promise(resolve => {
+					const img = new Image(),
+					canvas = document.createElement('canvas'),
+					ctx = canvas.getContext('2d')
+					img.src = base64
+					img.onload = function () {
+						canvas.width = 50
+						canvas.height = 50
+						ctx.drawImage(img, 0, 0, 50, 50)
+						resolve(canvas.toDataURL('image/jpeg', 0.8))
+					}
+				})
+            },
+            
+            convertImage (base64) {
+				return new Promise(resolve => {
+					const img = new Image(),
+					canvas = document.createElement('canvas'),
+					ctx = canvas.getContext('2d')
+					img.src = base64
+					img.onload = function (event) {
+						canvas.width = event.target.width
+						canvas.height = event.target.height
+						ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+						resolve(canvas.toDataURL('image/jpeg', 0.5))
+					}
+				})
+			}
+        }
+    })
+</script>

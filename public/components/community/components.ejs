@@ -1,0 +1,29 @@
+<div>
+	<%- include('../app/sidebar.ejs') %>
+	<%- include('../app/navbar') %>
+	<%- include('../app/snackbar') %>
+	<%- include('../app/loading') %>
+
+	<%- include('./body.ejs') %>
+
+	<% if (topics) { %>
+		<%- include('./topics.ejs') %>
+	<% } else { %>
+		<%- include('./answers.ejs') %>
+	<% } %>
+	
+
+	<%- include('../page/avatar') %>
+	<%- include('../page/cover') %>
+	<%- include('../page/follow-button') %>
+	<%- include('../page/social-links') %>
+
+	<%- include('../page/templates/facebook') %>
+	<%- include('../page/templates/spotify') %>
+	<%- include('../page/templates/twitter') %>
+	<%- include('../page/templates/title') %>
+	<%- include('../page/templates/featured-pages') %>
+	<%- include('../page/templates/categories') %>
+	<%- include('../page/templates/wiki/fullinfo.ejs') %>
+</div>
+	

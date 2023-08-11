@@ -1,0 +1,183 @@
+<template id="in-editor-type-book">
+  <div>
+    <div id="books" class="in-editor-box-step animated fadeIn">
+      <div v-if="books.length > 0" class="in-editor-section in-books-preview">
+        <v-layout row wrap justify-space-between>
+          <v-flex d-flex>
+            <v-layout justify-start>
+              <h5><%= __('Preview') %></h5>
+            </v-layout>
+          </v-flex>
+          <v-flex d-flex>
+            <v-layout justify-end>
+              <v-tooltip :open-delay="50" :close-delay="50" bottom>
+                <v-btn slot="activator" color="success" dark icon @click.stop="save(books)">
+                  <v-icon>save</v-icon>
+                </v-btn>
+                <span>Salvar Livros</span>
+              </v-tooltip>
+            </v-layout>
+          </v-flex>
+        </v-layout>
+        <swiper :options="swiperOption">
+          <swiper-slide v-for="(book, index) in books" :key="index" class="in-books-preview-item">
+            <div @click.stop="deselect(book)" :title="book.title">
+            <img :src="toHttps(book.thumbnail)" class="in-books-preview-item-thumb" />
+            <div class="in-books-preview-item-title">{{book.title}}</div>
+            <div class="in-books-preview-item-author">{{book.authors}}</div>
+            <div class="in-books-preview-item-author" v-if="book.isbn">ISBN: {{book.isbn.identifier}}</div>
+            </div>
+          </swiper-slide>
+
+          <!-- Optional controls -->
+          <div class="swiper-button-prev" slot="button-prev"></div>
+          <div class="swiper-button-next" slot="button-next"></div>
+          <div class="swiper-scrollbar"   slot="scrollbar"></div>
+          <div class="swiper-pagination" slot="pagination"></div>
+        </swiper>
+      </div>
+
+      <h5><%= __('Pesquisar: Livros/Quadrinhos') %></h5>
+      <div class="container" style="padding: 0px">
+        <div class="row animated fadeIn" v-if="error">
+          <div class="col-12">
+            <div class="alert alert-danger" role="alert">
+            <span><%= __('Ocorreu erro ao tentar comunicação com o servidor') %></span>
+            <button
+              type="button" class="close" data-dismiss="alert"
+              aria-label="Close" @click.stop="error=false">
+              <span aria-hidden="true">&times;</span>
+            </button>
+            </div>
+          </div>
+        </div>
+        
+        <v-layout row wrap>
+          <v-flex sm12 sm8 md9 lg10 xl11>
+            <v-text-field placeholder="<%= __('Buscar por: ') %>" :disabled="loading" @keyup.enter="get('/api/books')" @input="error = false" v-model="search"></v-text-field>
+          </v-flex>
+          <v-flex sm12 sm4 md3 lg2 xl1>
+            <v-layout class="px-2">
+              <v-btn dark block :loading="loading" @click.stop="get('/api/books')" >
+                <v-icon class="mr-2">search</v-icon> Buscar
+              </v-btn>
+            </v-layout>
+          </v-flex>
+        </v-layout>
+
+        <div v-if="!loading">
+          <div class="in-editor-section" v-if="list">
+            <div class="in-editor-section-title">
+              <%= __('Titulos') %>
+              <hr/>
+            </div>
+            <div class="in-editor-section-contents">
+              <div class="in-editor-book-container">
+                <div class="in-editor-book-item" v-for="(book, index) in list" :key="index"
+                  @click.stop="books.push(book)" v-if="book.thumbnail && !books.some(b => b.isbn.identifier === book.isbn.identifier)">
+                  <img :src="book.thumbnail" class="in-editor-book-thumb" />
+                  <div class="in-editor-book-title">{{book.title}}</div>
+                  <div class="in-editor-book-author">{{book.authors}}</div>
+                  <div class="in-editor-book-author" v-if="book.isbn">ISBN: {{book.isbn.identifier}}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="in-loading" v-if="loading">
+        <in-loading />
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+  Vue.component('in-editor-type-book', {
+    template: '#in-editor-type-book',
+    computed: {
+      ...mapGetters('page', [
+        'page',
+        'swiperOption',
+        'buttonState',
+        'editingType'
+      ]),
+      ...mapGetters('app', [
+        'toHttps'
+      ])
+    },
+    data () {
+      return {
+        title: 'Livros/Quadrinhos',
+        loading: false,
+        books: [],
+        error: false,
+        search: '',
+        list: []
+      }
+    },
+    mounted () {
+      this.search = this.page.title
+      this.books = this.page.books ? this.page.books : []
+      this.get('/api/books')
+    },
+    methods: {
+      ...mapActions('page', [
+        'setPage',
+        'setAdding',
+        'setEditingType'
+      ]),
+      ...mapActions('app', [
+        'showDialog',
+      ]),
+
+      deselect: function(toRemove) {
+        this.books = this.books.filter(book => {
+          return book !== toRemove
+        })
+      },
+
+      get (url) {
+        this.loading = true
+        const vm = this
+        vm.$http.get(url + '/' + encodeURIComponent(vm.search))
+          .then(res => {
+            vm.list = []
+            res.body.forEach(book => {
+              if (book.isbn && book.thumbnail) {
+                vm.list.push(book)
+              }
+            })
+            if (vm.list.length === 0) vm.showDialog({
+              message: `Não encontramos nenhum Livro/Quadrinho de ${vm.search}`,
+              color: 'orange',
+              icon: 'warning'
+            })
+            vm.loading = false
+          }, err => {
+            vm.loading = false
+            vm.error = true
+          })
+      },
+
+      save (books) {
+        const { page } = this
+        if (books.length) {
+          page.books = books
+        } else {
+          delete page.books
+        }
+        page.changes.push({ type: this.editingType })
+        this.setPage(page)
+        this.setAdding(false)
+        this.setEditingType('')
+        this.showDialog({
+          message: `Edições de ${this.title} gravadas para envio`,
+          color: 'success',
+          icon: 'check-circle'
+        })
+      }
+    }
+  })
+</script>

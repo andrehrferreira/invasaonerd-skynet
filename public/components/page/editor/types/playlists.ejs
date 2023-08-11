@@ -1,0 +1,270 @@
+<template id="in-editor-type-playlists">
+  <div id="playlists" class="in-editor-box-step animated fadeIn">
+    <div v-if="playlists.length > 0" class="in-editor-section in-playlists-preview">
+      <v-layout row wrap justify-space-between>
+        <v-flex d-flex>
+          <v-layout justify-start>
+            <h5><%= __('Preview') %></h5>
+          </v-layout>
+        </v-flex>
+        <v-flex d-flex>
+          <v-layout justify-end>
+            <v-tooltip :open-delay="50" :close-delay="50" bottom>
+              <v-btn slot="activator" color="success" dark icon @click.stop="save(playlists)">
+                <v-icon>save</v-icon>
+              </v-btn>
+              <span>Salvar Playlists</span>
+            </v-tooltip>
+          </v-layout>
+        </v-flex>
+      </v-layout>
+      <swiper :options="swiperOption">
+        <swiper-slide v-for="(playlist, index) in playlists" :key="index" class="in-playlists-preview-item">
+          <div @click.stop="deselect(playlist)" :title="playlist.name"
+            style="width: 100%; padding: 10px 40px 40px 40px;"
+          >
+            <div
+              class="in-preview-playlist"
+              :style="'background-image: url(' + checkImage(playlist.thumbnails) + ')'"
+            >
+              <span>
+                Playlist: {{playlist.title}}
+              </span>
+            </div>
+          </div>
+        </swiper-slide>
+
+        <!-- Optional controls -->
+        <div class="swiper-button-prev" slot="button-prev"></div>
+        <div class="swiper-button-next" slot="button-next"></div>
+        <div class="swiper-scrollbar"   slot="scrollbar"></div>
+        <div class="swiper-pagination" slot="pagination"></div>
+      </swiper>
+    </div>
+
+    <h5><%= __('Pesquisar: Playlists') %></h5>
+    <div class="container" style="padding: 0px">
+      <div class="row animated fadeIn" v-if="error">
+        <div class="col-12">
+          <div class="alert alert-danger" role="alert">
+          <span><%= __('Ocorreu erro ao tentar comunicação com o servidor') %></span>
+          <button
+            type="button" class="close" data-dismiss="alert"
+            aria-label="Close" @click.stop="error=false">
+            <span aria-hidden="true">&times;</span>
+          </button>
+          </div>
+        </div>
+      </div>
+
+      <v-layout row wrap>
+        <v-flex sm12 sm8 md9 lg10 xl11>
+          <v-text-field placeholder="<%= __('Buscar por: ') %>" :disabled="loading" @keyup.enter="get('/api/yt-playlists')" @input="error = false" v-model="search"></v-text-field>
+        </v-flex>
+        <v-flex sm12 sm4 md3 lg2 xl1>
+          <v-layout class="px-2">
+            <v-btn dark block :loading="loading" @click.stop="get('/api/yt-playlists')">
+              <v-icon class="mr-2">search</v-icon> Buscar
+            </v-btn>
+          </v-layout>
+        </v-flex>
+      </v-layout>
+
+      <div v-if="!loading">
+        <div class="in-editor-section" v-if="list">
+          <div class="in-editor-section-title">
+            <%= __('Playlists') %>
+            <hr/>
+          </div>
+          <div class="in-editor-section-contents">
+            <div class="in-editor-playlist-container">
+              <div class="in-editor-playlist-item" v-for="(playlist, index) in list" :key="index"
+                @click.stop="pushVideo(playlist)" v-if="!playlists.includes(playlist)">
+                <img :src="checkImage(playlist.thumbnails)" class="in-editor-playlist-thumb" />
+                <div class="in-editor-playlist-title">{{playlist.title}}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="in-loading" v-if="loading">
+      <in-loading />
+    </div>
+  </div>
+</template>
+
+<script>
+  Vue.component('in-editor-type-playlists', {
+    template: '#in-editor-type-playlists',
+    computed: {
+      ...mapGetters('page', [
+        'page',
+        'buttonState',
+        'editingType'
+      ])
+    },
+    mounted () {
+      this.search = this.page.title
+      this.playlists = this.page.playlists ? this.page.playlists : []
+      this.get('/api/yt-playlists')
+    },
+    data () {
+      return {
+        title: 'Playlists',
+        loading: false,
+        playlists: [],
+        error: false,
+        search: '',
+        list: [],
+        swiperOption: {
+          slidesPerView: 1,
+          spaceBetween: 10,
+          loop: false,
+          pagination: {
+            el: '.swiper-pagination',
+            clickable: true
+          },
+          navigation: {
+            nextEl: '.swiper-button-next',
+            prevEl: '.swiper-button-prev'
+          }
+        }
+      }
+    },
+    methods: {
+      ...mapActions('page', [
+        'setPage',
+        'setAdding',
+        'setEditingType'
+      ]),
+      ...mapActions('app', [
+        'showDialog',
+      ]),
+
+      pushVideo (toAdd) {
+        this.list = this.list.filter(playlist => {
+          return playlist.id !== toAdd.id
+        })
+        this.playlists.push(toAdd)
+      },
+
+      deselect: function(toRemove) {
+        this.playlists = this.playlists.filter(playlist => {
+          return playlist.id !== toRemove.id
+        })
+        this.list.push(toRemove)
+      },
+
+      checkImage(image) {
+        if (image) {
+          if (image.medium) return image.medium.url
+          else if (image.default) return image.default.url
+          else if (image.high) return image.high.url
+        }
+        return '/assets/img/avatardefault.jpeg'
+      },
+
+      get (url) {
+        this.loading = true
+        const vm = this
+        vm.$http.get(url + '/' + encodeURIComponent(vm.search))
+          .then(res => {
+            vm.list = res.data
+            vm.loading = false
+          }, err => {
+            vm.loading = false
+            vm.error = true
+          })
+      },
+
+      save (playlists) {
+        const { page } = this
+        
+        if (playlists.length) {
+          page.playlists = playlists
+        } else {
+          delete page.playlists
+        }
+        page.changes.push({
+          type: this.editingType
+        })
+        this.setPage(page)
+        this.setAdding(false)
+        this.setEditingType('')
+        this.showDialog({
+          message: `Edições de ${this.title} gravadas para envio`,
+          color: 'success',
+          icon: 'check-circle'
+        })
+      }
+    }
+  })
+</script>
+
+<style>
+  .in-preview-playlist {
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: cover;
+    width: 100%;
+    height: 330px;
+  }
+
+  .in-preview-playlist > span {
+    background-color: #000000a1;
+    position: relative;
+    top: 20px;
+    left: 10px;
+    padding: 20px;
+    border-radius: 5px;
+  }
+
+  .in-editor-playlist-title {
+    padding: 10px;
+    text-shadow: none;
+    line-height: 18px;
+    color: white;
+    font-size: 13px;
+    text-overflow: ellipsis;
+    white-space: normal;
+    overflow: hidden;
+  }
+
+  .in-editor-playlist-container {
+    text-align: left;
+    display: -webkit-box;
+    display: -moz-box;
+    display: -ms-flexbox;
+    display: -webkit-flex;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    flex-direction: row;
+  }
+  .in-editor-playlist-item {
+    cursor: pointer;
+    width: 240px;
+    height: 260px;
+    background-color: #363636;
+    margin: auto;
+    -webkit-border-radius: 3px;
+    -moz-border-radius: 3px;
+    border-radius: 3px;
+    align-self: center;
+    margin-bottom: 10px
+  }
+
+  .in-editor-playlist-thumb {
+    width: 240px !important;
+    height: 183px;
+    display: block;
+    border: 0;
+    position: relative;
+    -webkit-border-radius: 3px;
+    -moz-border-radius: 3px;
+    border-radius: 3px;
+  }
+</style>

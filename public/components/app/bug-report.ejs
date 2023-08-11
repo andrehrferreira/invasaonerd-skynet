@@ -1,0 +1,201 @@
+<template id="in-bug-report">
+	<v-dialog v-model="dialog" persistent max-width="1000px" @input="closeModal">
+		<v-card>
+			<v-toolbar dark color="#212121">
+				<v-toolbar-title>Report de Bug</v-toolbar-title>
+				<v-spacer></v-spacer>
+				<v-btn icon dark @click.stop="closeModal" :disabled="loading">
+					<v-icon>close</v-icon>
+				</v-btn>
+			</v-toolbar>
+			<v-container fluid>
+				<v-layout row wrap>
+					<v-flex class="hidden-sm-and-down">
+						<p class="grey--text">DICA: Quando identificar um bug aperte F12, caso tenha alguma mensagem na cor vermelha, mande um print das mensagens para nós</p>
+					</v-flex>
+					<v-flex xs12>
+						<v-text-field
+							label="Assunto*"
+							:rules="[(v) => v.length <= 100 || 'Maximo de 100 caracteres']"
+							:counter="100" hint="Minimo de 3 caracteres"
+							v-model="bug.title" autofocus color="white"
+						></v-text-field>
+					</v-flex>
+					<v-flex xs12>
+						<v-textarea
+							label="Detalhes*"
+							:rules="[(v) => v.length <= 1000 || 'Maximo de 1000 caracteres']"
+							:counter="1000" hint="Minimo de 10 caracteres"
+							v-model="bug.details" color="white"
+						></v-textarea>
+					</v-flex>
+					<v-flex xs12 v-if="bug.screenshots.length">
+						<v-layout row wrap justify-space-around class="animated zoomIn faster">
+							<v-flex v-for="(image, index) in bug.screenshots" :key="index" class="pa-1">
+								<v-layout justify-center>
+									<v-hover>
+											<v-img slot-scope="{ hover }" width="120px" height="120px" contain :src="image" class="ma-0 grey darken-4">
+												<v-container
+													fill-height fluid class="animated fadeIn faster"
+													v-show="hover" @click.stop="removeScreenshot(index)"
+													style="background-color: rgba(0,0,0, 0.7); cursor: pointer;">
+													<v-layout justify-center align-center fill-height>
+														<v-icon large>close</v-icon>
+													</v-layout>
+												</v-container>
+											</v-img>
+									</v-hover>
+								</v-layout>
+							</v-flex>
+						</v-layout>
+						<v-layout justify-end>
+							<p class="mb-0">{{ bug.screenshots.length }} de 5 imagens</p>
+						</v-layout>
+					</v-flex>
+					<v-flex xs12>
+						<v-layout row wrap justify-space-between>
+							<in-upload-buttom
+								title="screenshots"
+								:color="bug.screenshots.length > 4 ? 'grey' : 'success'"
+								:disabled="bug.screenshots.length > 4"
+								:file-changed-callback="fileChanged"
+								multiple class="px-0 mx-0"
+							>
+								<template slot="icon-left">
+									<v-icon class="mr-2">cloud_upload</v-icon>
+								</template>
+							</in-upload-buttom>
+							<v-btn color="#ef001c" :loading="loading" :disabled="validateBug(bug)" @click.stop="reportBug(bug)">REPORTAR</v-btn>
+						</v-layout>
+					</v-flex>
+				</v-layout>
+			</v-container>
+		</v-card>
+	</v-dialog>
+</template>
+
+<script>
+	Vue.component('in-bug-report', {
+		template: '#in-bug-report',
+		props: ['bugmodal'],
+		computed: {
+			...mapGetters('app', ['user'])
+		},
+		watch: {
+			bugmodal (val) {
+				this.dialog = val
+				this.toggleSideBar(!val)
+			}
+		},
+		data () {
+      return {
+        dialog: false,
+				loading: false,
+				bug: {
+					title: '',
+					details: '',
+					screenshots: [],
+					solved: false,
+					user: '',
+					timestamp: undefined,
+					feedback: {
+						admUser: '',
+						text: '',
+						screenshots: [],
+						timestamp: undefined
+					}
+				},
+				defaultBug: {
+					title: '',
+					details: '',
+					screenshots: [],
+					solved: false,
+					user: '',
+					timestamp: undefined,
+					feedback: {
+						admUser: '',
+						text: '',
+						screenshots: [],
+						timestamp: undefined
+					}
+				}
+      }
+		},
+		methods: {
+			...mapActions('app', [
+				'toggleSideBar',
+				'showDialog'
+			]),
+
+			closeModal () {
+				this.dialog = false
+				this.$emit('close-modal', false)
+			},
+
+			removeScreenshot (index) {
+				this.bug.screenshots = this.bug.screenshots.filter((img, idx) => {
+					return idx !== index
+				})
+			},
+
+			validateBug (bug) {
+				const { title, details } = bug
+				return title.length > 100 || details.length > 1000 || title.length < 3 || details.length < 10
+			},
+
+			async reportBug (bug) {
+				const vue = this
+				vue.loading = true
+				bug.user = vue.user.email
+				try {
+					const { data } = await vue.$http.post('/bugs', { bug })
+					if (!data.error) {
+						vue.showDialog({
+							message: 'Bug reportado com sucesso, nossa equipe irá verificar e te enviar um feedback assim que possível, obrigado :)',
+							color: 'green',
+							icon: 'info',
+							timeout: 8000
+						})
+						vue.bug = vue.defaultBug
+						vue.closeModal()
+					} else {
+						console.log(data.moreinfo)
+						vue.showDialog({
+							message: 'Ocorreu um erro na comunicação com o servidor',
+							color: 'red',
+							icon: 'warning'
+						})
+					}
+				} catch (err) {
+					console.log(err)
+					vue.showDialog({
+						message: 'Ocorreu um erro na comunicação com o servidor',
+						color: 'red',
+						icon: 'warning'
+					})
+				}
+				vue.loading = false
+			},
+
+			async fileChanged (files) {
+				const vue = this
+				const imgs = await Promise.all(Array.from(files).filter((file, index) => {
+					return (file.type === 'image/png' || file.type === 'image/jpeg') && index < (5 - vue.bug.screenshots.length)
+				}).map(async file => {
+					const reader = new FileReader()
+					reader.readAsDataURL(file.slice())
+					return new Promise(res => {
+						reader.onloadend = function () {
+							res(reader.result)
+						}
+					})
+				}))
+				imgs.forEach(img => {
+					if (!vue.bug.screenshots.includes(img)) {
+						vue.bug.screenshots.push(img)
+					}
+				})
+			}
+		}
+	})
+</script>

@@ -1,0 +1,199 @@
+<template id="in-editor-type-featured-video">
+  <div id="featuredVideo" class="in-editor-box-step animated fadeIn">
+    <div v-if="featuredVideo.id" class="in-editor-section in-featured-video-preview"
+      style="width: 100%;">
+      <v-layout row wrap justify-space-between>
+        <v-flex d-flex>
+          <v-layout justify-start>
+            <h5><%= __('Preview') %></h5>
+          </v-layout>
+        </v-flex>
+        <v-flex d-flex>
+          <v-layout justify-end>
+            <v-tooltip :open-delay="50" :close-delay="50" bottom>
+              <v-btn slot="activator" color="success" dark icon @click.stop="save(featuredVideo)">
+                <v-icon>save</v-icon>
+              </v-btn>
+              <span>Salvar Video</span>
+            </v-tooltip>
+          </v-layout>
+        </v-flex>
+      </v-layout>
+      <div class="row">
+        <div class="col-12">
+          <iframe style="width: 100%; height: 350px;"
+            class="in-videos-preview-item-thumb" frameborder="0"
+            allow="autoplay; encrypted-media" allowfullscreen
+            :src="'https://www.youtube.com/embed/' + featuredVideo.id + '?autoplay=1'">
+          </iframe>
+        </div>
+      </div>
+    </div>
+
+    <div class="container" style="padding: 0px">
+      <h5><%= __('Pesquisar: Vídeos') %></h5>
+      <div class="row animated fadeIn" v-if="error">
+        <div class="col-12">
+          <div class="alert alert-danger" role="alert">
+          <span><%= __('Ocorreu erro ao tentar comunicação com o servidor') %></span>
+          <button
+            type="button" class="close" data-dismiss="alert"
+            aria-label="Close" @click.stop="error=false">
+            <span aria-hidden="true">&times;</span>
+          </button>
+          </div>
+        </div>
+      </div>
+
+      <v-layout row wrap>
+        <v-flex sm12 sm8 md9 lg10 xl11>
+          <v-text-field placeholder="<%= __('Buscar por: ') %>" :disabled="loading" @keyup.enter="get('/api/yt-videos')" @input="error = false" v-model="search"></v-text-field>
+        </v-flex>
+        <v-flex sm12 sm4 md3 lg2 xl1>
+          <v-layout class="px-2">
+            <v-btn dark block :loading="loading" @click.stop="get('/api/yt-videos')" >
+              <v-icon class="mr-2">search</v-icon> Buscar
+            </v-btn>
+          </v-layout>
+        </v-flex>
+      </v-layout>
+
+      <div v-if="!loading">
+        <div class="in-editor-section" v-if="list">
+          <div class="in-editor-section-title">
+            <%= __('Vídeos') %>
+            <hr/>
+          </div>
+          <div class="in-editor-section-contents">
+            <div class="in-editor-video-container">
+              <div class="in-editor-video-item" v-for="(video, index) in list" :key="index"
+                @click.stop="featuredVideo = video" v-if="video.id !== featuredVideo.id">
+                <img :src="video.thumbnails.medium.url" class="in-editor-video-thumb" />
+                <div class="in-editor-video-title">{{video.title}}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="in-loading" v-if="loading">
+      <in-loading />
+    </div>
+  </div>
+</template>
+
+<script>
+  Vue.component('in-editor-type-featured-video', {
+    template: '#in-editor-type-featured-video',
+    computed: {
+      ...mapGetters('page', [
+        'page',
+        'buttonState',
+        'editingType'
+      ])
+    },
+    mounted () {
+      this.search = this.page.title
+      this.featuredVideo = this.page.featuredVideo ? this.page.featuredVideo : {}
+      this.get('/api/yt-videos')
+    },
+    data () {
+      return {
+        title: 'Vídeo',
+        loading: false,
+        featuredVideo: {},
+        error: false,
+        search: '',
+        list: []
+      }
+    },
+    methods: {
+      ...mapActions('page', [
+        'setPage',
+        'setAdding',
+        'setEditingType'
+      ]),
+      ...mapActions('app', [
+        'showDialog',
+      ]),
+
+      get (url) {
+        this.loading = true
+        const vm = this
+        vm.$http.get(url + '/' + encodeURIComponent(vm.search))
+          .then(res => {
+            vm.list = res.data
+            vm.loading = false
+          }, err => {
+            vm.loading = false
+            vm.error = true
+          })
+      },
+
+      save (featuredVideo) {
+        const { page } = this
+        page.featuredVideo = featuredVideo
+        page.changes.push({
+          type: this.editingType
+        })
+        this.setPage(page)
+        this.setAdding(false)
+        this.setEditingType('')
+        this.showDialog({
+          message: `Edições de ${this.title} gravadas para envio`,
+          color: 'success',
+          icon: 'check-circle'
+        })
+      }
+    }
+  })
+</script>
+
+<style>
+  .in-editor-video-title {
+    padding: 10px;
+    text-shadow: none;
+    line-height: 18px;
+    color: white;
+    font-size: 13px;
+    text-overflow: ellipsis;
+    white-space: normal;
+    overflow: hidden;
+  }
+
+  .in-editor-video-container {
+    text-align: left;
+    display: -webkit-box;
+    display: -moz-box;
+    display: -ms-flexbox;
+    display: -webkit-flex;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    flex-direction: row;
+  }
+  .in-editor-video-item {
+    width: 240px;
+    height: 260px;
+    background-color: #363636;
+    margin: auto;
+    -webkit-border-radius: 3px;
+    -moz-border-radius: 3px;
+    border-radius: 3px;
+    align-self: center;
+    margin-bottom: 10px
+  }
+
+  .in-editor-video-thumb {
+    width: 240px !important;
+    height: 183px;
+    display: block;
+    border: 0;
+    position: relative;
+    -webkit-border-radius: 3px;
+    -moz-border-radius: 3px;
+    border-radius: 3px;
+  }
+</style>

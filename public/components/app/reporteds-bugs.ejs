@@ -1,0 +1,159 @@
+<template id="in-reporteds-bugs">
+	<v-dialog v-model="dialog" persistent fullscreen full-width @input="closeModal" transition="dialog-bottom-transition">
+		<v-card>
+			<v-toolbar dark color="#212121">
+				<v-toolbar-title>Bugs Reportados</v-toolbar-title>
+				<v-spacer></v-spacer>
+				<v-btn icon dark @click.stop="closeModal" :disabled="loading">
+					<v-icon>close</v-icon>
+				</v-btn>
+			</v-toolbar>
+			<v-container fluid fill-height>
+				<v-layout row wrap align-center fill-height>
+					<v-flex xs12 v-if="loading">
+						<in-loading />
+					</v-flex>
+					<v-flex xs12 v-else>
+						<v-data-table
+							:headers="headers"
+							:items="bugs"
+							:search="search"
+							:pagination.sync="pagination"
+							class="elevation-8"
+							item-key="timestamp"
+							:rows-per-page-items="[ 20, 50, 100, 250, 500, 1000, { 'text': 'Todas', 'value': -1 } ]"
+							rows-per-page-text="Linhas por página:"
+						>
+							<template slot="items" slot-scope="props">
+								<tr style="max-width: 100%;" @click="props.expanded = !props.expanded" style="cursor: pointer;">
+									<td class="text-truncate">{{ props.item.title }}</td>
+									<td class="text-truncate">{{ props.item.details }}</td>
+									<td>{{ props.item.user }}</td>
+									<td>{{ new Date(props.item.timestamp).toLocaleDateString() }}</td>
+									<td>{{ props.item.screenshots.length }}</td>
+								</tr>
+							</template>
+							<template slot="expand" slot-scope="{ item }">
+								<v-card flat>
+									<v-card-title class="pb-1" primary-title>
+										<v-layout row wrap>
+											<v-flex xs12>
+												<p class="headline mb-0">{{ item.title }}</p>	
+											</v-flex>
+											<v-flex xs12>
+												<p class="subheading mb-0 font-italic">{{ item.user }}</p>	
+											</v-flex>
+										</v-layout>
+									</v-card-title>
+									<v-card-text class="pt-1">
+										{{ item.details }}
+									</v-card-text>
+									<v-carousel :height="$vuetify.breakpoint.height" :cycle="false" hide-delimiters>
+										<v-carousel-item
+											v-for="(img, i) in item.screenshots"
+											:key="i"
+										>
+											<v-container fluid fill-height>
+												<v-layout justify-center>
+													<v-img :src="img" contain></v-img>	
+												</v-layout>
+											</v-container>
+										</v-carousel-item>
+									</v-carousel>
+								</v-card>
+							</template>
+						</v-data-table>
+					</v-flex>
+				</v-layout>
+			</v-container>
+		</v-card>
+	</v-dialog>
+</template>
+
+<script>
+	Vue.component('in-reporteds-bugs', {
+		template: '#in-reporteds-bugs',
+		props: ['reportbugs'],
+		computed: {
+			...mapGetters('app', ['user'])
+		},
+		watch: {
+			reportbugs (val) {
+				this.dialog = val
+				this.toggleSideBar(!val)
+				if (val && this.bugs.length === 0 && !this.firstRequest) {
+					this.requestBugs()
+				}
+			}
+		},
+		data () {
+			return {
+				dialog: false,
+				loading: false,
+				bugs: [],
+				firstRequest: false,
+				search: '',
+				pagination: {},
+				headers: [{
+					text: 'Assunto',
+					sortable: false,
+					value: 'title'
+				}, {
+					text: 'Detalhes',
+					sortable: false,
+					value: 'details'
+				},{
+					text: 'Usuário',
+					sortable: false,
+					value: 'user'
+				}, {
+					text: 'Data',
+					sortable: true,
+					value: 'timestamp'
+				}, {
+					text: 'Screenshots',
+					sortable: false,
+					value: 'screenshots'
+				}]
+			}
+		},
+		methods: {
+			...mapActions('app', [
+				'toggleSideBar',
+				'showDialog'
+			]),
+
+			async requestBugs () {
+				const vue = this
+				vue.loading = true
+				try {
+					const { data } = await vue.$http.get('/bugs')
+					if (!data.error) {
+						vue.bugs = data
+						vue.firstRequest = true
+					} else {
+						console.log(data.moreinfo)
+						vue.showDialog({
+							message: 'Ocorreu um erro na comunicação com o servidor',
+							color: 'red',
+							icon: 'warning'
+						})
+					}
+				} catch (err) {
+					console.log(err)
+					vue.showDialog({
+						message: 'Ocorreu um erro na comunicação com o servidor',
+						color: 'red',
+						icon: 'warning'
+					})
+				}
+				vue.loading = false
+			},
+
+			closeModal () {
+				this.dialog = false
+				this.$emit('close-modal', false)
+			}
+		}
+	})
+</script>

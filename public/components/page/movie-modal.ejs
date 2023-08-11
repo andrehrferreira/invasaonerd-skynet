@@ -1,0 +1,335 @@
+<template id="in-movie-modal">
+	<v-layout justify-center>
+		<v-dialog v-if="movieDetails" v-model="modal" max-width="1000px" id="modal-movie" :fullscreen="$vuetify.breakpoint.smAndDown">
+			<v-card>
+				<v-toolbar dark color="#212121" absolute>
+					<v-toolbar-title>{{ movieDetails.title }}</v-toolbar-title>
+					<v-spacer></v-spacer>
+					<v-btn icon dark @click.stop="closeModal">
+						<v-icon>close</v-icon>
+					</v-btn>
+				</v-toolbar>
+				<v-img :src="movieDetails.cover ? movieDetails.cover : '/assets/img/avatardefault.jpeg'" cover>
+					<v-container fluid fill-height style="background-color: rgba(0,0,0,0.75); overflow-y: auto;">
+						<v-layout row wrap>
+							<v-flex xs12>
+								<div class="row pt-5">
+									<div class="col-12">
+										<h2 class="mb-1">
+											<button v-if="user.admin && editMode && !editingLinks" @click.stop="editingLinks = !editingLinks" class="btn btn-info float-right">Adicionar Links
+											</button>
+										</h2>
+									</div>
+								</div>
+								<div class="row">
+									<div class="col-12">
+										<div class="row">
+											<p class="col-12 in-movie-small mb-1">
+												{{ movieDetails.release_date }}
+											</p>
+										</div>
+										<div class="row mb-2">
+											<div class="col-12 in-movie-small mb-2">
+												<span v-for="number in numbers" :title="movieDetails.vote_average">
+													<i :class="starsRate(movieDetails.vote_average, number)"></i>
+												</span>
+												{{ (movieDetails.vote_average/2) }}
+												<a :href="`https://www.imdb.com/find?ref_=nv_sr_fn&q=${movieDetails.original_title}&s=tt`" target="_blank">
+													<img class="imdb_img" src="<%= settings.url %>/assets/img/IMDB_Logo_2016.png">
+												</a>
+											</div>
+										</div>
+									</div>
+								</div>
+								<div class="row">
+									<div class="col-12">
+										<p class=" in-movie-text">{{movieDetails.overview}}</p>
+									</div>
+								</div>
+								<div class="row mb-2" v-if="editingLinks">
+									<div class="col-12 animated fadeInUp">
+										<form @submit.prevent="saveLinks">
+											<div class="form-group">
+												<label>Youtube Filmes</label>
+												<input type="text" v-model="youtubeLink" class="form-control" placeholder="https://www.youtube.com/watch?v=abd123123">
+												<small class="form-text text-muted">Link do Filme no Youtube Play</small>
+											</div>
+											<div class="form-group">
+												<label>Netflix</label>
+												<input type="text" v-model="netflixLink" class="form-control" placeholder="https://www.netflix.com/br/title/0000000">
+												<small class="form-text text-muted">Link do Filme na Netflix</small>
+											</div>
+											<input type="submit" class="btn btn-success" value="Salvar" />
+											<button type="button" class="btn btn-danger ml-3" @click.stop="editingLinks = !editingLinks">Cancelar</button>
+										</form>
+									</div>
+								</div>
+								<div class="row" v-if="!editingLinks">
+									<div class="col-12">
+										<button v-if="movieDetails.netflixLink" type="button" @click.stop="redirectTo(movieDetails.netflixLink)" class="in-button-link-redirect text-white in-movie-modal-links">
+											<div class="in-basic-infos-form-icons">
+												<span v-html="icons.netflix + 'Assistir no Netflix'"></span>
+											</div>
+										</button>
+										<button v-if="movieDetails.youtubeLink" type="button" @click.stop="redirectTo(movieDetails.youtubeLink)" class="in-button-link-redirect text-white in-movie-modal-links">
+											<div class="in-basic-infos-form-icons">
+												<span v-html="icons.youtube + 'Assistir no Youtube'"></span>
+											</div>
+										</button>
+										<button type="button" @click.stop="redirectTo(`https://www.google.com.br/search?tbm=shop&q=filme+${movieDetails.title}&spell=1&sa=X&ved=0ahUKEwjEusuhw9ndAhVFjZAKHZaIBlUQBQigAigA&biw=2560&bih=938`)" class="in-button-link-redirect text-white in-movie-modal-links">
+											<div class="in-basic-infos-form-icons">
+												<span v-html="icons.buy + 'Onde comprar?'"></span>
+											</div>
+										</button>
+									</div>
+								</div>
+								<div class="row mt-2">
+									<div class="col-12">
+										<h3>Trailers</h3>
+										<div v-if="loading">
+											<in-loading />
+										</div>
+										<div v-else-if="!loading && traillers.length">
+											<v-layout justify-end v-if="toPlay.id">
+												<v-btn fab small color="#ef001c" @click.stop="toPlay = {}">
+													<v-icon>close</v-icon>
+												</v-btn>
+											</v-layout>
+											<div class="row">
+												<div v-if="toPlay.id" class="col-12 embed-responsive embed-responsive-16by9">
+													<iframe class="in-videos-item-player-iframe" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen :src="'https://www.youtube.com/embed/' + toPlay.id + '?autoplay=1'">
+													</iframe>
+												</div>
+											</div>
+											<swiper :options="swiperOption">
+												<swiper-slide v-for="(video, index) in traillers" :key="index" class="in-videos-preview-item">
+													<div class="text-left" @click.stop="play(video)" :title="video.name">
+														<img class="in-videos-preview-item-thumb" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen :src="video.thumbnails.medium.url" />
+														<div class="in-videos-preview-item-title">
+															<p>{{video.title}}</p>
+														</div>
+														<div class="in-videos-preview-item-author">
+															Publicação: {{ new Date(video.publishedAt).toLocaleDateString() }}
+														</div>
+													</div>
+												</swiper-slide>
+												<div class="swiper-button-prev" slot="button-prev"></div>
+												<div class="swiper-button-next" slot="button-next"></div>
+												<div class="swiper-scrollbar" slot="scrollbar"></div>
+												<div class="swiper-pagination" slot="pagination"></div>
+											</swiper>
+										</div>
+										<div v-else>
+											<span>Este filme não possui trailer</span>
+										</div>
+									</div>
+								</div>
+							</v-flex>
+						</v-layout>
+					</v-container>
+				</v-img>
+			</v-card>
+		</v-dialog>
+	</v-layout>
+</template>
+
+<script>
+	Vue.component('in-movie-modal', {
+		template: '#in-movie-modal',
+		computed: {
+			...mapGetters('page', [
+				'movieDetails',
+				'movieModal',
+				'swiperOption',
+				'editMode',
+				'page'
+			]),
+			...mapGetters('app', [
+				'user',
+				'icons'
+			])
+		},
+		data() {
+			return {
+				numbers: [1, 2, 3, 4, 5],
+				modal: true,
+				traillers: [],
+				toPlay: {},
+				loading: true,
+				editingLinks: false,
+				youtubeLink: '',
+				netflixLink: ''
+			}
+		},
+		watch: {
+			modal(val) {
+				val || this.closeModal();
+			},
+		},
+		mounted() {
+			this.movieDetails.youtubeLink ? this.youtubeLink = this.movieDetails.youtubeLink : ''
+			this.movieDetails.netflixLink ? this.netflixLink = this.movieDetails.netflixLink : ''
+			this.$http.get('/api/yt-videos/trailer ' + this.movieDetails.original_title).then(response => {
+				const {
+					data
+				} = response
+				this.traillers = data.filter((t, i) => {
+					return t.title.toLowerCase().includes('trailer')
+				})
+				this.loading = false
+			})
+		},
+		methods: {
+			...mapActions('page', [
+				'setMovieDetails',
+				'setMovieModal',
+				'setPage'
+			]),
+			...mapActions('app', [
+				'showDialog'
+			]),
+
+			redirectTo(link) {
+				window.open(link, '_blank')
+			},
+
+			starsRate(rate, number) {
+				return number <= (parseInt(rate) / 2) ? 'fa fa-star text-warning' : 'far fa-star'
+			},
+
+			closeModal() {
+				this.setMovieDetails('')
+				this.modal = !this.modal
+			},
+
+			play(video) {
+				this.toPlay = {}
+				setTimeout(() => {
+					this.toPlay = video
+				}, 50)
+			},
+
+			saveLinks() {
+				let hasChange = false
+				if (this.youtubeLink || this.netflixLink) {
+					const {
+						page
+					} = this
+					if (this.youtubeLink !== this.movieDetails.youtubeLink) {
+						this.movieDetails.youtubeLink = this.youtubeLink
+						page.changes.push({
+							type: 'movie'
+						})
+						hasChange = true
+					}
+					if (this.netflixLink !== this.movieDetails.netflixLink) {
+						this.movieDetails.netflixLink = this.netflixLink
+						page.changes.push({
+							type: 'movie'
+						})
+						hasChange = true
+					}
+					if (hasChange) {
+						page.movies = page.movies.map(movie => {
+							if (movie.id === this.movieDetails.id) {
+								return this.movieDetails
+							}
+							return movie
+						})
+						this.setPage(page)
+						this.showDialog({
+							message: `Links adicionados com sucesso`,
+							color: 'success',
+							icon: 'check-circle'
+						})
+						this.editingLinks = false
+					} else {
+						this.showDialog({
+							message: `Não houve mudança`,
+							color: 'info',
+							icon: 'info'
+						})
+					}
+				}
+			},
+
+			starsRate(rate, number) {
+				return number <= (parseInt(rate) / 2) ? 'fa fa-star text-warning' : 'far fa-star'
+			},
+
+			formatOverview(text) {
+				if (text.length === 0) {
+					return text
+				} else if (text.length > 100 && this.$vuetify.breakpoint.width > 769) {
+					return text.split(' ').slice(0, 50).join(' ') + '...'
+				} else if (this.$vuetify.breakpoint.width <= 769) {
+					return text.split(' ').slice(0, 15).join(' ') + '...'
+				}
+				return text + '...'
+			}
+		}
+	})
+</script>
+
+<style>
+	#modal-movie .modal-body {
+		padding: 0;
+	}
+
+	.in-button-link-redirect {
+		background-color: rgba(0, 0, 0, 0);
+		border-width: 0 !important;
+		border-style: none !important;
+		border-color: rgba(0, 0, 0, 0) !important;
+		border-image: none !important;
+		cursor: pointer;
+	}
+
+	.in-button-link-redirect:focus {
+		border-color: rgba(0, 0, 0, 0) !important;
+	}
+
+	.in-movie-modal-links {
+		background-color: rgba(0, 0, 0, 0.6);
+		padding: 8px;
+		border-radius: 3px;
+	}
+
+	.in-modal-quit {
+		position: absolute;
+		right: 5px;
+		top: 5px;
+		font-size: 20px;
+		cursor: pointer;
+		z-index: 1060;
+		color: rgba(255, 255, 255, 0.7);
+	}
+
+	.in-modal-quit:hover {
+		color: white;
+	}
+
+	.imdb_img {
+		height: auto;
+		width: 40px;
+		margin-left: 10px;
+		margin-bottom: 5px;
+	}
+
+	.in-movie-height {
+		height: 100%;
+	}
+
+	.in-movie-small {
+		font-size: 14px;
+		font-weight: 300;
+		color: rgba(255, 255, 255, 1);
+
+	}
+
+	.in-movie-text {
+		font-size: 14px;
+		font-weight: 200;
+		color: rgba(255, 255, 255, 0.8);
+	}
+</style>

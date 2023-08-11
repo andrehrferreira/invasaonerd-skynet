@@ -1,0 +1,94 @@
+<template id="in-type-youtube">
+	<v-card row wrap flat>
+		<v-flex xs12>
+			<p v-html="$urlify(payload.title)"></p>
+		</v-flex>
+		<v-flex xs12 v-if="playing === payload.id">
+			<div :id="`video-player-${payload.id}`"></div>
+		</v-flex>
+		<v-flex xs12 v-else>
+			<v-hover>
+				<v-card
+					slot-scope="{ hover }" flat
+					:style="hover ? 'cursor: pointer;' : ''"
+					:href="'/post/' + feedid"
+					@click.prevent="$emit('play-video', payload.id)"
+				>
+					<v-layout row wrap justify-center class="black">
+						<v-img
+							:src="checkImages(payload.thumbnails).url"
+							width="100%" height="auto" contain
+							:max-height="checkImages(payload.thumbnails).height"
+							:max-width="checkImages(payload.thumbnails).width"
+						>
+							<v-container fluid fill-height :style="hover ? 'background-color: rgba(0,0,0,0.7)' : ''">
+								<v-layout justify-center align-center fill-height>
+									<v-icon :color="hover ? 'red' : 'white'" size="70px" class="absolute_position" dark>play_arrow</v-icon>
+								</v-layout>
+							</v-container>
+						</v-img>
+					</v-layout>
+				</v-card>
+			</v-hover>
+		</v-flex>
+	</v-layout>
+</template>
+
+<script>
+	const VueYoutubeSDK = { install: (Vue, { YT }) => Vue.prototype.$YT = YT }
+	Vue.use(VueYoutubeSDK, { YT })
+	Vue.component('in-type-youtube', {
+		template: '#in-type-youtube',
+		props: ['feedid', 'payload', 'playing'],
+		watch: {
+			playing: function (val) {
+				const vue = this
+				if (val === vue.payload.id) {
+					vue.$nextTick(() => {
+						vue.player = new vue.$YT.Player(`video-player-${vue.payload.id}`, {
+							height: vue.checkImages(vue.payload.thumbnails).height,
+							width: '100%',
+							videoId: vue.payload.id,
+							events: {
+								'onReady': vue.onReady,
+								'onStateChange': vue.onPlayerStateChange
+							}
+						})
+					})
+				} else if (vue.player.stopVideo) {
+					vue.player.destroy()
+				}
+			}
+		},
+		data () {
+			return {
+				player: {}
+			}
+		},
+		methods: {
+			onReady () {
+				this.player.playVideo()
+			},
+
+			onPlayerStateChange(event) {
+				const vue = this
+				// console.log({
+				// 	event,
+				// 	player: this.player,
+				// 	YT: vue.$YT
+				// })
+			},
+			
+			checkImages (thumbs) {
+				if (thumbs.high) return thumbs.high
+				else if (thumbs.medium) return thumbs.medium
+				else if (thumbs.default) return thumbs.default
+				return {
+					url: '/public/assets/img/avatardefault.jpeg',
+					width: 200,
+					height: 200
+				}
+			}
+		}
+	})
+</script>

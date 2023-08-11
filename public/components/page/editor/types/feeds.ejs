@@ -1,0 +1,158 @@
+<template id="in-editor-type-feeds">
+  <b-modal
+    id="feeds"
+    ref="modal"
+    title="Informe a url RSS"
+    @hide="cancelEdit"
+    v-model="modal"
+    header-bg-variant="dark"
+    header-text-variant="light"
+    body-bg-variant="dark"
+    body-text-variant="light"
+    hide-footer
+    centered cancel-title="Cancelar" cancel-variant="danger"
+    ok-title="Salvar" ok-variant="success"
+  >
+    <div class="row my-3" v-if="!loading">
+      <div class="col-12">
+        <div class="row mx-2">
+          <span class="col-12" v-if="page.feeds">Url atual: {{  page.feeds }}</span>
+          <b-form-input
+            type="text"
+            class="col-12"
+            placeholder="Ex: https://site.com.br/feed/"
+            v-model="feeds">
+          </b-form-input>
+        </div>
+        <div class="row mx-2 mt-3">
+          <button class="btn btn-danger col-4" @click.stop="cancelEdit">
+            Cancelar
+          </button>
+          <button class="btn btn-success offset-4 col-4" @click.stop="checkRssLink(feeds)"
+            :disabled="this.feeds && this.feeds.includes('http')">
+            Salvar
+          </button>
+        </div>
+      </div>
+    </div>
+    <div v-else>
+      <in-loading />
+    </div>
+  </b-modal>
+</template>
+
+<script>
+  Vue.component('in-editor-type-feeds', {
+    template: '#in-editor-type-feeds',
+    computed: {
+      ...mapGetters('page', [
+        'page',
+        'buttonState',
+        'editingType'
+      ])
+    },
+    data () {
+      return {
+        title: 'Feeds',
+        feeds: '',
+        loading: false,
+        modal: true
+      }
+    },
+    mounted () {
+      this.$nextTick(() => {
+        if (this.page.feeds) this.feeds = this.page.feeds
+        this.$emit('change-tab')
+      })
+    },
+    methods: {
+      ...mapActions('page', [
+        'setPage',
+        'setAdding',
+        'setEditingType'
+      ]),
+      ...mapActions('app', [
+        'showDialog',
+      ]),
+    
+      clearInput () {
+        this.feeds = ''
+      },
+
+      checkRssLink (link) {
+        this.loading = true
+        this.$http.post('/api/rss-reader', { url: link }).then(response => {
+          const { data } = response
+          if (data.items) {
+            if (data.items.length) {
+              this.save(link)
+              this.loading = false
+              return 
+            }
+          }
+          this.showDialog({
+            message: `A url informada não retornou feed, verifique se está correta`,
+            color: 'orange',
+            icon: 'warning'
+          })
+        })
+      },
+
+      cancelEdit () {
+        if (!this.feeds) {
+          const { page } = this
+          delete page.feeds
+          this.setPage(page)
+        }
+        this.clearInput()
+        this.setAdding(false)
+        this.setEditingType('')
+      },
+
+      save (link) {
+        this.$refs.modal.hide()
+        const { page } = this
+        page.feeds = link
+        page.changes.push({
+          type: this.editingType
+        })
+        this.setPage(page)
+        this.clearInput()
+        this.setAdding(false)
+        this.setEditingType('')
+        this.showDialog({
+          message: `Edições de ${this.title} gravadas para envio`,
+          color: 'success',
+          icon: 'check-circle'
+        })
+      }
+    }
+  })
+</script>
+
+<style>
+  .modal-header {
+    border-bottom: 1px solid gray;
+  }
+  ul[role="tablist"] {
+    background-color: rgb(35,35,35);
+  }
+  ul[role="tablist"] a.active {
+    background-color: #333 !important;
+    color: white !important;
+    border: none !important;
+  }
+  ul[role="tablist"] a[aria-selected="false"] {
+    color: gray;
+  }
+  ul[role="tablist"] a[aria-selected="false"]:hover {
+    color: white;
+    border: 1px solid gray;
+  }
+  ul[role="tablist"]:focus {
+    outline: none;
+  }
+  ul[role="tablist"].nav-tabs {
+    border-bottom: 1px solid gray;
+  }
+</style>

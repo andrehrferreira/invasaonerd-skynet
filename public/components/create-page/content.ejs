@@ -1,0 +1,141 @@
+<template id="in-content">
+	<v-container fill-height :class="bp.xs ? 'px-0' : ''">
+		<v-layout row wrap>
+			<v-flex xs12>
+				<v-card color="grey darken-3">
+					<v-card-title class="title font-weight-regular">
+						<v-layout row wrap>
+							<v-flex xs12>
+								<p class="text-xs-center ma-0 pa-0" v-text="currentTitle"></p>
+							</v-flex>
+						</v-layout>
+					</v-card-title>
+
+					<v-window v-model="step" touchless>
+						<v-window-item :value="1">
+							<in-first-step v-if="step === 1" />
+						</v-window-item>
+
+						<v-window-item :value="2">
+							<in-second-step v-if="step === 2" />
+						</v-window-item>
+
+						<v-window-item :value="3">
+							<in-third-step v-if="step === 3" />
+						</v-window-item>
+					</v-window>
+
+					<v-divider></v-divider>
+
+					<v-card-actions>
+						<v-btn v-if="step == 2" @click="backwardStep" :disabled="validStep" flat color="#ef001c">
+							<v-icon>keyboard_arrow_left</v-icon>
+							VOLTAR
+						</v-btn>
+						<v-spacer></v-spacer>
+						<v-btn v-if="step !== 3" :disabled="!validStep || loading" :loading="loading" @click="fowardStep" flat color="success">
+							AVANÇAR
+							<v-icon>keyboard_arrow_right</v-icon>
+						</v-btn>
+					</v-card-actions>
+				</v-card>
+			</v-flex>
+		</v-layout>
+	</v-container>
+</template>
+
+<script>
+	Vue.component('in-content', {
+		template: '#in-content',
+		computed: {
+			...mapGetters('create-page', [
+				'validStep',
+				'step',
+				'pageInfos'
+			]),
+			...mapGetters('app', [
+				'windowWidth',
+				'user'
+			]),
+
+			bp () {
+				return this.$vuetify.breakpoint
+			},
+
+			currentTitle () {
+				switch (this.step) {
+					case 1: return this.hasTitle ? `Não encontrado nada Referente a ${this.title}, vamos criar esta página? :)` : `Bem vindo ao ${this.user.admin ? 'criador' : 'sugestor' } de páginas`
+					case 2: return 'Coleta de Informações'
+					default: return this.user.admin ? 'Página criada com sucesso!' : 'Estamos quase lá...'
+				}
+			}
+		},
+		data () {
+			return {
+				hasTitle: <%- JSON.stringify(title) %> !== '',
+				title: (<%- JSON.stringify(title) %>).split(' ').map(word => {
+					return word.charAt(0).toUpperCase() + word.slice(1)
+				}).join(' '),
+				loading: false
+			}
+		},
+		methods: {
+			...mapActions('create-page', [
+				'setValidStep',
+				'setStep'
+			]),
+			...mapActions('app', [
+				'showDialog'
+			]),
+
+			backwardStep () {
+				this.setStep(this.step - 1)
+				this.setValidStep(true)
+			},
+
+			fowardStep () {
+				if (this.step === 1) {
+					const { title, nickname, englishTitle } = this.pageInfos
+					if (title.toLowerCase() !== nickname.toLowerCase() && title.toLowerCase() !== englishTitle.toLowerCase()) {
+						this.check()
+					} else {
+						this.showDialog({
+							message: 'O Título não pode ser igual ao subtítulo ou título original',
+							color: 'orange',
+							icon: 'info'
+						})
+					}					
+				} else {
+					this.setStep(this.step + 1)
+					this.setValidStep(false)
+				}
+			},
+
+			check () {
+				const vm = this
+				vm.loading = true
+				vm.$http.post('/check-page-names', vm.pageInfos).then(res => {
+					if (res.data.status) {
+						vm.setStep(this.step + 1)
+						vm.setValidStep(false)
+					} else {
+						vm.showDialog({
+							message: res.data.message,
+							color: 'orange',
+							icon: 'info'
+						})
+					}
+					vm.loading = false
+				}).catch(err => {
+					vm.loading = false
+					console.log(err)
+					vm.showDialog({
+						message: 'Ocorreu um erro no servidor',
+						color: 'red',
+						icon: 'warning'
+					})
+				})
+			}
+		}
+	})
+</script>

@@ -1,0 +1,111 @@
+<template id="in-main-drag">
+	<div>
+		<div v-for="(item, index) of mainorder" :key="index">
+			<div v-if="item === 'wiki'">
+				<div v-if="page.wiki && editingType !== 'wiki'">
+					<in-template-wiki-summary v-if="page.wiki.summary" />
+				</div>
+				<div v-if="editingType === 'wiki'">
+					<in-editor-type-wiki />
+				</div>
+			</div>
+		
+			<div v-if="item === 'instagram'">
+				<div v-if="page.instagram && editingType !== 'basic-infos'">
+					<in-template-instagram v-if="page.instagram.url" />
+				</div>
+			</div>
+		
+			<div v-if="item === 'lives'">
+				<div v-if="page.lives && editingType !== 'lives'">
+					<in-template-lives v-if="page.lives.length" />
+				</div>
+				<div v-if="editingType === 'lives'">
+					<in-editor-type-lives />
+				</div>
+			</div>
+		
+			<div v-if="item === 'books'">
+				<div v-if="page.books && editingType !== 'books'">
+					<in-template-books v-if="page.books.length" />
+				</div>
+				<div v-if="editingType === 'books'">
+					<in-editor-type-book />
+				</div>
+			</div>
+		
+			<div v-if="item === 'movies'">
+				<div v-if="page.movies && editingType !== 'movies'">
+					<in-template-movies v-if="page.movies.length" />
+				</div>
+				<div v-if="editingType === 'movies'">
+					<in-editor-type-movie />
+				</div>
+			</div>
+		
+			<div v-if="item === 'series'">
+				<div v-if="page.series && editingType !== 'series'">
+					<in-template-series v-if="page.series.length" />
+				</div>
+				<div v-if="editingType === 'series'">
+					<in-editor-type-serie />
+				</div>
+			</div>
+		
+			<div v-if="item === 'games'">
+				<div v-if="page.games && editingType !== 'games'">
+					<in-template-games v-if="page.games.length" />
+				</div>
+				<div v-if="editingType === 'games'">
+					<in-editor-type-games />
+				</div>
+			</div>
+		
+			<div v-if="item === 'featuredVideo'">
+				<div v-if="page.featuredVideo && editingType !== 'featuredVideo'" class="">
+					<in-template-featured-video v-if="page.featuredVideo.id" />
+				</div>
+				<div v-if="editingType === 'featuredVideo'">
+					<in-editor-type-featured-video />
+				</div>
+			</div>
+		
+			<div v-if="item === 'channels'">
+				<div v-if="page.channels && editingType !== 'channels'">
+					<in-template-channels v-if="page.channels.length" />
+				</div>
+				<div v-if="editingType === 'channels'">
+					<in-editor-type-channels />
+				</div>
+			</div>
+		
+			<div v-if="item === 'videos'">
+				<div v-if="page.videos && editingType !== 'videos'">
+					<in-template-videos v-if="page.videos.length" />
+				</div>
+				<div v-if="editingType === 'videos'">
+					<in-editor-type-videos />
+				</div>
+			</div>
+		
+			<div v-if="item === 'playlists'">
+				<div v-if="page.playlists && editingType !== 'playlists'">
+					<in-template-playlists v-if="page.playlists.length" />
+				</div>
+				<div v-if="editingType === 'playlists'">
+					<in-editor-type-playlists />
+				</div>
+			</div>
+		</div>
+	</div>
+</template>
+
+<script>
+	Vue.component('in-main-drag', {
+		template: '#in-main-drag',
+		props: ['mainorder'],
+		computed: {
+			...mapGetters('page', ['page', 'editingType'])
+		}
+	})
+</script>

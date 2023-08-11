@@ -1,0 +1,277 @@
+<template id="in-editor-type-movie">
+  <div id="movies">
+    <div class="in-editor-box-step animated fadeIn">
+      <v-layout row wrap justify-space-between>
+        <v-flex d-flex>
+          <v-layout justify-start>
+            <h5><%= __('Preview') %></h5>
+          </v-layout>
+        </v-flex>
+        <v-flex d-flex>
+          <v-layout justify-end>
+            <v-tooltip :open-delay="50" :close-delay="50" bottom>
+              <v-btn slot="activator" color="success" dark icon @click.stop="save(movies)">
+                <v-icon>save</v-icon>
+              </v-btn>
+              <span>Salvar Filmes</span>
+            </v-tooltip>
+          </v-layout>
+        </v-flex>
+      </v-layout>
+      <swiper :options="swiperOption">
+        <swiper-slide
+          v-for="(movie, index) in movies"
+          :key="index"
+          class="in-movie-cover animated fadeIn"
+          :style="`background-image: url(${(movie.cover ? movie.cover : '')});
+          height: ${$vuetify.breakpoint.width < 768 ? '500px' : '350px'};`"
+        >
+          <div @click.stop="reMovie(movie)" :title="movie.title"
+            class="in-movie-preview-fade pa-1"
+          >
+            <div class="row">
+              <img class="in-movie-poster col-sm-12 col-md-3"
+                :src="movie.poster"
+              />
+              <p class="in-movie-card-text col-sm-12 col-md-8">
+                <strong>{{ movie.title }}</strong> <br>
+                Ano: {{ movie.release_date }} <br>
+                Avaliação:
+                <span v-for="number in numbers" :title="movie.vote_average">
+                  <i :class="starsRate(movie.vote_average, number)"></i>
+                </span>
+                {{ movie.vote_average }} <img class="imdb_img" src="<%= settings.url %>/assets/img/IMDB_Logo_2016.png" alt="">
+                <br>
+                <small>
+                  {{ formatOverview(movie.overview) }}
+                </small>
+              </p>
+            </div>
+          </div>
+        </swiper-slide>
+
+        <!-- Optional controls -->
+        <div class="swiper-button-prev" slot="button-prev"></div>
+        <div class="swiper-button-next" slot="button-next"></div>
+        <div class="swiper-scrollbar"   slot="scrollbar"></div>
+        <div class="swiper-pagination" slot="pagination"></div>
+      </swiper>
+    </div>
+
+    <v-layout row wrap>
+      <v-flex sm12 sm8 md9 lg10 xl11>
+        <v-text-field placeholder="<%= __('Buscar por: ') %>" :disabled="loading" @keyup.enter="get('/api/movies')" @input="error = false" v-model="search"></v-text-field>
+      </v-flex>
+      <v-flex sm12 sm4 md3 lg2 xl1>
+        <v-layout class="px-2">
+          <v-btn dark block :loading="loading" @click.stop="get('/api/movies')">
+            <v-icon class="mr-2">search</v-icon> Buscar
+          </v-btn>
+        </v-layout>
+      </v-flex>
+    </v-layout>
+
+    <div v-if="!loading">
+      <div class="in-editor-section" v-if="list">
+        <div class="in-editor-section-title">
+          <%= __('Filmes') %>
+          <hr/>
+        </div>
+        <div v-if="list.length > 0" class="in-editor-section-contents">
+
+          <div class="in-editor-section-contents">
+            <div class="in-editor-book-container">
+              <div class="in-editor-book-item" v-for="(movie, index) in list"  :key="index"
+                @click.stop="addMovie(movie)">
+                <img v-if="movie.poster" :src="movie.poster" class="in-editor-book-thumb" />
+                <div class="in-editor-book-title">{{movie.title}}</div>
+                <div class="in-editor-book-author">Lançamento: {{movie.release_date}}</div>
+                <div class="in-editor-book-author">
+                  Avaliação: {{ (movie.vote_average/2) }}
+                  <span :class="rateStar(movie.vote_average)"></span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+        <div v-else>
+          <div class="row my-3 text-center">
+            <div class="col-12">
+              <span class="bg-danger p-3"><%= __('Não encontramos Filmes relacionados a ') %>{{ search }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="in-loading" v-if="loading">
+      <in-loading />
+    </div>
+  </div>
+</template>
+
+<script>
+  Vue.component('in-editor-type-movie', {
+    template: '#in-editor-type-movie',
+    computed: {
+      ...mapGetters('page', [
+        'page',
+        'buttonState',
+        'editingType'
+      ]),
+      ...mapGetters('app', [
+        'windowWidth'
+      ])
+    },
+    data () {
+      return {
+        numbers: [1,2,3,4,5],
+        title: 'Filmes',
+        movies: [],
+        list: [],
+        loading: false,
+        error: false,
+        search: '',
+        baseImageUrl: '',
+        swiperOption: {
+          slidesPerView: 1,
+          pagination: {
+            el: '.swiper-pagination',
+            clickable: true
+          },
+          navigation: {
+            nextEl: '.swiper-button-next',
+            prevEl: '.swiper-button-prev'
+          }
+        }
+      }
+    },
+    mounted () {
+      this.search = this.page.title
+      if (this.page.movies) {
+        this.movies = this.page.movies
+      } else {
+        this.movies = []
+        this.get('/api/movies')
+      }
+    },
+    methods: {
+      ...mapActions('page', [
+        'setPage',
+        'setAdding',
+        'setEditingType'
+      ]),
+      ...mapActions('app', [
+        'showDialog',
+      ]),
+
+      starsRate (rate, number) {
+        return number <= (parseInt(rate)/2) ? 'fa fa-star text-warning' : 'far fa-star'
+      },
+
+      addMovie (movie) {
+        this.list = this.list.filter((item) => {
+          return item.id !== movie.id
+        })
+        this.movies.push(movie)
+      },
+
+      reMovie (movie) {
+        this.movies = this.movies.filter((item) => {
+          return item.id !== movie.id
+        })
+        this.list.push(movie)
+      },
+
+      get (url) {
+        this.loading = true
+        const vm = this
+        vm.$http.get(url + '/' + encodeURIComponent(vm.search))
+          .then(res => {
+
+            const ids = this.movies.map((movie) => movie.id)
+            vm.list = res.data.filter((movie) => {
+              return !movie.video
+            }).map((movie) => {
+              if (movie.backdrop_path) movie.cover = 'https://image.tmdb.org/t/p/w500' + movie.backdrop_path
+              if (movie.poster_path) movie.poster = 'https://image.tmdb.org/t/p/w200' + movie.poster_path
+              movie.release_date = new Date(movie.release_date).toLocaleDateString()
+              return movie
+            })
+
+            vm.loading = false
+          }, err => {
+            vm.loading = false
+            vm.error = true
+          })
+      },
+
+      formatOverview (text) {
+        if (text.length === 0) {
+          return text
+        } else if (text.length > 100) {
+          return text.split(' ').slice(0, 50).join(' ') + '...'
+        }
+        return text + '...'
+      },
+
+      rateStar (rate) {
+        if (parseInt(rate) <= 3) return 'far fa-star'
+        if (parseInt(rate) <= 6) return 'fas fa-star-half'
+        return 'fa fa-star'
+      },
+
+      save (movies) {
+        const { page } = this
+        
+        if (movies.length) {
+          page.movies = movies
+        } else {
+          delete page.movies
+        }
+        page.changes.push({
+          type: this.editingType
+        })
+        this.setPage(page)
+        this.setAdding(false)
+        this.setEditingType('')
+        this.showDialog({
+          message: `Edições de ${this.title} gravadas para envio`,
+          color: 'success',
+          icon: 'check-circle'
+        })
+      }
+    }
+  })
+</script>
+
+<style>
+  .in-movie-cover {
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: cover;
+  }
+  .in-movie-poster {
+    margin-left: 10px;
+    max-width: 250px;
+    height: 300px;
+  }
+  .in-movie-card-text {
+    padding: 10px;
+    height: 300px;
+    color: white;
+    background-color: rgba(0, 0, 0, 0.4)
+  }
+
+  @media (max-width: 766px)
+  {
+    .in-movie-poster {
+      margin: 0 auto;
+      display: block;
+    }
+    .in-movie-card-text {
+      padding: 20px;
+    }
+  }
+</style>

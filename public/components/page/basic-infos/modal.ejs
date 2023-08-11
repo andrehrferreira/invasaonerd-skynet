@@ -1,0 +1,344 @@
+<template id="in-basic-infos">
+  <div>
+    <v-tooltip :open-delay="50" :close-delay="50" left>
+      <v-btn slot="activator" small dark fixed fab flat
+        v-show="editingType === ''"
+        @click.stop="editBasicInfo('basic-infos')"
+        :class="'btn-third btn btn-secondary btn-fab animated ' + (buttonState ? 'fadeInUp faster' : 'fadeOutDown')"
+      >
+        <v-icon>edit</v-icon>
+      </v-btn>
+      <span>Editar Informações Básicas</span>
+    </v-tooltip>
+    <v-dialog v-model="modal" max-width="600px" id="modal-basic">
+      <v-card>
+        <div class="col-12 in-specialborder">
+          <div class="row">
+            <div class="col-12 animated fadeIn" v-if="!executingRoutines">
+
+              <div class="row text-center">
+                <div class="col-12 py-4 red darken-3">
+                  <h2>Informações Básicas</h2>
+                </div>
+                <div class="col-12 p-4">
+                  <form @submit.prevent="saveInfos">
+
+                    <div class="form-group" v-if="form.website">
+                      <v-text-field
+                        v-model="form.website.url"
+                        placeholder="Ex: https://.websiteoficial.com.br/"
+                        clearable
+                        label="Website Oficial"
+                        type="text"
+                        color="white"
+                        @input="getIcon"
+                      >
+                        <v-avatar size="35" slot="prepend" v-if="form.website.icon">
+                          <v-img :src="form.website.icon" @error="setDefaultImage" alt=""></v-img>
+                        </v-avatar>
+                        <v-avatar class="in-modal-avatar-align" size="35" slot="prepend" v-if="!form.website.icon">
+                          <span style="width: 35px; height: auto;" v-html="icons.website" ></span>
+                        </v-avatar>
+                      </v-text-field>
+                    </div>
+
+                    <div class="form-group">
+                      <v-text-field
+                        v-model="form.facebook.url"
+                        placeholder="Ex: https://www.facebook.com/Oficial/"
+                        clearable
+                        label="Facebook Oficial"
+                        type="text"
+                        color="#3A5998"
+                      >
+                        <v-avatar class="in-modal-avatar-align" size="35" slot="prepend">
+                          <span style="width: 35px; height: auto;" v-html="icons.facebook" ></span>
+                        </v-avatar>
+                        
+                      </v-text-field>
+                    </div>
+
+                    <div class="form-group">
+                      <v-text-field
+                        v-model="form.youtube.url"
+                        placeholder="Ex: https://www.youtube.com/user/Oficial/"
+                        clearable
+                        label="Canal Oficial do Youtube"
+                        type="text"
+                        color="#ef001c"
+                      >
+                        <v-avatar class="in-modal-avatar-align" size="35" slot="prepend">
+                          <span style="width: 35px; height: auto;" v-html="icons.youtube" ></span>
+                        </v-avatar>
+                        
+                      </v-text-field>
+                    </div>
+
+                    <div class="form-group">
+                      <v-text-field
+                        v-model="form.twitter.url"
+                        placeholder="Ex: https://twitter.com/Oficial/"
+                        clearable
+                        label="Twitter Oficial"
+                        type="text"
+                        color="#55ABED"
+                      >
+                        <v-avatar class="in-modal-avatar-align" size="35" slot="prepend">
+                          <span style="width: 35px; height: auto;" v-html="icons.twitter" ></span>
+                        </v-avatar>
+                        
+                      </v-text-field>
+                    </div>
+
+                    <div class="form-group">
+                      <v-text-field
+                        v-model="form.instagram.url"
+                        placeholder="Ex: https://www.instagram.com/Oficial/"
+                        clearable
+                        label="Instagram Oficial"
+                        type="text"
+                        color="#FF994E"
+                      >
+                        <v-avatar class="in-modal-avatar-align" size="35" slot="prepend">
+                          <span style="width: 35px; height: 35px;" v-html="icons.instagram" ></span>
+                        </v-avatar>
+                        
+                      </v-text-field>
+                    </div>
+
+                    <div class="form-group">
+                      <v-text-field
+                        v-model="form.spotify.url"
+                        placeholder="Ex: https://open.spotify.com/album/Oficial"
+                        clearable
+                        label="Album Oficial do Spotify"
+                        type="text"
+                        color="#02D85F"
+                      >
+                        <v-avatar class="in-modal-avatar-align" size="35" slot="prepend">
+                          <span style="width: 35px; height: auto;" v-html="icons.spotify" ></span>
+                        </v-avatar>
+                        
+                      </v-text-field>
+                    </div>
+                    
+                    <div class="col-12">
+                      <div class="row justify-end">
+                        <v-btn small title="Fechar" @click.stop="modal = !modal" fab color="red darken-1">
+                          <v-icon dark> clear </v-icon>
+                        </v-btn>
+                        <v-btn 
+                          type="submit"
+                          title="Salvar" 
+                          fab :disabled="isAllVoid()"
+                          small
+                          color="green darken-1"
+                        >
+                          <v-icon dark> save </v-icon>
+                        </v-btn>
+                      </div>
+                    </div>
+
+                  </form>
+                </div>
+              </div>
+            </div>
+            <div class="col-12 border-radius" v-else>
+              <in-basic-infos-routines
+                :basic-infos="excludeModile(form)"
+                @back-to-link="executingRoutines = false"
+                @close-modal="modal = false"
+              />
+            </div>
+          </div>
+        </div>
+      </v-card>
+    </v-dialog>
+  </div>
+</template>
+
+<script>
+  Vue.component('in-basic-infos', {
+    template: '#in-basic-infos',
+    computed: {
+      ...mapGetters('page', [
+        'page',
+        'buttonState',
+        'editingType'
+      ]),
+      ...mapGetters('app', [
+        'icons'
+      ])
+    },
+    watch: {
+      editingType: function (val) {
+        if (val === 'basic-infos') {
+          this.modal = true
+        }
+      },
+      modal: function (val) {
+        if (!val) {
+          this.setEditingType('')
+          this.setAdding(false)
+        }
+      }
+    },
+    data () {
+      return {
+        title: 'Editar Informações Básicas',
+        modal: false,
+        form: {
+          website: { title: '', url: '', icon: '' },
+          facebook: { url: '' },
+          youtube: { url: '' },
+          instagram: { url: '' },
+          twitter: { url: '' },
+          spotify: { url: '' },
+        },
+        executingRoutines: false,
+        errors: [],
+        typeError: '',
+        messageError: '',
+        text: {
+          website: 'Website',
+          facebook: 'Facebook',
+          youtube: 'Youtube',
+          instagram: 'Instagram',
+          twitter: 'Twitter',
+          spotify: 'Spotify'
+        }
+      }
+    },
+    beforeMount () {
+      this.form.website.title = this.page.title
+      if (this.page.website) this.form.website = this.page.website
+      if (this.page.facebook) this.form.facebook = this.page.facebook
+      if (this.page.youtube) this.form.youtube = this.page.youtube
+      if (this.page.instagram) this.form.instagram = this.page.instagram
+      if (this.page.twitter) this.form.twitter = this.page.twitter
+      if (this.page.spotify) this.form.spotify = this.page.spotify
+    },
+    methods: {
+      ...mapActions('page', [
+        'setPage',
+        'setEditingType',
+        'setAdding'
+      ]),
+      ...mapActions('app', [
+        'showDialog'
+      ]),
+
+      editBasicInfo (type) {
+        this.editType(type),
+        this.modal = true
+      },
+
+      editType (type) {
+        this.setEditingType(type)
+        this.setAdding(true)
+      },
+
+      saveInfos () {
+        const vm = this
+        let fail = false
+        var { page } = vm 
+        Object.entries(vm.form).map(([key, value]) => {
+          if (value.url) {
+            if (!vm.isValidLink(value.url)) {
+              fail = true
+              vm.showDialog({
+                message: `Link do ${vm.text[key]} inválido`,
+                color: 'warning',
+                icon: 'info'
+              })
+            }
+          }else{
+            value.icon = ""
+            this.form[key] = value 
+          }
+        })
+        if (!fail) {
+          vm.setPage(page)
+          vm.executingRoutines = true
+        }
+      },
+
+      setDefaultImage () {
+        this.form.website.icon = '/assets/img/avatardefault.jpeg'
+        console.clear()
+      },
+
+      hasError (type) {
+        return this.errors.some(e => e.type === type)
+      },
+
+      isAllVoid () {
+        return Object.entries(this.form).every(entrie => {
+          const [key, value] = entrie
+          return value.url === ''
+        })
+      },
+
+      getIcon (url) {
+        const vm = this
+        if (url.includes('http') || url.includes('www')) {
+          vm.$http.post('/api/website-icon', { url: url })
+            .then(res => {
+              vm.form.website.icon = res.data.icon
+            })
+        }
+      },
+
+      isValidLink (link) {
+        return link.includes('http://') || link.includes('https://') || link.includes('www.')
+      },
+
+      excludeModile: function (value) {
+        Object.entries(value).map(([key, val]) => {
+          if (val.url) if (val.url.includes('//m.')) value[key].url = val.url.replace('//m.', '//')
+          if (val.url) if (val.url.includes('//mobile.')) value[key].url = val.url.replace('//mobile.', '//')
+        })
+        return value
+      }
+    }
+  })
+</script>
+
+<style>
+  .in-basic-infos-modal {
+    background-color: #333;
+  }
+  .in-basic-infos-form-icons svg {
+    width: 28px;
+    height: 28px;
+    margin-right: 8px;
+  }
+  ::-webkit-input-placeholder { /* Chrome/Opera/Safari */
+    font-size: 12px;;
+  }
+  ::-moz-placeholder { /* Firefox 19+ */
+    font-size: 12px;;
+  }
+  :-ms-input-placeholder { /* IE 10+ */
+    font-size: 12px;;
+  }
+  :-moz-placeholder { /* Firefox 18- */
+    font-size: 12px;;
+  }
+
+  .v-card.theme--dark{
+    border-radius: 5px;
+  }
+
+  .border-radius{
+    border-radius: 5px;
+  }
+
+  .in-modal-avatar-align{
+    margin-top: -3px;
+  }
+  .v-input__prepend-outer{
+    margin-top: -3px;
+  }
+
+</style>

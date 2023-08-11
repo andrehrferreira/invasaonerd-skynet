@@ -1,0 +1,105 @@
+<template id="in-template-channels">
+  <section class=" animated fadeIn" ref="channels">
+    <div class="row justify-end mt-3">
+      <div class="in-edit-block-position text-left justify-end" v-if="editMode">
+        <v-btn fab color="" class=" move mr-1" title="<%= __('Mover') %>" v-if="1 === 2">
+          <v-icon color="primary">zoom_out_map</v-icon>
+        </v-btn>
+
+        <v-tooltip :open-delay="50" :close-delay="50" bottom>
+          <v-btn
+            slot="activator" v-if="checkYoutube(page.youtube)"
+            class="mr-1 animated zoomIn faster" fab small
+            @click.stop="editType('channels')"
+          >
+            <v-icon color="green">edit</v-icon>
+          </v-btn>
+          <span>Editar Relacionados</span>
+        </v-tooltip>
+
+        <v-tooltip :open-delay="50" :close-delay="50" bottom>
+          <v-btn slot="activator" fab small class="animated zoomIn faster" @click.stop="removeType('channels')">
+            <v-icon color="#ef001c">delete</v-icon>
+          </v-btn>
+          <span>Deletar Relacionados</span>
+        </v-tooltip>
+      </div>
+    </div>
+    <h3><%= __('Canais Relacionados') %></h3>
+    <div class="in-editor-section in-channels-preview" id="channels">
+      <swiper :options="swiperOption">
+        <swiper-slide v-for="(channel, index) in page.channels" :key="index" class="in-channels-preview-item">
+          <a :href="channel.link" target="_blank" :title="channel.title" style="width:120px; word-wrap:break-word;">
+            <img :src="channel.thumbnails.medium.url"
+              class="in-editor-channel-thumb img-fluid"
+            />
+            <div class="in-editor-channel-title text-center">
+              {{channel.title}}
+            </div>
+          </a>
+        </swiper-slide>
+
+        <!-- Optional controls -->
+        <div class="swiper-button-prev" slot="button-prev"></div>
+        <div class="swiper-button-next" slot="button-next"></div>
+        <div class="swiper-scrollbar"   slot="scrollbar"></div>
+        <div class="swiper-pagination" slot="pagination"></div>
+      </swiper>
+    </div>
+    <div class="andre-margin-in-page"></div>
+  </section>
+</template>
+
+<script>
+  Vue.component("in-template-channels", {
+    template: "#in-template-channels",
+    data () {
+      return {
+        swiperOption: {
+          slidesPerView: "auto",
+          spaceBetween: 20,
+          loop: false,
+          pagination: {
+            el: '.swiper-pagination',
+            clickable: true
+          },
+          navigation: {
+            nextEl: '.swiper-button-next',
+            prevEl: '.swiper-button-prev'
+          }
+        }
+      }
+    },
+    computed: {
+      ...mapGetters('page', [
+        'page',
+        'editMode'
+      ])
+    },
+    methods: {
+      ...mapActions('page', [
+        'toggleModal',
+        'setAdding',
+        'setEditingType',
+        'removeType'
+      ]),
+      ...mapActions('app', [
+        'scrollPageTo',
+      ]),
+
+      checkYoutube(youtube) {
+        if (youtube) if (youtube.config) return false
+        else return true
+      },
+
+      editType (type) {
+        this.setEditingType(type)
+        this.toggleModal(false)
+        this.setAdding(true)
+        setTimeout(() => {
+          this.scrollPageTo(type)
+        }, 20)
+      }
+    }
+  })
+</script>

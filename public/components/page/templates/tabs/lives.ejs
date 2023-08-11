@@ -1,0 +1,109 @@
+<template id="in-template-lives-tab">
+	<section class=" animated fadeIn" ref="lives">
+		<v-layout row wrap class="py-3">
+			<v-flex xs12>
+				<p class="pl-2 in-videos-tab-h3 mb-0">Lives</p>
+			</v-flex>
+			<v-flex xs12 id="lives">
+				<div v-if="toPlay._id" :id="'id-' + toPlay.channel.name">
+					<div class="row pr-4" v-if="toPlay._id">
+						<button title="Fechar Live" class="btn btn-danger col-1 offset-11 mb-3" @click.stop="toPlay = {}">
+							<i class="fa fa-times"></i>
+						</button>
+					</div>
+					<div class="row">
+						<div v-if="toPlay._id" class="col-12 embed-responsive embed-responsive-16by9">
+							<div :id="toPlay.channel.name"></div>
+						</div>
+					</div>
+				</div>
+				<v-layout row wrap justify-space-around v-if="hasLives">
+					<v-flex v-for="(live, index) in list" class="pa-1" :key="index" xs12 md4 lg3 xl2>
+						<div class="text-left" @click.stop="play(live)" :title="live.channel.display_name">
+							<img class="in-videos-preview-item-thumb" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen :src="live.preview.medium" />
+							<div class="in-videos-preview-item-title">
+								<p>{{ live.channel.display_name }}</p>
+							</div>
+							<div class="in-videos-preview-item-author mb-5">
+								Publicação: {{ new Date(live.created_at).toLocaleString() }}
+							</div>
+						</div>
+					</v-flex>
+				</v-layout>
+				<v-layout v-else>
+					<p class="mb-0 body-1">Não há lives online no momento</p>
+				</v-layout>
+			</v-flex>
+		</v-layout>
+	</section>
+</template>
+
+<script>
+	Vue.component("in-template-lives-tab", {
+		template: "#in-template-lives-tab",
+		computed: {
+			...mapGetters('page', [
+				'page',
+				'editMode',
+				'swiperOption'
+			])
+		},
+		data() {
+			return {
+				toPlay: {},
+				list: [],
+				hasLives: true
+			}
+		},
+		mounted: async function () {
+			const vm = await this
+			const { data } = await vm.$http.get('/api/lives/' + encodeURIComponent(vm.page.lives))
+			vm.list = await data.streams.filter(stream => {
+				return stream.game.toLowerCase().includes(vm.page.lives.toLowerCase())
+			})
+			if (!vm.list.length) {
+				vm.hasLives = await false
+			}
+		},
+		methods: {
+			...mapActions('page', [
+				'toggleModal',
+				'setAdding',
+				'setEditingType',
+				'removeType'
+			]),
+			...mapActions('app', [
+				'scrollPageTo'
+			]),
+
+			play(live) {
+				this.toPlay = {}
+				setTimeout(() => {
+					this.toPlay = live
+				}, 25)
+				setTimeout(() => {
+					const options = {
+						width: 854,
+						height: 480,
+						channel: live.channel.name,
+					}
+					var player = new Twitch.Player(live.channel.name, options)
+					player.setVolume(0.5)
+				}, 50)
+				setTimeout(() => {
+					this.scrollPageTo('id-' + live.channel.name)
+				}, 75)
+			},
+
+			editType(type) {
+				this.setEditingType(type)
+				this.toggleModal(false)
+				this.setAdding(true)
+				setTimeout(() => {
+					this.scrollPageTo(type)
+				}, 20)
+			}
+		}
+	})
+
+</script>

@@ -1,0 +1,96 @@
+<template id="in-editor-type-spotify">
+  <div id="spotify">
+    <div v-if="spotify">
+      <div class="d-flex justify-content-center">
+        <iframe
+          :src="'https://open.spotify.com/embed/' + getId()"
+          width="250" height="380"
+          frameborder="0"
+          allowtransparency="true"
+          allow="encrypted-media">
+        </iframe>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-10 offset-1">
+        <div class="row">
+          <h5 class="col-12"><%= __('Cole o link da música ou album do spotify aqui') %></h5>
+        </div>
+        <div class="row">
+          <input
+            class="col-12" type="text"
+            v-model="spotify" style="width: 100%;"
+            placeholder="Ex: https://open.spotify.com/track/2mk0mVFhMRe1ad3paqZJrJ" />
+        </div>
+      </div>
+    </div>
+    <div class="btn-group-sm">
+      <v-tooltip :open-delay="50" :close-delay="50" left>
+        <v-btn slot="activator" dark small fab flat fixed @click.stop="save(spotify)" class="btn-second btn btn-info btn-fab animated fadeInUp faster" v-if="buttonState">
+          <v-icon>save</v-icon>
+        </v-btn>
+        <span>Salvar Spotify</span>
+      </v-tooltip>
+    </div>
+  </div>
+</template>
+
+<script>
+  Vue.component("in-editor-type-spotify", {
+    template: "#in-editor-type-spotify",
+    computed: {
+      ...mapGetters('page', [
+        'page',
+        'buttonState',
+        'editingType'
+      ]),
+      ...mapGetters('app', [
+        'windowWidth'
+      ])
+    },
+    data () {
+      return {
+        title: 'Spotify',
+        spotify: ''
+      }
+    },
+    mounted () {
+      this.spotify = this.page.spotify ? this.page.spotify : ''
+    },
+    methods: {
+      ...mapActions('page', [
+        'setPage',
+        'setAdding',
+        'setSnackbar',
+        'setEditingType'
+      ]),
+      ...mapActions('app', [
+        'showDialog'
+      ]),
+
+      getId () {
+        var parts = this.spotify.url.split('/')
+        return [
+          parts[parts.length - 2],
+          parts[parts.length - 1]
+        ].join('/')
+      },
+
+      save (spotify) {
+        const { page } = this
+        page.spotify = spotify
+        page.changes.push({
+          type: this.editingType
+        })
+        this.setPage(page)
+        this.setAdding(false)
+        this.setEditingType('')
+        this.showDialog({
+          message: `Edições de ${this.title} gravadas para envio`,
+          color: 'success',
+          icon: 'check-circle'
+        })
+      }
+    }
+  })
+</script>

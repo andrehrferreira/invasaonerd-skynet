@@ -1,0 +1,659 @@
+<%- include('./report-comment.ejs')%>
+<%- include('./replies.ejs')%>
+<template id="in-comments-likes">
+	<v-layout row wrap>
+		<v-flex xs12>
+			<v-layout row>
+				<v-flex xs4>
+					<v-layout row justify-center>
+						<v-btn
+							block outline small class="ma-0 in-no-border"
+							:loading="loading === 'react'" @click.stop="react(feed, user._id)"
+						>
+							<p class="mb-0 caption hidden-xs-only text-truncate">Curtir</p>
+							<v-icon class="mx-2" :color="setColor(feed, user._id)" small class="{}">thumb_up_alt</v-icon>
+							<span v-if="feed.likes" class="caption mb-0 grey--text">{{ feed.likes.length ? $formatNumber(feed.likes.length) : '' }}</span>
+						</v-btn>
+					</v-layout>
+				</v-flex>
+				<v-flex xs4>
+					<v-layout row justify-center>
+						<v-btn
+							block outline small class="ma-0 in-no-border" @click.stop="toggleComment(!commenting)"
+							:disabled="loading === 'comment'"
+						>
+							<p class="mb-0 caption hidden-xs-only">Comentar</p>
+							<v-icon class="mx-2" small>chat_bubble_outline</v-icon>
+							<span v-if="feed.commentsCount" class="caption mb-0 grey--text">{{ $formatNumber(feed.commentsCount) }}</span>
+						</v-btn>
+					</v-layout>
+				</v-flex>
+				<v-flex xs4>
+					<v-layout row justify-center>
+						<v-menu bottom left offset-x full-width style="width: 100%">
+							<v-btn block outline slot="activator" small class="ma-0 in-no-border" :loading="loading === 'sharing'">
+								<p class="mb-0 caption hidden-xs-only text-truncate">Compartilhar</p>
+								<v-icon small class="mx-2">share</v-icon>
+								<span v-if="feed.shares" class="caption mb-0 grey--text">{{ $formatNumber(feed.shares) }}</span>
+							</v-btn>
+							<v-list>
+								<template v-for="(linkShare, index) in linksShare">
+									<v-list-tile avatar :key="linkShare.type" :href="linkShare.link(feed._id)" target="_blank" class="in-small-list" @click="countShare(linkShare.icon, feed)">
+										<v-list-tile-avatar>
+											<span style="width: 25px; height: 25px;" v-html="icons[linkShare.icon]"></span>
+										</v-list-tile-avatar>
+										<v-list-tile-content>
+											<v-list-tile-title>{{ linkShare.type }}</v-list-tile-title>
+										</v-list-tile-content>
+									</v-list-tile>
+								</template>
+							</v-list>
+						</v-menu>
+					</v-layout>
+				</v-flex>
+			</v-layout>
+		</v-flex>
+
+		<v-flex xs12 class="pt-2" v-if="feed._id === opened" style="max-height: 60vh; overflow: auto;">
+			<v-divider class="pb-2"></v-divider>
+			<transition-group name="list" tag="div">
+				<v-card flat v-for="(cmt, index) in comments" :key="cmt._id">
+					<v-layout row justify-center class="px-2 py-1" fill-height>
+						<v-flex class="mr-2">
+							<img :src="`/image/${cmt.user.id}/useravatar.jpg`" height="32px" contain>
+						</v-flex>
+						<v-flex xs11>
+							<v-layout row wrap>
+								<v-flex xs12>
+									<v-layout row justify-space-between>
+										<v-flex>
+											<a href="javascript:void(0)" class="text-truncate">
+												<b class="white--text">{{ cmt.user.name }}</b>
+											</a>
+											<span class="mb-0 grey--text caption text-truncate">
+												{{ cmt.edited ? 'Editado - ' : '' }}{{ new Date(cmt.edited ? cmt.editedtimestamp : cmt.timestamp).toLocaleString() }}
+											</span>
+										</v-flex>
+										<v-menu transition="slide-x-transition" offset-x left>
+											<v-btn slot="activator" icon dark small class="ma-0">
+												<v-icon small>more_horiz</v-icon>
+											</v-btn>
+											<v-list>
+												<template v-for="({ condition, text, action, icon }, index) in commentOptions" v-if="condition(cmt)">
+													<v-list-tile :key="index" @click="action(cmt)" class="in-small-list">
+														<v-list-tile-title>
+															<p class="mb-0 caption"><v-icon small class="mr-2">{{ icon }}</v-icon>{{ text }}</p>
+														</v-list-tile-title>
+													</v-list-tile>
+												</template>
+											</v-list>
+										</v-menu>
+									</v-layout>
+								</v-flex>
+								<v-flex xs12>
+									<p class="mb-0 caption" v-html="$urlify(cmt.text)"></p>
+									<in-comment-replies
+										v-if="cmt.replies" :comment="cmt" :feed="feed"
+										@set-comment="setComment($event)"
+										@reply-comment="replyComment($event, cmt)"
+									/>
+								</v-flex>
+							</v-layout>
+						</v-flex>
+					</v-layout>
+					<v-divider></v-divider>
+				</v-card>
+			</transition-group>
+		</v-flex>
+
+		<v-flex xs12 v-if="loading === 'firstrequest'">
+			<in-loading />
+		</v-flex>
+
+		<v-flex xs12 v-if="commenting" class="animated fadeIn faster">
+			<v-layout row wrap class="mt-2">
+				<v-flex xs12 id="feed-comment">
+					<v-form>
+						<v-textarea
+							v-model="comment" class="pl-2" :single-line="replying.text === ''"
+							dark :ref="feed._id" auto-grow rows="1" placeholder="Comentar" type="text"
+							:loading="loading === 'comment'" box :id="feed._id" validate-on-blur
+							:rules="[(v) => v.length <= 500 || 'Maximo de 500 caracteres']"
+							:counter="500" :label="replying.text" @focus="checkUser"
+							@keyup.enter="ctrlEnter"
+						>
+							<v-avatar v-if="user._id" class="hidden-xs-only" slot="prepend" :size="32">
+								<img :src="`/image/${user._id}/useravatar.jpg`" @error="setDefaultImage" alt="">
+							</v-avatar>
+							<v-layout column slot="append">
+								<v-flex v-if="mdAndUp">
+									<v-menu
+										v-model="menu"
+										:close-on-content-click="false"
+										:nudge-width="$vuetify.breakpoint.xs ? 0 : 200"
+										:offset-x="!$vuetify.breakpoint.xs"
+										transition="slide-x-transition" :left="$vuetify.breakpoint.xs"
+									>
+										<v-btn class="mr-0 my-0" slot="activator" icon dark :loading="loading === 'emoji'" title="Inserir Emoji">
+											<v-icon>{{ menu ? 'close' : 'sentiment_very_satisfied' }}</v-icon>
+										</v-btn>
+					
+										<v-card v-if="menu" :width="$vuetify.breakpoint.xs ? '100%' : ''">
+											<keep-alive>
+												<picker set="messenger" @select="pushEmoj" :i18n="i18n" title="Alterar tom de pele" emoji="point_right"/>
+											</keep-alive>
+										</v-card>
+									</v-menu>
+								</v-flex>
+								<!-- FUTURE FEATURE -->
+								<!-- <v-flex> 
+									<v-btn icon class="my-0">
+										<v-icon>gif</v-icon>
+									</v-btn>
+								</v-flex>  -->
+							</v-layout>
+						</v-textarea>
+					</v-form>
+				</v-flex>
+				<v-flex xs12>
+					<v-layout row justify-space-between>
+						<v-btn :disabled="loading === 'comment'" flat small class="ma-0" @click.stop="toggleComment(!commenting)">
+							CANCELAR {{ replying.reply._id ? 'RESPOSTA' : (editing ? 'EDIÇÃO' : 'COMENTÁRIO') }}
+						</v-btn>
+						<v-tooltip :open-delay="50" :close-delay="50" left>
+							<v-btn
+								slot="activator" dark color="success" icon
+								:disabled="comment.trim() === '' || comment.trim().length > 500 || (editing ? editing.text === comment : false)" small
+								class="mt-0" :loading="loading === 'comment'"
+								@click.stop="cudComment(feed, comment, (editing ? 0 : 1), editing, replying.reply)"
+							>
+								<v-icon small>send</v-icon>
+							</v-btn>
+							<span>{{ editing ? 'Editar' : 'Enviar' }} Comentário</span>
+						</v-tooltip>
+					</v-layout>
+				</v-flex>
+			</v-layout>
+		</v-flex>
+		<v-flex xs12 v-else class="pa-1"></v-flex>
+		<v-dialog v-model="reporting.modal" max-width="500">
+			<in-report-comment v-if="reporting.modal" :comment="reporting.comment" @close-modal="(val) => reporting = { modal: val, comment: false }"/>
+		</v-dialog>
+	</v-layout>
+</template>
+
+<script>
+	Vue.component('in-comments-likes', {
+		template: '#in-comments-likes',
+		props: ['feed', 'opened'],
+		watch: {
+			comment: (val) => {
+				if (val) window.onbeforeunload = () => true
+				else window.onbeforeunload = () => {}
+			},
+			opened (val) {
+				const vue = this
+				if (vue.feed._id === val) {
+					vue.socketConnection = vue.$socket.on(`feed-comment-${vue.feed._id}`, async ({ response, quant, comment, body, reply }) => {
+						if (reply) {
+							vue.$emit('set-feed', { feed: vue.dealResponse(response, vue.feed, quant, comment, body, reply) })
+						} else if (comment.user.id !== vue.user._id) {
+							vue.$emit('set-feed', { feed: vue.dealResponse(response, vue.feed, quant, comment, body) })
+						}
+					})
+				} else if (vue.socketConnection.close) {
+					vue.socketConnection.close()
+					vue.toggleComment(false)
+				}
+			}
+		},
+		computed: {
+			...mapGetters('app', ['user', 'icons']),
+
+			mdAndUp () {
+				return this.$vuetify.breakpoint.mdAndUp
+			},
+
+			setComment (_id, comment, action) {
+				if (action === 'edit') {
+					this.comments = this.comments.map(cmt => {
+						if (cmt._id === _id) return comment
+						return cmt
+					})
+				} else if (action === 'delete') {
+					this.comments = this.comments.filter(cmt => {
+						return cmt_id !== _id
+					})
+				} else if (action === 'report') {
+					this.reportComment(comment)
+				}
+			},
+
+			commentOptions () {
+				const vue = this
+				return [{
+					condition: ({ user }) => {
+						return user.id !== vue.user._id
+					},
+					text: 'Responder',
+					icon: 'reply',
+					action: vue.replyComment
+				}, {
+					condition: ({ user }) => {
+						return user.id === vue.user._id
+					},
+					text: 'Editar',
+					icon: 'edit',
+					action: vue.editComment
+				}, {
+					condition: ({ user }) => {
+						return user.id === vue.user._id || vue.user.superadmin
+					},
+					text: 'Deletar',
+					icon: 'delete',
+					action: vue.deleteComment
+				}, {
+					condition: ({ user }) => user.id !== vue.user._id,
+					text: 'Denunciar',
+					icon: 'report',
+					action: vue.reportComment
+				}]
+			}
+		},
+		data () {
+			return {
+				comment: '',
+				commenting: false,
+				comments: [],
+				loading: '',
+				menu: false,
+				reporting: {
+					modal: false,
+					comment: false,
+				},
+				editing: false,
+				replying: { text: '', reply: {} },
+				i18n: {
+					search: 'Buscar',
+					notfound: 'Nenhum emoj encontrado',
+					categories: {
+						search: 'Resultados da busca',
+						recent: 'Recentemente usados',
+						people: 'Pessoas e Carinhas',
+						nature: 'Animais e Natureza',
+						foods: 'Comida e Bebida',
+						activity: 'Atividades',
+						places: 'Viagem e Lugares',
+						objects: 'Objetos',
+						symbols: 'Símbolos',
+						flags: 'Bandeiras',
+						custom: 'Personalizados',
+					}
+				},
+				firstCharge: true,
+				linksShare: [{
+					type: 'Facebook',
+					icon: 'facebook',
+					link: (postId) => `https://www.facebook.com/sharer/sharer.php?u=<%= settings.url %>/post/${postId}`
+				}, {
+					type: 'WhatsApp',
+					icon: 'whatsapp',
+					link: (postId) => `https://web.whatsapp.com/send?text=<%= settings.url %>/post/${postId}`
+				}, {
+					type: 'Twitter',
+					icon: 'twitter',
+					link: (postId) => `https://twitter.com/home?status=<%= settings.url %>/post/${postId}`
+				}, {
+					type: 'Messenger',
+					icon: 'messenger',
+					link: (postId) => `https://www.facebook.com/dialog/send?link=<%= settings.url %>/post/${postId}&app_id=288306328656111&redirect_uri=${encodeURI(location.href)}`
+				}, {
+					type: 'Telegram',
+					icon: 'telegram',
+					link: (postId) => `https://t.me/share/url?url=<%= settings.url %>/post/${postId}`
+				}],
+				socketConnection: {}
+			}
+		},
+		methods: {
+			...mapActions('app', ['showDialog', 'scrollPageTo', 'setUserMenu']),
+
+			ctrlEnter (e) {
+				if (e.ctrlKey) {
+					this.cudComment(this.feed, this.comment, (this.editing ? 0 : 1), this.editing, this.replying.reply)
+				}
+			},
+
+			async countShare (type, feed) {
+				this.loading = 'sharing'
+				try {
+					await this.$http.post('/feeds/share', { feedId: feed._id, type })
+					feed = this.$clearReactive(feed)
+					if (feed.shares !== undefined) feed.shares += 1
+					else feed.shares = 1
+					this.$emit('set-feed', { feed })
+				} catch (err) {
+					console.log(err)
+				}
+				this.loading = ''
+			},
+
+			checkUser () {
+				if (!this.user._id && !this.firstCharge) this.setUserMenu(true)
+				else this.firstCharge = !this.firstCharge
+			},
+
+			editComment (comment) {
+				this.editing = comment
+				this.comment = comment.text
+				if (this.replying.text) this.replying = { text: '', reply: {} }
+				this.toggleComment(true)
+			},
+
+			replyComment (reply, comment) {
+				const vue = this
+				vue.comment = ''
+				vue.replying = {
+					reply: { isReply: true, reply: comment ? comment : reply },
+					text: `Em resposta a ${reply.user.name} (${reply.text})`
+				}
+				vue.$refs[vue.feed._id].$el.querySelector('textarea').focus()
+				if (vue.editing) vue.editing = false
+				this.toggleComment(true)
+			},
+
+			deleteComment (comment) {
+				if (confirm('Deseja mesmo deletar este comentário ?')) {
+					this.cudComment(this.feed, false, -1, comment, {})
+				}
+			},
+
+			reportComment (comment) {
+				this.reporting = {
+					modal: true,
+					comment: comment
+				}
+			},
+
+			toggleComment (val) {
+				const vue = this
+
+				vue.commenting = val
+
+				if (val) {
+					vue.$emit('set-opened', vue.feed._id)
+				}
+
+				if (vue.commenting) {
+					vue.$nextTick(() => {
+						vue.scrollPageTo({ el: vue.feed._id, offset: 500 })
+					})
+				} else {
+					vue.comment = ''
+					if (vue.editing) vue.editing = false
+					if (vue.replying.text) vue.replying = { text: '', reply: {} }
+				}
+				
+				if (!vue.comments.length && vue.feed.commentsCount) {
+					vue.requestComments(vue.feed._id, 10, 0, 'all')
+				}
+
+			},
+
+			async requestComments (feedId, limit, skip, order) {
+				const vue = this
+				vue.loading = 'firstrequest'
+				try {
+
+					const { data } = await vue.$http.post('/feeds/getcomment', { feedId, limit, skip, order })
+
+					if (data.status) {
+						vue.comments = data.comments
+					}
+
+				} catch (err) {
+					console.log(err)
+					vue.showDialog({
+						message: 'Falha na comunicação com o servidor',
+						color: 'red',
+						icon: 'warning'
+					})
+				}
+				vue.loading = ''
+			},
+
+			pushEmoj ({native}) {
+				this.comment += native
+			},
+
+			setColor(feed, userId) {
+				if (feed.likes) {
+					if (feed.likes.some(like => like === userId)) return 'primary'
+				}
+				return 'white'
+			},
+
+			setDefaultImage(event) {
+				event.target.src = '/assets/img/avatardefault.jpeg'
+			},
+
+			react (feed, userId) {
+				if (userId) {
+					if (feed.likes) {
+						if (feed.likes.some(like => like === userId)) {
+							return this.sendReact(feed, false, this)
+						}
+					}
+					this.sendReact(feed, true, this, feed.likes === undefined)
+				} else {
+					this.setUserMenu(true)
+				}
+			},
+
+			async cudComment (feed, text, quant, comment, { isReply, reply }) {
+				const vue = this
+				comment = vue.$clearReactive(comment)
+				vue.loading = 'comment'
+				if (isReply) {
+					return vue.sendReplyComment(feed, text, reply)
+				}
+				try {
+					
+					var body = vue.prepareBody(feed, text, quant, comment)
+			
+					const { data } = await vue.$http.post('/feeds/comment', body)
+
+					if (data.status) {
+
+						vue.$emit('set-feed', { feed: vue.dealResponse(data, feed, quant, comment, body) })
+
+						vue.showDialog({
+							message: `Comentário ${quant === 1 ? 'enviado' : (quant === 0 ? 'editado' : 'deletado')} com sucesso!`,
+							color: 'success',
+							icon: 'info'
+						})
+
+					}
+				} catch (err) {
+					console.log(err)
+					vue.showDialog({
+						message: 'Falha na comunicação com o servidor',
+						color: 'red',
+						icon: 'warning'
+					})
+				}
+				if (vue.editing) vue.editing = false
+				vue.loading = ''
+			},
+
+			async sendReplyComment (feed, text, comment) {
+				const vue = this
+				comment = vue.$clearReactive(comment)
+				const firstTime = !comment.replies
+				const reply = {
+					feedId: feed._id,
+					timestamp: new Date().getTime(),
+					user: {
+						id: vue.user._id,
+						name: vue.user.name
+					},
+					text,
+					likes: []
+				}
+				if (firstTime) {
+					comment.replies = [reply]
+				} else {
+					comment.replies.push(reply)
+				}
+				const { error } = await vue.$asyncRequest({
+					http: vue.$http,
+					method: 'post',
+					router: '/feeds/reply',
+					payload: { feedId: feed._id, replies: comment.replies, _id: comment._id }
+				}, vue.showDialog)
+				if (error) {
+					vue.showDialog({
+						message: error,
+						color: 'orange',
+						icon: 'warning'
+					})
+				}
+				vue.comment = ''
+				vue.loading = ''
+				vue.replying = { text: '', reply: {} }
+			},
+
+			prepareBody (feed, text, quant, comment) {
+				const vue = this
+				var body = { feedId: feed._id, quant }
+				if (quant === 1) {
+					body = { ...body, ...{
+							feedId: feed._id,
+							comment: {
+								feedId: feed._id,
+								user: {
+									id: vue.user._id,
+									name: vue.user.name
+								},
+								text,
+								likes: []
+							}
+						}
+					}
+				} else if (quant === -1) {
+					body.comment = comment
+				} else {
+					comment.text = vue.comment
+					body.comment = comment
+				}
+				return body
+			},
+
+			dealResponse (data, feed, quant, comment, body, reply) {
+				const vue = this
+				const { _id } = vue.user
+				if (reply) {
+					feed.commentsCount++
+					return vue.comments = vue.comments.map(cmt => {
+						if (cmt._id === reply._id) cmt.replies = reply.replies
+						return cmt
+					})
+				}
+				if (quant !== -1) {
+					vue.comment = ''
+					if (quant === 1) {
+						body.comment._id = data._id
+						body.comment.timestamp = data.date
+						if (!feed.commentsCount) feed.commentsCount = 1
+						else feed.commentsCount++
+						vue.comments.push(body.comment)
+					} else {
+						comment.editedtimestamp = data.editedtimestamp
+						comment.edited = data.edited
+						vue.comments = vue.comments.map(cmt => {
+							if (cmt._id === comment._id) return comment
+							return cmt
+						})
+					}
+				} else if (quant === -1) {
+					feed.commentsCount--
+					vue.comments = vue.comments.filter(cmt => cmt._id !== comment._id)
+				}
+				return feed
+			},
+
+			async sendReact (feed, like, vue, firstTime) {
+				vue.loading = 'react'
+				try {
+					const { data } = await vue.$http.post('/feeds/react', { feedId: feed._id, like, firstTime })
+
+					if (data.status) {
+						const { _id } = vue.user
+						if (firstTime) {
+							feed.likes = [_id]
+						} else if (like) {
+							feed.likes.push(_id)
+						} else {
+							feed.likes = feed.likes.filter(like => like !== _id)
+						}
+						vue.$emit('set-feed', { feed })
+					}
+				} catch (err) {
+					console.log(err)
+					vue.showDialog({
+						message: 'Falha na comunicação com o servidor',
+						color: 'red',
+						icon: 'warning'
+					})
+				}
+				vue.loading = ''
+			}
+		}
+	})
+</script>
+
+<style>
+	div.emoji-mart-category-label > span {
+		background-color: #414141 !important;
+		border-radius: 20px;
+	}
+	
+	.emoji-mart {
+		color: white !important;
+		background-color: #515151 !important;
+	}
+
+	span.emoji-mart-emoji > span {
+		cursor: pointer !important;
+	}
+
+	.emoji-mart-anchor:hover {
+		color: white !important;
+		cursor: pointer !important;
+	}
+
+	.emoji-mart-anchor.emoji-mart-anchor-selected {
+		color: #67ff6d !important;
+	}
+
+	.emoji-mart-anchor-bar {
+		background-color: #67ff6d !important;
+	}
+	.list-item {
+		display: inline-block;
+		margin-right: 10px;
+	}
+	.list-enter-active, .list-leave-active {
+		transition: all 1s;
+	}
+	.list-enter, .list-leave-to /* .list-leave-active em versões anteriores a 2.1.8 */ {
+		opacity: 0;
+		transform: translateY(30px);
+	}
+	.in-small-list > .v-list__tile {
+		height: 35px !important;
+	}
+	.in-no-border.v-btn.v-btn--outline {
+		border: none !important;
+	}
+</style>

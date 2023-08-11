@@ -1,0 +1,95 @@
+<template id="in-template-website">
+  <section class="in-page-sections animated fadeIn" ref="website">
+    <h3 v-if="editMode">
+      <a
+        href="javascript: void"
+        class="float-left mr-2"
+        title="<%= __('Mover') %>"
+      >
+        <i class="fas fa-arrows-alt"></i>
+      </a>
+      <a title="<%= __('Editar') %>" @click.stop="editType('website')"
+        ><i class="fas fa-edit"></i>
+      </a>
+      <a
+        class="float-right text-danger"
+        href="javascript: void"
+        title="<%= __('Remover') %>"
+        @click.stop="removeType('website')"
+      >
+        <i class="fas fa-trash"></i>
+      </a>
+    </h3>
+    <div
+      v-if="page.website.url"
+      @click.stop="openWebsite"
+    >
+      <div class="row">
+        <div class="offset-1 col-10">
+          <div class="in-website-button row" @click.stop="openWebsite">
+            <img
+              class="col-4 in-website-button-image animated fadeIn"
+              v-if="page.website.icon"
+              :src="page.website.icon"
+              :title="page.website.title"
+              @error="setDefaultImage"
+              width="45"
+              height="45"
+            >
+            <div
+              class="col-8 align-middle"
+            >
+              <span class="in-website-button-title">
+                Website <br>
+                {{ page.website.title }}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</template>
+
+<script>
+  Vue.component("in-template-website", {
+    template: "#in-template-website",
+    computed: {
+      ...mapGetters('page', [
+        'page',
+        'editMode'
+      ]),
+      ...mapGetters('app', [
+        'windowWidth'
+      ])
+    },
+    methods: {
+      ...mapActions('page', [
+        'toggleModal',
+        'setAdding',
+        'setEditingType',
+        'removeType'
+      ]),
+      ...mapActions('app', [
+        'scrollPageTo',
+      ]),
+
+      setDefaultImage (event) {
+        this.website.icon = ''
+      },
+
+      openWebsite () {
+        window.open(this.page.website.url, '_blank')
+      },
+
+      editType (type) {
+        this.setEditingType(type)
+        this.toggleModal(false)
+        this.setAdding(true)
+        setTimeout(() => {
+          this.scrollPageTo(type)
+        }, 20)
+      }
+    }
+  })
+</script>

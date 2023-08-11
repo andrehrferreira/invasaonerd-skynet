@@ -1,0 +1,159 @@
+<template id="in-template-wiki-summary">
+	<div>
+		<section class=" animated fadeIn">
+
+			<div class="row justify-end">
+				<div class="in-edit-block-position text-left justify-end" v-if="editMode">
+					<v-btn fab color="" class=" move mr-1" title="<%= __('Mover') %>" v-if="1 === 2">
+						<v-icon color="primary">zoom_out_map</v-icon>
+					</v-btn>
+
+					<v-tooltip :open-delay="50" :close-delay="50" bottom>
+						<v-btn
+							slot="activator"
+							class="mr-1 animated zoomIn faster" fab small
+							@click.stop="editType('wiki')"
+						>
+							<v-icon color="green">edit</v-icon>
+						</v-btn>
+						<span>Editar Wiki</span>
+					</v-tooltip>
+	
+					<v-tooltip :open-delay="50" :close-delay="50" bottom>
+						<v-btn slot="activator" fab small class="animated zoomIn faster" @click.stop="removeType('wiki')">
+							<v-icon color="#ef001c">delete</v-icon>
+						</v-btn>
+						<span>Deletar Wiki</span>
+					</v-tooltip>
+
+				</div>
+      </div>
+
+			<h3 class="mt-2">
+				<%= __('Resumo') %>
+			</h3>
+			<div class="in-summary" :style="isResume ? 'max-height: 175px' : ''" id="wiki">
+				<div v-if="isResume" v-html="resume(page.wiki.summary)"></div>
+				<div v-if="isResume" class="in-see-more">
+					<div class="row">
+						<div class="col-4 offset-4 text-center">
+							<v-tooltip :open-delay="50" :close-delay="50" top>
+								<v-btn slot="activator" icon class="in-see-more-text" @click.stop="isResume = !isResume">
+									<v-icon>expand_more</v-icon>
+								</v-btn>
+								<span>Ver Mais</span>
+							</v-tooltip>
+						</div>
+					</div>
+				</div>
+				<div v-if="!isResume" class="in-wiki-text animated fadeIn" v-html="page.wiki.summary"></div>
+				<div v-if="!isResume && !isShort" class="row">
+					<div class="col-4 offset-4 text-center">
+						<v-tooltip :open-delay="50" :close-delay="50" bottom>
+							<v-btn slot="activator" icon class="in-see-less-text" @click.stop="isResume = !isResume">
+								<v-icon>expand_less</v-icon>
+							</v-btn>
+							<span>Ver Menos</span>
+						</v-tooltip>
+					</div>
+				</div>
+			</div>
+			<div class="andre-margin-in-page"></div>
+		</section>
+	</div>
+</template>
+
+<script>
+	Vue.component("in-template-wiki-summary", {
+		template: "#in-template-wiki-summary",
+		computed: {
+			...mapGetters('page', [
+				'page',
+				'editMode',
+				'editingType'
+			]),
+			...mapGetters('app', [
+				'windowWidth'
+			])
+		},
+		data() {
+			return {
+				isResume: true,
+				isShort: false
+			}
+		},
+		mounted() {
+			if (this.$vuetify.breakpoint.width < 500) {
+				if (this.page.wiki.summary.split(' ').length < 100) {
+					this.isShort = true
+					this.isResume = false
+				}
+			} else if (this.page.wiki.summary.split(' ').length < 200) {
+				this.isResume = false
+				this.isShort = true
+			}
+		},
+		methods: {
+			...mapActions('page', [
+				'toggleModal',
+				'setAdding',
+				'setEditingType',
+				'removeType'
+			]),
+			...mapActions('app', [
+				'scrollPageTo',
+			]),
+
+			resume(summary) {
+				return summary.split('').filter((letter, index) => {
+					if (this.$vuetify.breakpoint.width > 1200) return index <= 600
+					if (this.$vuetify.breakpoint.width > 992) return index <= 500
+					if (this.$vuetify.breakpoint.width > 768) return index <= 400
+					if (this.$vuetify.breakpoint.width > 576) return index <= 300
+					return index <= 200
+				}).join('') + '...'
+			},
+
+			editType(type) {
+				this.setEditingType(type)
+				this.toggleModal(false)
+				this.setAdding(true)
+				setTimeout(() => {
+					this.scrollPageTo(type)
+				}, 20)
+			}
+		}
+	})
+
+</script>
+
+<style>
+
+	.in-see-more {
+		height: 150px;
+		position: relative;
+		width: 100%;
+		bottom: 150px;
+		background: -moz-linear-gradient(top, rgba(18, 18, 18, 0.4) 40%, rgba(18, 18, 18, 1) 100%);
+		background: -webkit-linear-gradient(top, rgba(18, 18, 18, 0.4) 40%, rgba(18, 18, 18, 1) 100%);
+		background: linear-gradient(to bottom, rgba(18, 18, 18, 0.4) 40%, rgba(18, 18, 18, 1) 100%);
+		filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#00000000', endColorstr='#a6000000', GradientType=0);
+	}
+
+	.in-see-more-text {
+		position: relative;
+		top: 150px;
+		cursor: pointer;
+	}
+
+	.in-see-more-text:hover,
+	.in-see-less-text:hover {
+		font-weight: 900;
+	}
+
+	.in-see-less-text {
+		cursor: pointer;
+		margin-top: 10px;
+	}
+
+</style>

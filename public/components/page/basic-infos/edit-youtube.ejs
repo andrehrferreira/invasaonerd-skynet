@@ -1,0 +1,282 @@
+<template id="in-basic-infos-edit-youtube">
+	<div class="row">
+		<div class="col-12">
+			<div class="row">
+				<h4 class="col-12 text-center">
+					Configurar Youtube
+				</h4>
+			</div>
+		</div>
+		<div class="col-12 p-0">
+			<v-stepper v-if="configs.length" v-model="e6" vertical>
+
+				<template v-for="(config, index) in configs">
+					<v-stepper-step :complete="e6 > index " :key="index" :step="index + 1" editable>
+						
+						<span v-if="config.key === 'avatar'"> Avatar</span>
+            <small v-if="config.key === 'avatar'">Tornar a foto do {{config.key}} como foto padrão</small>
+            <small v-if="config.key === 'avatar' && page.configs.images.avatar">
+							Atualmente você está usando o avatar do {{ page.configs.images.avatar }}
+						</small>
+
+						<span v-if="config.key === 'cover'"> Capa </span>
+            <small v-if="config.key === 'cover'">Tornar a foto da {{config.key}} como capa padrão</small>
+            <small v-if="config.key === 'cover' && page.configs.images.cover">
+							Atualmente você está usando o avatar do {{ page.configs.images.cover }}
+						</small>
+
+						<span v-if="config.key === 'featuredChannelsUrls'"> Canais Relacionados</span>
+						<small v-if="config.key === 'featuredChannelsUrls'">Quais canais relacionados você quer colocar no invasão</small>
+
+						<span v-if="config.key === 'videos'"> Videos</span>
+						<small v-if="config.key === 'videos'">Quantos videos deseja colocar no invasão</small>
+
+						<span v-if="config.key === 'playlists'"> Playlists</span>
+						<small v-if="config.key === 'playlists'">Quantas playlists deseja trazer para o invasão</small>
+
+					</v-stepper-step>
+					<v-stepper-content :step="index + 1">
+						<v-card color="#303030">
+							<div class="row">
+								<div class="col-12">
+
+									<v-img max-height="250px" contain v-if="config.key === 'avatar' || config.key === 'cover'" :src="config.value"></v-img>
+
+									<div class="row">
+										<div v-if="config.key === 'featuredChannelsUrls'" class="col-3 mb-2 pt-2 in-stepper-cursor" @click.stop="selectAll(config.value)">
+											<div class="row justify-center">
+												<v-avatar color="blue">
+													<v-icon>
+														all_inclusive
+													</v-icon>
+												</v-avatar>
+												<small class="col-12 text-center mt-1">Selecionar Tudo</small>
+											</div>
+										</div>
+										<div class="col-3 mb-2 pt-2 in-stepper-cursor" v-if="config.key === 'featuredChannelsUrls'" :key="index"
+										 v-for="(channel, index) in config.value" @click.stop="pushChannel(channel.channelId)">
+											<div class="row justify-center">
+												<div>
+													<v-badge v-if="configurations.selectedConfigs.some(c => c.type === channel.channelId)" overlap>
+														<v-icon class="animated slideInRight faster" slot="badge" dark small>done</v-icon>
+														<v-avatar class="">
+															<img :src="channel.thumbnails.medium.url" alt="">
+														</v-avatar>
+													</v-badge>
+													<v-avatar v-else class="">
+														<img :src="channel.thumbnails.medium.url" alt="">
+													</v-avatar>
+												</div>
+
+												<small class="col-12 mb-0 mt-1  text-center">{{channel.channelTitle}}</small>
+											</div>
+										</div>
+									</div>
+									<div v-if="config.key === 'videos' || config.key === 'playlists'" class="col-12">
+										<p class="body-2 mb-0">{{configurations.limits[config.key]}} <span v-if="config.key === 'videos'"> videos
+												selecionados</span> <span v-if="config.key === 'playlists'"> playlists selecionados</span></p>
+										<v-slider thumb-label v-model="configurations.limits[config.key]" max="50" min="0"></v-slider>
+									</div>
+								</div>
+								<div v-if="config.key === 'avatar' || config.key === 'cover'" class="col-12 mt-4">
+									<div class="row justify-end d-flex align-items-center">
+										<h6 class="col-4 pr-0"> <small>Adicionar Essa imagem como padrao?</small> </h6>
+										<div class="col-8 text-right d-flex justify-end">
+											<v-btn @click.stop="nextDelete(index + 1, {type: config.key})" small class="mr-3">Não</v-btn>
+											<v-btn @click.stop="nextStep(index + 1, {type: config.key})" small class="mr-3">Sim</v-btn>
+										</div>
+									</div>
+								</div>
+								<div v-if="config.key === 'videos' || config.key === 'playlists' || config.key === 'featuredChannelsUrls'"
+								 class="col-12 mt-4">
+									<div class="row justify-end d-flex align-items-center">
+										<div class="col-8 text-right d-flex justify-end">
+											<v-btn @click.stop="e6 = index" small class="mr-3">voltar</v-btn>
+											<v-btn @click.stop="e6 = index + 2" small class="mr-3">continuar</v-btn>
+										</div>
+									</div>
+								</div>
+							</div>
+						</v-card>
+					</v-stepper-content>
+				</template>
+			</v-stepper>
+			<div class="col-12 text-right py-3">
+				<v-btn color="blue" @click.stop="$emit('cancel-edit')" class="mr-3">voltar</v-btn>
+				<v-btn color="green" @click.stop="saveYoutubeConfig" class="mr-3">Salvar</v-btn>
+			</div>
+		</div>
+	</div>
+</template>
+
+<script>
+	Vue.component('in-basic-infos-edit-youtube', {
+		template: '#in-basic-infos-edit-youtube',
+		computed: {
+			...mapGetters('page', [
+				'page'
+			])
+		},
+		props: ['info'],
+		data () {
+			return {
+				e6: 1,
+				steps: "",
+				checkeds: [],
+				configs: [],
+				itens: ['avatar', 'cover', 'featuredChannelsUrls'],
+				texts: {
+					avatar: 'Usar foto de avatar do Youtube',
+					cover: 'Usar foto de capa do Youtube',
+					featuredChannelsUrls: 'Canais Relacionados',
+					videos: 'Quantidades de vídeos na página',
+					playlists: 'Quantidades de playlists na página'
+				},
+				configurations: {
+					limits: {
+						videos: 20,
+						playlists: 30
+					},
+					selectedConfigs: []
+				}
+			}
+		},
+		mounted () {
+			const vm = this
+			vm.info.value.config ? vm.configurations.selectedConfigs = vm.info.value.config : ''
+			vm.configs = Object.entries(vm.info.value).map(entrie => {
+				const [key, value] = entrie
+				if (key === 'config') {
+					vm.configurations = value
+					vm.configurations.selectedConfigs.map(config => {
+						vm.checkeds.push(config.type)
+					})
+				}
+				return {
+					key,
+					value
+				}
+			}).filter(obj => {
+				return vm.itens.includes(obj.key)
+			}).sort((a, b) => a.key > b.key)
+			vm.configs.push({
+				key: 'videos',
+				value: 20
+			})
+			vm.configs.push({
+				key: 'playlists',
+				value: 30
+			})
+			vm.steps = vm.configs.length
+		},
+		methods: {
+			selectConfig (status, config) {
+				if (status) {
+					this.configurations.selectedConfigs.push(config)
+				} else {
+					this.configurations.selectedConfigs = this.configurations.selectedConfigs.filter(conf => {
+						return conf.type !== config.type
+					})
+				}
+			},
+			checkSelectChannel(selectedConfigs, channelId) {
+				return selectedConfigs.filter(config => config.type === channelId).length ? 'in-selected-channel' : ''
+			},
+			pushChannel (id) {
+				const {
+					selectedConfigs
+				} = this.configurations
+				const hasChannel = selectedConfigs.filter(config => config.type === id)
+				if (hasChannel.length) {
+					this.configurations.selectedConfigs = selectedConfigs.filter(config => {
+						return config.type !== id
+					})
+				} else {
+					this.configurations.selectedConfigs.push({
+						type: id
+					})
+				}
+			},
+			saveYoutubeConfig () {
+				const { configurations } = this
+				const { info } = this
+				var avatar, cover
+				info.value.config = configurations
+        info.value.config.selectedConfigs = configurations.selectedConfigs.map(item => {
+					if (item.type === 'avatar') avatar = 'Youtube'
+					if (item.type === 'cover') cover = 'Youtube'
+					return item
+				})
+				this.$emit('save-config', info, avatar, cover)
+			},
+			selectAll (value) {
+				const vm = this
+				vm.configurations.selectedConfigs = vm.configurations.selectedConfigs.filter(config => {
+					return config.type === 'avatar' || config.type === 'cover'
+				})
+				value.map(id => {
+					vm.configurations.selectedConfigs.push({
+						type: id.channelId
+					})
+				})
+			},
+			nextStep (n, configs) {
+				const vm = this
+				if (n === this.steps) {
+					this.e6 = 1
+				} else {
+					vm.configurations.selectedConfigs = vm.configurations.selectedConfigs.filter(config => {
+						return config.type !== configs.type
+					})
+					vm.configurations.selectedConfigs.push(configs)
+					this.e6 = n + 1
+				}
+			},
+			nextDelete (n, configs) {
+				const vm = this
+				vm.configurations.selectedConfigs = vm.configurations.selectedConfigs.filter(config => {
+					return config.type !== configs.type
+				})
+				this.e6 = n + 1
+			}
+		}
+	})
+
+</script>
+
+<style>
+	.in-ftChannel-border-img {
+		border-radius: 50%;
+	}
+
+	.in-check-box-ftChannel {
+		position: relative;
+		font-size: 12px;
+		border-radius: 5px;
+		top: -6px;
+		left: calc(50% - 10px);
+	}
+
+	.in-ftChannel-name {
+		font-size: 12px;
+		word-wrap: break-word;
+	}
+
+	.in-box-ftChannel {
+		/*border: 1px solid rgba(255, 255, 255, 0.3);*/
+		border-radius: 5px;
+		box-shadow: 0px 1px 1px rgba(0, 0, 0, 0.4);
+		background-color: rgba(0, 0, 0, 0.3);
+		cursor: pointer;
+
+	}
+
+	.in-selected-channel {
+		background-color: rgba(255, 255, 255, 0.2)
+	}
+
+	.in-stepper-cursor {
+		cursor: pointer;
+	}
+
+</style>

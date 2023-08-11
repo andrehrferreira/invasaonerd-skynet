@@ -1,0 +1,92 @@
+<template id="in-editor-type-twitter">
+  <div id="twitter">
+    <div v-if="twitter">
+      <div class="d-flex justify-content-center">
+        <v-btn
+          class="mb-2 col-12" color="#1B95E0"
+          type="button" data-toggle="modal"
+          data-target="#twitter-modal"
+        >
+          <i class="fab fa-twitter"></i>
+          Ver Tweetss
+        </v-btn> 
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-10 offset-1">
+        <div class="row">
+          <h5 class="col-12"><%= __('Cole o link da fanpage do twitter aqui') %></h5>
+        </div>
+        <div class="row">
+          <input
+            class="col-12" type="text"
+            v-model="twitter.url" style="width: 100%;"
+            placeholder="Ex: https://twitter.com/Invasao_Nerd" />
+        </div>
+      </div>
+    </div>
+    <div class="btn-group-sm">
+      <v-tooltip :open-delay="50" :close-delay="50" left>
+        <v-btn slot="activator" dark small fab flat fixed @click.stop="save(twitter)" class="btn-second btn btn-info btn-fab animated fadeInUp faster" v-if="buttonState">
+          <v-icon>save</v-icon>
+        </v-btn>
+        <span>Salvar Twitter</span>
+      </v-tooltip>
+    </div>
+  </div>
+</template>
+
+<script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
+<script>
+  Vue.component("in-editor-type-twitter", {
+    template: "#in-editor-type-twitter",
+    computed: {
+      ...mapGetters('page', [
+        'page',
+        'buttonState',
+        'editingType'
+      ]),
+      ...mapGetters('app', [
+        'windowWidth'
+      ])
+    },
+    data () {
+      return {
+        title: 'Twitter',
+        twitter: {
+          url: ''
+        }
+      }
+    },
+    mounted () {
+      this.twitter = this.page.twitter ? this.page.twitter : ''
+    },
+    methods: {
+      ...mapActions('page', [
+        'setPage',
+        'setAdding',
+        'setSnackbar',
+        'setEditingType'
+      ]),
+      ...mapActions('app', [
+        'showDialog'
+      ]),
+
+      save (twitter) {
+        const { page } = this
+        page.twitter = twitter
+        page.changes.push({
+          type: this.editingType
+        })
+        this.setPage(page)
+        this.setAdding(false)
+        this.setEditingType('')
+        this.showDialog({
+          message: `Edições de ${this.title} gravadas para envio`,
+          color: 'success',
+          icon: 'check-circle'
+        })
+      }
+    }
+  })
+</script>

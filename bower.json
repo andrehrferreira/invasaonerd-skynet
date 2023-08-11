@@ -1,0 +1,15 @@
+{
+    "name": "invasaonerd-skynet",
+    "authors": [
+        "Andre Ferreira <andre@invasaonerd.com.br>"
+    ],
+    "private": true,
+    "dependencies": {
+        "moment": "2.15.2",
+        "moment-timezone": "*",
+        "lodash": "3.10.1"
+    },
+    "resolutions": {
+        "material-design-lite": "~1.2.1"
+    }
+}

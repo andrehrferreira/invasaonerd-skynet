@@ -1,0 +1,450 @@
+<template id="in-youtube-info">
+	<v-card dark style="overflow-y: auto;">
+		<v-card-title primary-title class="pb-0">
+			<v-flex xs12 v-if="!channelInfo" class="animated zoomIn">
+				<v-flex xs12 md8 lg6 xl4>
+					<v-text-field
+						label="Link do Canal do Youtube" v-model="link" color="white" :loading="loading" validate-on-blur
+					 	append-outer-icon="fa fa-youtube" :rules="[rules.link, rules.counter]" :disabled="loading"
+						hint="Ex: https://www.youtube.com/user/invasaonerd OU https://www.youtube.com/channel/UCi-pxC2Njzhyt1yYAnJbXDw"
+					 ></v-text-field>
+				</v-flex>
+				<v-flex xs12 md6 v-if="loading">
+					<span v-text="loadingMessage"></span>
+				</v-flex>
+			</v-flex>
+			<v-flex v-else class="animated zoomIn">
+				<v-img class="white--text" max-height="230" cover :src="channelInfo.cover">
+					<v-container fill-height fluid class="in-fade-image pa-2">
+						<v-layout fill-height align-end>
+							<v-flex>
+								<v-layout row wrap justify-start>
+									<v-flex class="ml-2">
+										<v-layout row wrap>
+											<v-flex xs12 class="mb-2">
+												<v-avatar>
+													<v-img :src="channelInfo.avatar"></v-img>
+												</v-avatar>
+												<span class="headline ml-2" v-html="channelInfo.title"></span>
+											</v-flex>
+											<v-flex xs12>
+												<span class="grey--text" v-html="'No Youtube desde ' + new Date(channelInfo.publishedAt).toLocaleDateString()"></span>
+											</v-flex>
+											<v-flex xs12>
+												<span v-text="formatNumbers(channelInfo.statistics.subscriberCount) +' inscritos'"></span>
+											</v-flex>
+											<v-flex xs12>
+												<span v-text="formatNumbers(channelInfo.statistics.videoCount) +' vídeos'"></span>
+											</v-flex>
+											<v-flex xs12>
+												<span v-text="formatNumbers(channelInfo.statistics.viewCount) +' views'"></span>
+											</v-flex>
+										</v-layout>
+									</v-flex>
+								</v-layout>
+							</v-flex>
+						</v-layout>
+					</v-container>
+				</v-img>
+				<v-layout row wrap class="mt-3">
+					<v-flex xs12>
+						<v-layout row wrap>
+							<v-flex xs12 md6 class="px-2">
+								<span>Exibir {{ configurations.limits.playlists }} <strong>playlists</strong> na página</span>
+								<v-slider thumb-label v-model="configurations.limits.playlists" max="50" min="0" color="#ef001c"></v-slider>
+							</v-flex>
+							<v-flex xs12 md6 class="px-2">
+								<span>Exibir {{ configurations.limits.videos }} <strong>vídeos</strong> na página</span>
+								<v-slider thumb-label v-model="configurations.limits.videos" max="50" min="0" color="#ef001c"></v-slider>
+							</v-flex>
+						</v-layout>
+						<v-layout row wrap justify-space-around>
+							<v-flex xs12 md6>
+								<v-switch
+									label="Usar foto avatar do Youtube?" v-model="avatar" color="#ef001c" @change="toggleAvatar"
+									:persistent-hint="pageInfos.configs.images.avatar !== '' && pageInfos.avatar !== undefined"
+									:hint="pageInfos.configs.images.avatar && pageInfos.avatar ? 'Atualmente usando avatar do ' + pageInfos.configs.images.avatar : ''"
+								></v-switch>
+							</v-flex>
+							<v-flex xs12 md6>
+								<v-switch
+									label="Usar foto cover do Youtube?" v-model="cover" color="#ef001c" @change="toggleCover"
+									:persistent-hint="pageInfos.configs.images.cover !== '' && pageInfos.cover !== undefined"
+									:hint="pageInfos.configs.images.cover && pageInfos.cover ? 'Atualmente usando cover do ' + pageInfos.configs.images.cover : ''"
+								></v-switch>
+							</v-flex>
+							<v-flex style="overflow-x: hidden" xs12 v-if="channelInfo.featuredChannelsUrls" class="mt-3">
+								<v-select v-model="featuredChannels" :items="channelInfo.featuredChannelsUrls" attach chips label="Relacionar Canais a página"
+								 multiple item-text="title" item-value="channelId" color="#ef001c" @change="pushFeaturedChannel">
+									<v-list-tile slot="prepend-item" ripple @click="toggle">
+										<v-list-tile-action>
+											<v-icon :color="featuredChannels.length ? '#ef001c' : ''">{{ icon }}</v-icon>
+										</v-list-tile-action>
+										<v-list-tile-title v-if="featuredChannels.length === channelInfo.featuredChannelsUrls.length">
+											Desmarcar Todos
+										</v-list-tile-title>
+										<v-list-tile-title v-else>Selecionar Todos</v-list-tile-title>
+										</v-list-tile-title>
+									</v-list-tile>
+									<template slot="selection" slot-scope="{ item, index }">
+										<v-chip>
+											<v-avatar v-if="item.thumbnails">
+												<v-img :src="item.thumbnails.default.url"></v-img>
+											</v-avatar>
+											<span class="pr-2">
+												{{ item.title }}
+											</span>
+										</v-chip>
+									</template>
+								</v-select>
+							</v-flex>
+						</v-layout>
+					</v-flex>
+				</v-layout>
+			</v-flex>
+		</v-card-title>
+
+		<v-card-actions>
+			<v-spacer></v-spacer>
+			<v-btn v-if="e6 !== 1 && !channelInfo && !loading" flat @click.stop="$emit('push-step', { payload: e6 - 1 })">ANTERIOR</v-btn>
+			<v-btn v-if="e6 !== 1 && !channelInfo && !loading"v-if="e6 === 1 && !channelInfo && !loading" flat @click.stop="setStep(step - 1)">VOLTAR</v-btn>
+			<v-btn v-if="loading" @click.stop="loading = false" color="red">CANCELAR</v-btn>
+			<v-btn v-if="channelInfo" flat @click.stop="changeLink">ALTERAR LINK</v-btn>
+			<v-btn v-if="!channelInfo" color="#ef001c" @click="requestYoutubeInfo(link)" :loading="loading" :disabled="link === '' || !isValidLink(link) || loading">BUSCAR</v-btn>
+			<v-btn v-if="channelInfo" color="#ef001c" @click.stop="saveYoutubeInfos(channelInfo)" :loading="loading">SALVAR</v-btn>
+		</v-card-actions>
+	</v-card>
+</template>
+
+<script>
+	Vue.component('in-youtube-info', {
+		template: '#in-youtube-info',
+		props: ['e6'],
+		computed: {
+			...mapGetters('create-page', [
+				'pageInfos',
+				'step'
+			]),
+
+			icon() {
+				if (this.featuredChannels.length === this.channelInfo.featuredChannelsUrls.length) return 'check_box'
+				if (this.featuredChannels.length) return 'indeterminate_check_box'
+				else return 'check_box_outline_blank'
+			}
+		},
+		data() {
+			return {
+				link: '',
+				loading: false,
+				loadingMessage: '',
+				channelInfo: '',
+				cover: false,
+				avatar: false,
+				featuredChannels: [],
+				configurations: {
+					limits: {
+						playlists: 30,
+						videos: 20
+					},
+					selectedConfigs: []
+				},
+				rules: {
+					counter: value => value.length > 30 || 'Link do Canal Inválido',
+					link: value => {
+						const validLink = (value.includes('http://') || value.includes('https://') || value.includes('www.')) && (
+							value.includes('youtube.com/channel/') || value.includes('youtube.com/user/'))
+						return validLink || 'Link do Canal Inválido'
+					}
+				}
+			}
+		},
+		mounted() {
+			const vm = this
+			vm.$nextTick(() => {
+				if (vm.pageInfos.youtube) {
+					vm.link = vm.pageInfos.youtube.url
+					if (vm.pageInfos.youtube.channelId) vm.channelInfo = vm.pageInfos.youtube
+					else this.requestYoutubeInfo(vm.pageInfos.youtube.url)
+					if (vm.pageInfos.youtube.config) {
+						const { config } = vm.pageInfos.youtube
+						if (config.limits) vm.configurations.limits = config.limits
+						if (config.selectedConfigs) {
+							if (config.selectedConfigs.some(c => c.type === 'avatar')) vm.avatar = true
+							if (config.selectedConfigs.some(c => c.type === 'cover')) vm.cover = true
+							vm.featuredChannels = config.selectedConfigs.filter(c => {
+								return c.type !== 'avatar' && c.type !== 'cover'
+							}).map(c => {
+								return c.type
+							})
+							vm.configurations.selectedConfigs = config.selectedConfigs
+						}
+					}
+				}
+			})
+		},
+		methods: {
+			...mapActions('create-page', [
+				'setPageInfos',
+				'setStep'
+			]),
+
+			changeLink() {
+				this.channelInfo = ''
+				this.cover = false,
+					this.avatar = false,
+					this.featuredChannels = []
+				this.configurations = {
+					limits: {
+						playlists: 30,
+						videos: 20
+					},
+					selectedConfigs: []
+				}
+				const { pageInfos } = this
+				delete pageInfos.youtube
+				this.setPageInfos(pageInfos)
+			},
+
+			isValidLink(link) {
+				return (link.includes('http://') || link.includes('https://') || link.includes('www.')) && (link.includes(
+					'youtube.com/channel/') || link.includes('youtube.com/user/'))
+			},
+
+			formatNumbers(number) {
+				if (!number) return number
+				return number.split('').reverse().map((n, i) => {
+					if ((i + 1) % 3 === 0 && (i + 1) !== number.split('').length) return '.' + n
+					return n
+				}).reverse().join('')
+			},
+
+			requestYoutubeInfo(url) {
+				const vm = this
+				var channelId, type
+				if (url.includes('user')) {
+					type = 'username'
+					channelId = url.split('user')[1].split('/').join('')
+				} else if (url.includes('channel')) {
+					type = 'id'
+					channelId = url.split('channel')[1].split('/').join('')
+				}
+				vm.loading = true
+				vm.loadingProcess()
+				if (type && channelId && url) {
+					vm.$http.get(`/api/yt-channel-by-${type}/${channelId}?url=${url}`).then(res => {
+						vm.loading = false
+						vm.channelInfo = res.data
+					})
+					.catch((err) => {
+						console.log(err)
+						vm.loading = false
+						vm.showDialog({
+							message: 'Ocorreu um erro no servidor',
+							color: 'red',
+							icon: 'warning'
+						})
+						setTimeout(() => {
+							location.reload()
+						}, 2000)
+					})	
+				} else {
+					vm.showDialog({
+						message: 'Link do Youtube inválido',
+						color: 'orange',
+						icon: 'warning'
+					})
+				}
+			},
+
+			toggleAvatar(payload) {
+				const vm = this
+				const { pageInfos } = vm
+				if (payload) {
+					vm.configurations.selectedConfigs.push({ type: 'avatar' })
+					pageInfos.configs.images.avatar = 'Youtube'
+				} else {
+					vm.configurations.selectedConfigs = vm.configurations.selectedConfigs.filter(config => {
+						return config.type !== 'avatar'
+					})
+					pageInfos.configs.images.avatar = ''
+				}
+				vm.setPageInfos(pageInfos)
+			},
+
+			toggleCover(payload) {
+				const vm = this
+				const { pageInfos } = vm
+				if (payload) {
+					vm.configurations.selectedConfigs.push({ type: 'cover' })
+					pageInfos.configs.images.cover = 'Youtube'
+				} else {
+					vm.configurations.selectedConfigs = vm.configurations.selectedConfigs.filter(config => {
+						return config.type !== 'cover'
+					})
+					pageInfos.configs.images.cover = ''
+				}
+				vm.setPageInfos(pageInfos)
+			},
+
+			pushFeaturedChannel(payload) {
+				const vm = this
+				vm.configurations.selectedConfigs = payload.map(item => {
+					return { type: item }
+				})
+				if (vm.avatar) vm.configurations.selectedConfigs.push({ type: 'avatar' })
+				if (vm.cover) vm.configurations.selectedConfigs.push({ type: 'cover' })
+			},
+
+			loadingProcess() {
+				const vm = this
+				vm.loadingMessage = 'Aguarde...'
+				const messages = ['Requisitando Youtube', 'Coletando informações do canal', 'Formatando informações', 'Aguarde']
+				messages.map((message, index) => {
+					setTimeout(() => {
+						vm.loadingMessage = message + '...'
+					}, (index + 1) * 2000)
+				})
+			},
+
+			saveYoutubeInfos: async function (infos) {
+				const vm = await this
+				vm.loading = await true
+				const { pageInfos } = await vm
+				pageInfos.wiki = await this.setYoutuberWiki(infos)
+				if (!pageInfos.title) pageInfos.title = await infos.title
+				if (infos.links.length) {
+					await infos.links.map(async link => {
+						if (!pageInfos[vm.formatLinkType(link.type)]) {
+							pageInfos[vm.formatLinkType(link.type)] = await { url: link.link }
+						}
+					})
+				}
+				pageInfos.youtube = await infos
+				pageInfos.youtube.url = await this.link
+				pageInfos.youtube.config = await vm.configurations
+				pageInfos.channels = await this.setFeaturedChannels(infos)
+				if (pageInfos.youtube.config.selectedConfigs.some(config => config.type === 'avatar')) {
+					const base64 = await this.getImage(pageInfos.youtube.avatar)
+					pageInfos.avatar = await vm.convertImage(base64)
+					if (pageInfos.avatar) pageInfos.miniavatar = await this.setMiniAvatar(pageInfos.avatar)
+				}
+				if (pageInfos.youtube.config.selectedConfigs.some(config => config.type === 'cover')) {
+					const base64 = await this.getImage(pageInfos.youtube.cover)
+					pageInfos.cover = await vm.convertImage(base64)
+				}
+				await vm.setPageInfos(pageInfos)
+				vm.loading = await false
+				await this.$emit('push-step', { payload: this.e6 + 1, change: true })
+			},
+
+			formatLinkType(string) {
+				if (string.toLowerCase().includes('instagram')) return 'instagram'
+				if (string.toLowerCase().includes('twitter')) return 'twitter'
+				if (string.toLowerCase().includes('facebook')) return 'facebook'
+				else return 'website'
+			},
+
+			setYoutuberWiki(channelInfo) {
+				return {
+					summary: channelInfo.description ? channelInfo.description : 'Canal ' + channelInfo.title,
+					fullinfo: [
+						['No Youtube desde', new Date(channelInfo.publishedAt).toLocaleDateString(), true, ''],
+						['Inscritos', this.formatNumbers(channelInfo.statistics.subscriberCount), true, ''],
+						['Vídeos', this.formatNumbers(channelInfo.statistics.videoCount), true, ''],
+						['Viwes', this.formatNumbers(channelInfo.statistics.viewCount), true, '']
+					]
+				}
+			},
+
+			toggle() {
+				const vm = this
+				vm.$nextTick(() => {
+					if (vm.featuredChannels.length === vm.channelInfo.featuredChannelsUrls.length) {
+						vm.featuredChannels = []
+						vm.configurations.selectedConfigs = vm.configurations.selectedConfigs.filter(config => {
+							return config.type === 'avatar' && config.type === 'cover'
+						})
+					} else {
+						vm.featuredChannels = vm.channelInfo.featuredChannelsUrls.map(channel => {
+							vm.configurations.selectedConfigs.push({ type: channel.channelId })
+							return channel.channelId
+						})
+					}
+				})
+			},
+
+			setFeaturedChannels(youtube) {
+				const vm = this
+				if (youtube.featuredChannelsUrls) {
+					return youtube.featuredChannelsUrls.filter(channel => {
+						return youtube.config.selectedConfigs.some(c => {
+							return c.type === channel.channelId
+						})
+					})
+				} else {
+					return []
+				}
+			},
+
+			getImage(imageLink) {
+				const vm = this
+				return new Promise(async resolve => {
+					try {
+						const res = await vm.$http.get(imageLink, { responseType: 'blob' })
+						const blob = await res.blob()
+						const reader = await new FileReader()
+						await reader.readAsDataURL(blob)
+						const base64 = await new Promise((res, rej) => {
+							reader.onloadend = function () {
+								res(reader.result)
+							}
+						})
+						await resolve(base64)
+					} catch (err) {
+						console.log(err)
+						await resolve('')
+					}
+				})
+			},
+
+			setMiniAvatar(base64) {
+				return new Promise(resolve => {
+					const img = new Image(),
+					canvas = document.createElement('canvas'),
+					ctx = canvas.getContext('2d')
+					img.src = base64
+					img.onload = function () {
+						canvas.width = 50
+						canvas.height = 50
+						ctx.drawImage(img, 0, 0, 50, 50)
+						resolve(canvas.toDataURL('image/jpeg', 0.8))
+					}
+				})
+			},
+
+			convertImage (base64) {
+				return new Promise(resolve => {
+					const img = new Image(),
+					canvas = document.createElement('canvas'),
+					ctx = canvas.getContext('2d')
+					img.src = base64
+					img.onload = function (event) {
+						canvas.width = event.target.width
+						canvas.height = event.target.height
+						ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+						resolve(canvas.toDataURL('image/jpeg', 0.5))
+					}
+				})
+			}
+		}
+	})
+
+</script>
+
+<style>
+	#stepper > div:nth-child(1) > div > div.v-stepper__content > div > div > div > div.v-card__title.pb-0.v-card__title--primary > div > div.layout.mt-3.row.wrap > div > div.layout.row.wrap.justify-space-around > div.flex.mt-3.xs12 > div > div.v-menu__content.theme--dark.menuable__content__active{
+		position: relative!important;
+		min-width: 100%!important;
+		overflow-y: auto!important;
+	}
+</style>

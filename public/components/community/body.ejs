@@ -1,0 +1,309 @@
+<template id="in-body-community">
+	<div class="row">
+		<div class="col-lg-3 col-xs-12 in-subnav-navbar in-specialborder">
+			<div class="row d-flex justify-content-center">
+				<div class="col-12">
+					<in-avatar />
+				</div>
+
+				<div class="col-12 text-center">
+					<div class="py-3">
+						<div v-if="page.ref && editingType !== 'title'">
+							<in-title />
+						</div>
+						<div v-if="editingType === 'title'">
+							<in-editor-type-title />
+						</div>
+						<div v-if="page.categories && editingType !== 'categories'">
+							<in-categories />
+						</div>
+						<div v-if="editingType === 'categories'">
+							<in-editor-type-categories />
+						</div>
+					</div>
+					<in-follow-button />
+				</div>
+
+				<div v-if="page.id" class="mb-3">
+					<div class="col-12">
+						<div class="row text-center">
+							<div class="col-12">
+								Compartilhar
+							</div>
+							<div class="col-12 d-flex justify-content-center">
+								<div class="sharethis-inline-share-buttons"></div>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<div class="col-12 p-0">
+					<div v-for="(item, index) of list" :key="index">
+						<div v-if="item === 'wiki'">
+							<div class="col-12 text-center text-lg-left" v-if="page.wiki && editingType !== 'wiki'">
+								<in-template-wiki-fullinfo v-if="page.wiki.fullinfo" />
+							</div>
+						</div>
+
+						<div class="col-12 d-none d-lg-block" v-if="item === 'facebook'">
+							<div v-if="page.facebook">
+								<div v-if="page.facebook.url && editingType !== 'facebook'">
+									<in-template-facebook />
+								</div>
+							</div>
+						</div>
+
+						<div class="col-12 d-none d-lg-block" v-if="item === 'spotify'">
+							<div v-if="page.spotify && editingType !== 'spotify'">
+								<in-template-spotify v-if="page.spotify.url" />
+							</div>
+						</div>
+
+						<div class="col-12 d-none d-lg-block" v-if="item === 'twitter'">
+							<div v-if="page.twitter">
+								<in-template-twitter v-if="page.twitter.embbed" />
+							</div>
+						</div>
+					</div>
+
+					<div class="col-12 d-none d-lg-block">
+						<div v-if="page.featuredPages && editingType !== 'featuredPages'">
+							<in-template-featured-pages v-if="page.featuredPages.length" />
+						</div>
+						<div v-if="editingType === 'featuredPages'">
+							<in-editor-type-featured-pages />
+						</div>
+					</div>
+				</div>
+
+			</div>
+		</div>
+
+		<section class="col-lg-9 col-xs-12 in-subnav-contents in-specialborder" id="contents" style="z-index: 1; border-left: none">
+
+			<v-tabs
+				v-if="scrollTop <= bp && $vuetify.breakpoint.mdAndUp"
+				id="main-tabs" v-model="active" dark color="#232323"
+				slider-color="#ef001c" show-arrows @change="checkTab"
+				class="animated fadeIn faster"
+			>
+				<v-tab :href="'/page/' + page.url + '?t=0'" v-if="checkContent(page)"
+				 ripple>
+					<v-icon class="mr-2" dark small>view_module</v-icon> CONTEÚDO
+				</v-tab>
+
+				<v-tab :href="'/page/' + page.url + '?t=1'" v-if="page.instagram">
+					<v-icon class="mr-2" dark small>photo_camera</v-icon> Instagram
+				</v-tab>
+
+				<v-tab :href="'/page/' + page.url + '?t=2'" v-if="checkLists(page.books) && editingType !== 'books'">
+					<v-icon class="mr-2" dark small>import_contacts</v-icon> Livros
+				</v-tab>
+
+				<v-tab :href="'/page/' + page.url + '?t=3'" v-if="checkLists(page.channels) && editingType !== 'channels'">
+					<v-icon class="mr-2" dark small>account_circle</v-icon> Relacionados
+				</v-tab>
+
+				<v-tab :href="'/page/' + page.url + '?t=4'" v-if="checkLists(page.movies) && editingType !== 'movies'">
+					<v-icon class="mr-2" dark small>local_movies</v-icon> Filmes
+				</v-tab>
+
+				<v-tab :href="'/page/' + page.url + '?t=5'" v-if="checkLists(page.games) && editingType !== 'games'">
+					<v-icon class="mr-2" dark small>videogame_asset</v-icon> Jogos
+				</v-tab>
+
+				<v-tab :href="'/page/' + page.url + '?t=6'" v-if="page.lives && editingType !== 'lives'">
+					<v-icon class="mr-2" dark small>live_tv</v-icon> Lives
+				</v-tab>
+
+				<v-tab :href="'/page/' + page.url + '?t=7'" v-if="checkLists(page.series) && editingType !== 'series'">
+					<v-icon class="mr-2" dark small>tv</v-icon> Séries
+				</v-tab>
+
+				<v-tab :href="'/page/' + page.url + '?t=8'" v-if="checkLists(page.videos) && editingType !== 'videos'">
+					<v-icon class="mr-2" dark small>ondemand_video</v-icon> Videos
+				</v-tab>
+
+				<v-tab :href="'/page/' + page.url + '?t=9'" v-if="checkLists(page.playlists) && editingType !== 'playlists'">
+					<v-icon class="mr-2" dark small>playlist_play</v-icon> Playlists
+				</v-tab>
+
+				<v-tab :href="'/page/' + page.url + '?t=10'" v-if="page.feeds || editingType === 'feeds'" id="feeds" ripple>
+					<v-icon class="mr-2" dark small>list_alt</v-icon> Noticias
+				</v-tab>
+
+				<v-tab href="#in-tab-community">
+					<v-icon class="mr-2" dark small>forum</v-icon> COMUNIDADE
+				</v-tab>
+			</v-tabs>
+
+			<v-tabs-items v-model="active" dark touchless>
+				<v-tab-item value="in-tab-community" class="mb-5">
+					<% if (topics) { %>
+						<in-community-topics />
+					<% } else { %>
+						<in-community-answers />
+					<% } %>
+				</v-tab-item>
+			</v-tabs-items>
+		</section>
+	</div>
+</template>
+
+<script>
+	Vue.component('in-body-community', {
+		template: '#in-body-community',
+		computed: {
+			...mapGetters('app', [
+				'tab',
+				'scrollTop'
+			]),
+			...mapGetters('page', [
+				'page',
+				'editingType'
+			]),
+			bp () {
+				const { breakpoint } = this.$vuetify
+				if (breakpoint.smAndDown) {
+					return 100
+				} else if (breakpoint.width <= 1500) {
+					return breakpoint.width / 3
+				} else {
+					return 500
+				}				
+			}
+		},
+		data() {
+			return {
+				active: 'in-tab-community',
+				list: [],
+				content: true,
+				timer: 0
+			}
+		},
+		mounted() {
+			const vue = this
+			clearTimeout(vue.timer)
+			window.onscroll = (e) => {
+				clearTimeout(vue.timer)
+				vue.timer = setTimeout(() => {
+					vue.setScrollTop(e.target.documentElement.scrollTop)
+				}, 10)
+			}
+			this.list = this.page.order
+		},
+		methods: {
+			...mapActions('app', [
+				'goTo',
+				'setTab',
+				'setScrollTop'
+			]),
+			...mapActions('page', [
+				'setPage',
+				'setButtonState',
+				'setMovingBox'
+			]),
+
+			checkTab (tab) {
+				if (tab === 'in-tab-community' && !this.page.local && !location.href.includes('/community')) {
+					this.goTo(`/page/${this.page.url}/community?p=1`)
+				} else {
+					this.setTab(tab)
+				}
+			},
+
+			checkContent (page) {
+				return page.books !== undefined ||
+				page.videos !== undefined ||
+				page.playlists !== undefined ||
+				page.wiki !== undefined ||
+				page.lives !== undefined ||
+				page.movies !== undefined ||
+				page.series !== undefined ||
+				page.games !== undefined ||
+				page.featuredVideo !== undefined ||
+				page.channels !== undefined ||
+				page.instagram !== undefined
+			},
+
+			checkLists (list) {
+				if (list) if (list.length) return true
+				return false
+			},
+
+			hasDragChange(event) {
+				const {
+					page,
+					list
+				} = this
+				if (list.filter((item, index) => item === page.order[index]).length !== list.length) {
+					page.changes.push({
+						type: 'move'
+					})
+					page.order = list
+					this.setPage(page)
+					this.setButtonState(false)
+					this.setButtonState(true)
+				}
+				this.setMovingBox(false)
+			}
+		}
+	})
+
+</script>
+
+<style>
+	.card {
+		border: none;
+	}
+
+	#st-1 {
+		z-index: 1 !important;
+	}
+
+	.in-subnav {
+		background-color: #121212 !important;
+	}
+
+	.move {
+		cursor: move !important;
+		cursor: grab !important;
+		cursor: -moz-grab !important;
+		cursor: -webkit-grab !important;
+	}
+
+	.move:active {
+		cursor: grabbing !important;
+		cursor: -moz-grabbing !important;
+		cursor: -webkit-grabbing !important;
+	}
+
+	.in-editor-section,
+	.swiper-container.swiper-container-horizontal {
+		margin-top: 0;
+	}
+
+	.swiper-container {
+		margin-bottom: 0;
+	}
+
+	.h1,
+	.h2,
+	.h3,
+	.h4,
+	.h5,
+	.h6,
+	h1,
+	h2,
+	h3,
+	h4,
+	h5,
+	h6 {
+		margin-bottom: 5px;
+	}
+
+	.v-tabs__item:hover {
+		color: white !important;
+		text-decoration: none !important;
+	}
+</style>

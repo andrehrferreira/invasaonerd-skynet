@@ -1,0 +1,101 @@
+<template id="in-report-comment">
+	<v-card>
+		<v-card-title class="headline">Detalhes da denuncia</v-card-title>
+		<v-card-text v-if="report.comment">
+			<v-card>
+				<v-card-text class="grey darken-4">
+					<p class="mb-0 font-italic grey--text text-truncate" v-html="report.comment.text"></p>
+				</v-card-text>
+			</v-card>
+		</v-card-text>
+		<v-card-text>
+			<v-layout row wrap>
+				<v-flex xs12 d-flex>
+					<v-select v-model="report.categorie" :items="categories" box label="Categorize esta denuncia*"></v-select>
+				</v-flex>
+				<v-flex xs12>
+					<v-textarea
+						label="Diga algo sobre isso"
+						:rules="[(v) => v.length <= 255 || 'Maximo de 255 caracteres']"
+						:counter="255"
+						v-model="report.text"
+					></v-textarea>
+				</v-flex>
+			</v-layout>
+		</v-card-text>
+		<v-card-actions>
+			<v-btn color="red" @click.native="$emit('close-modal', false)">Cancelar</v-btn>
+			<v-spacer></v-spacer>
+			<v-btn color="success" @click.native="sendToReport(report)" :disabled="!report.categorie || report.text.length > 255">Enviar</v-btn>
+		</v-card-actions>
+	</v-card>
+</template>
+
+<script>
+	Vue.component('in-report-comment', {
+		template: '#in-report-comment',
+		props: ['comment'],
+		computed: {
+			...mapGetters('app', ['user'])
+		},
+		data () {
+			return {
+				dialog: false,
+				report: {
+					timestamp: '',
+					user: '',
+					categorie: '',
+					text: ''
+				},
+				loading: false,
+				categories: [
+					'Nudez',
+					'Violência',
+					'Assédio',
+					'Suicídio ou automutilação',
+					'Notícia falsa',
+					'Spam',
+					'Vendas não autorizadas',
+					'Discurso de ódio',
+					'Terrorismo'
+				].sort((a, b) => a > b ? 1 : -1)
+			}
+		},
+		mounted() {
+			this.report.comment = this.comment
+			this.categories.push('Outros')
+		},
+		methods: {
+			...mapActions('app', ['showDialog']),
+
+			async sendToReport (report) {
+				console.log(report)
+				const vue = this
+				let error = {
+					status: false,
+					message: ''
+				}
+				report.user = vue.user.email
+				vue.loading = true
+				try {
+					const { data } = await vue.$http.post('/comments/report', { report })
+					vue.$emit('close-modal', false)
+					vue.showDialog({
+						message: 'Sua denuncia foi enviada para os administradores',
+						color: 'success',
+						icon: 'info'
+					})
+				} catch (err) {
+					console.log(err)
+					error = true
+				}
+				vue.loading = false
+				if (error.status) vue.showDialog({
+					message: error.message || 'Ocorreu um erro na comunicação com o servidor',
+					color: 'red',
+					icon: 'warning'
+				})
+			}
+		}
+	})
+</script>

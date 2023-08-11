@@ -1,0 +1,264 @@
+<template id="in-usermenu">
+	<v-card dark width="280px">
+		<v-layout row wrap>
+			<v-flex xs12 class="" v-if="user.name">
+				<v-layout row justify-center align-center class="pa-3 grey darken-3">
+					<v-flex class="justify-start" xs4 class="">
+						<v-img :src="`/image/${user._id}/useravatar.jpg`" height="55px" contain></v-img>
+					</v-flex>
+					<v-flex xs8 class="pl-1">
+						<v-layout column>
+							<p class="mb-0 in-user-menu-name text-truncate">{{ user.name }}</p>
+							<p class="mb-0 in-user-info-small-info caption text-truncate">{{ user.email }}</p>
+							<p class="mb-0 in-user-info-small-info">Points: {{ user.points }}
+								<small class="ml-1 px-1 red darken-4" v-if="user.superadmin">SuperAdmin</small>
+								<small class="ml-1 px-1 orange darken-4" v-else-if="user.admin">Admin</small>
+							</p>
+						</v-layout>
+					</v-flex>
+				</v-layout>
+			</v-flex>
+			<v-flex xs12 v-if="user.name">
+				<v-layout column wrap class="grey darken-1">
+					<v-list class="grey darken-2 py-0">
+						<v-list-tile class="py-2" @click.stop="logout({ http: $http, setUserMenu: setUserMenu })">
+							<v-list-tile-content>
+								<v-list-tile-title class="in-user-menu-list-item pl-2">
+									<v-icon size="20px" class="mr-2">exit_to_app</v-icon> Logout
+								</v-list-tile-title>
+							</v-list-tile-content>
+						</v-list-tile>
+					</v-list>
+				</v-layout>
+			</v-flex>
+			<v-dialog class="animated zoomIn" v-else v-model="dialog" :width="$vuetify.breakpoint.mdAndUp ? 850 : 400" @input="setUserMenu">
+				<v-card>
+					<v-layout row wrap>
+						<v-flex xs7 v-if="$vuetify.breakpoint.mdAndUp">
+							<v-img width="100%" height="100%" min src="/assets/img/login_img.png">
+								<v-layout column wrap class="pa-24 align-center">
+									<v-img height="70px" contain src="/assets/img/robo.png"></v-img>
+									<p class="text-xs-center mt-2 in-img-ola-invasor">Olá, Invasor</p>
+									<p class="text-xs-center in-img-text-login">Bem-vindo ao <span class="in-img-text-bold">Invasão Nerd</span> ,
+										o melhor wiki nerd do mundo!
+										<br>
+										<br>
+										Aqui você vai encontrar os assuntos favoritos de todos os <span class="in-img-text-bold">geeks</span> , vai
+										ter liberdade pra criar qualquer conteúdo <span class="in-img-text-bold">nerd</span> que achar relevante e
+										vai colaborar com outras pessoas pra fazer o Invasão dominar o planeta.
+										<br>
+										<br>
+										Então, faz logo o seu cadastro e que a <span class="in-img-text-bold">Força</span> esteja com você.
+									</p>
+								</v-layout>
+							</v-img>
+						</v-flex>
+						<v-flex xs12 md5 class="pa-24 my-4">
+							<div>
+								<p class="in-login-bold-title">Login<span class="in-login-thin-subtitle">/Cadastrar</span></p>
+								<p class="in-login-info-text">Quer receber um convite para editar, criar e ter o melhor conteúdo nerd da
+									internet? <a class="in-link-to-invite" @click.stop="wantInvite = !wantInvite">Clique aqui</a> para receber um
+									convite.</p>
+
+								<form v-if="wantInvite" id="form-change">
+									<v-text-field autofocus color="blue" id="user" color="info" dark v-model="form.username" type="text" label="<%= __('Usuário ou e-mail') %>"
+									 append-icon="account_circle" required browser-autocomplete></v-text-field>
+
+									<v-text-field dark color="blue" v-model="form.password" type="password" autocomplete label="<%= __('Senha') %>"
+									 append-icon="lock" required browser-autocomplete @keyup.enter="login({ http: $http, form: form, setUserMenu: setUserMenu })"></v-text-field>
+								</form>
+								<form v-if="!wantInvite" action="">
+									<v-text-field autofocus color="blue" id="emailInvite" color="info" dark v-model="emailInvite" type="text"
+									 label="<%= __('Email para receber o convite') %>" append-icon="account_circle" required browser-autocomplete></v-text-field>
+								</form>
+								<div class="in-login-input-container mt-2">
+									<v-btn v-if="wantInvite" dark block color="#28a745" @click.stop="login({ http: $http, form: form, setUserMenu: setUserMenu })"
+									 :disabled="!form.username || !form.password">
+										<%= __('ENTRAR') %>
+									</v-btn>
+									<div v-if="!wantInvite">
+										<v-btn dark block color="#28a745" @click.stop="setUserMenu(false)" :disabled="!emailInvite">
+											<%= __('ENVIAR') %>
+										</v-btn>
+										<div width="100%" style="text-align:center">
+											<a @click.stop="wantInvite = !wantInvite">Já sou cadastrado</a>
+										</div>
+									</div>
+
+								</div>
+							</div>
+
+						</v-flex>
+					</v-layout>
+				</v-card>
+			</v-dialog>
+		</v-layout>
+	</v-card>
+</template>
+
+<script>
+	Vue.component('in-usermenu', {
+		template: '#in-usermenu',
+		computed: {
+			...mapGetters('app', [
+				'user',
+				'userMenu'
+			])
+		},
+		data() {
+			return {
+				wantInvite: true,
+				emailInvite: "",
+				registering: false,
+				dialog: true,
+				form: {
+					username: '',
+					password: ''
+				},
+				register: {
+					name: '',
+					user: '',
+					email: '',
+					pass: '',
+					confirm: ''
+				}
+			}
+		},
+		methods: {
+			...mapActions('app', [
+				'login',
+				'logout',
+				'showDialog',
+				'setUserMenu'
+			]),
+
+			postUser() {
+				let user = this.register
+				if (user.pass === user.confirm) {
+					delete user.confirm
+					user['avatar'] = '/assets/img/useravatar.png'
+					this.$http.post('/register', user)
+						.then((res) => {
+							this.processRegister(res.body, user)
+						}, err => {
+							console.log(err)
+							this.showDialog({
+								message: 'Erro na comunicação com o servidor',
+								color: 'red',
+								icon: 'warning'
+							})
+						})
+				} else {
+					this.showDialog({
+						message: 'As senhas não conferem',
+						color: 'orange',
+						icon: 'warning'
+					})
+				}
+			},
+
+			processRegister(verify, user) {
+				if (verify.error) this.showDialog({
+					message: verify.error,
+					color: 'red',
+					icon: 'warning'
+				})
+				else this.showDialog({
+					message: verify.success,
+					color: 'success',
+					icon: 'check-circle'
+				})
+				setTimeout(() => {
+					this.login({
+						http: this.$http,
+						form: {
+							username: user.email,
+							password: user.pass
+						}
+					})
+				}, 1000)
+			}
+		}
+	})
+
+</script>
+
+<style>
+	.pa-24 {
+		padding: 24px;
+	}
+
+	.mt-24 {
+		margin-top: 24px !important;
+	}
+
+	.in-login-bold-title {
+		font-size: 2rem;
+		font-weight: 500;
+		color: white;
+		margin-bottom: 8px;
+	}
+
+	.in-login-thin-subtitle {
+		font-size: 1.3rem;
+		font-weight: 300;
+		color: rgba(255, 255, 255, 0.637);
+	}
+
+	.in-login-info-text {
+		font-size: 1rem;
+		font-weight: 400;
+		color: rgba(255, 255, 255, 0.637);
+		margin-bottom: 40px;
+	}
+
+	.in-link-to-invite {
+		color: rgba(243, 54, 54, 0.637);
+		font-weight: 500;
+		font-size: 1.1rem;
+	}
+
+	.in-link-to-invite:hover {
+		text-decoration: underline;
+		color: red;
+	}
+
+	#form-change .v-text-field {
+		padding-top: 0 !important;
+		margin-top: 0 !important;
+		padding-bottom: 16px;
+	}
+
+	.in-img-ola-invasor {
+		font-size: 1.8rem;
+		font-weight: 700;
+
+	}
+
+	.in-img-text-login {
+		font-size: 1.1rem;
+		font-weight: 300;
+		text-shadow: 0px 1px 1px black;
+	}
+
+	.in-img-text-bold {
+		font-weight: 900;
+	}
+
+	.in-user-menu-name {
+		font-size: 1.2rem;
+		font-weight: 500;
+	}
+
+	.in-user-menu-list-item {
+		font-size: 1.1rem;
+		font-weight: 400;
+		margin-bottom: 0;
+	}
+
+	.in-user-info-small-info {
+		font-size: 0.9rem;
+		font-weight: 300;
+	}
+
+</style>

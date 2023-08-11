@@ -1,0 +1,95 @@
+<template id="in-comment-replies">
+	<v-layout row wrap>
+		<v-flex xs12>
+			<a href="javascript:void(0)" @click.stop="show = !show" class="mb-0 caption text-xs-center">{{ show ? 'Ocultar' : 'Mostrar' }} {{ comment.replies.length }} respostas</a>
+		</v-flex>
+		<v-flex xs12 v-if="show" class="animated fadeIn faster">
+			<transition-group name="list" tag="div">
+				<v-layout row v-if="comment.replies" v-for="(reply, index) in comment.replies" :key="reply.timestamp">
+					<v-flex class="mr-2">
+						<img :src="`/image/${reply.user.id}/useravatar.jpg`" height="32px" contain>
+					</v-flex>
+					<v-flex xs11>
+						<v-layout row wrap>
+							<v-flex xs12>
+								<v-layout row justify-space-between>
+									<v-flex>
+										<a href="javascript:void(0)" class="text-truncate">
+											<b class="white--text">{{ reply.user.name }}</b>
+										</a>
+										<span class="mb-0 grey--text caption text-truncate">
+											{{ reply.edited ? 'Editado - ' : '' }}{{ new Date(reply.edited ? reply.editedtimestamp : reply.timestamp).toLocaleString() }}
+										</span>
+									</v-flex>
+									<v-menu transition="slide-x-transition" offset-x left>
+										<v-btn slot="activator" icon dark small class="ma-0">
+											<v-icon small>more_horiz</v-icon>
+										</v-btn>
+										<v-list>
+											<template v-for="({ condition, text, action, icon }, index) in commentOptions" v-if="condition(reply)">
+												<v-list-tile :key="index" @click="action(reply)" class="in-small-list">
+													<v-list-tile-title>
+														<p class="mb-0 caption"><v-icon small class="mr-2">{{ icon }}</v-icon>{{ text }}</p>
+													</v-list-tile-title>
+												</v-list-tile>
+											</template>
+										</v-list>
+									</v-menu>
+								</v-layout>
+							</v-flex>
+							<v-flex xs12>
+								<p class="mb-0 caption" v-html="$urlify(reply.text)"></p>
+							</v-flex>
+						</v-layout>
+					</v-flex>
+				</v-layout>
+			</transition-group>
+		</vfex>
+	</v-layout>
+</template>
+
+<script>
+	Vue.component('in-comment-replies', {
+		template: '#in-comment-replies',
+		props: ['comment'],
+		computed: {
+			...mapGetters('app', ['user', 'icons']),
+
+			commentOptions () {
+				const vue = this
+				return [{
+					condition: ({ user }) => {
+						return user.id !== vue.user._id
+					},
+					text: 'Responder',
+					icon: 'reply',
+					action: (reply) => vue.$emit('reply-comment', reply)
+				}, {
+					condition: ({ user }) => {
+						return user.id === vue.user._id
+					},
+					text: 'Editar',
+					icon: 'edit',
+					action: vue.editComment
+				}, {
+					condition: ({ user }) => {
+						return user.id === vue.user._id || vue.user.superadmin
+					},
+					text: 'Deletar',
+					icon: 'delete',
+					action: vue.deleteComment
+				}, {
+					condition: ({ user }) => user.id !== vue.user._id,
+					text: 'Denunciar',
+					icon: 'report',
+					action: vue.reportComment
+				}]
+			}
+		},
+		data() {
+			return {
+				show: false
+			}
+		},
+	})
+</script>

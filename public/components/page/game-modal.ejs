@@ -1,0 +1,232 @@
+<template id="in-game-modal">
+	<v-dialog
+		v-model="dialog"
+		width="1000px"
+		max-width="100%"
+		transition="dialog-transition"
+		@input="closeModal"
+		persistent :fullscreen="$vuetify.breakpoint.smAndDown"
+	>
+		<v-card max-width="100%" class="in-specialborder">
+			<v-toolbar dark color="#212121" absolute>
+				<v-toolbar-title>{{ game.name }}</v-toolbar-title>
+				<v-spacer></v-spacer>
+				<v-btn icon dark @click.stop="closeModal(false)">
+					<v-icon>close</v-icon>
+				</v-btn>
+			</v-toolbar>
+			<v-img :src="game.cover ? game.cover ? game.cover.url : '/assets/img/avatardefault.jpeg' : '/assets/img/default_cover.jpg'" cover>
+				<v-container fluid fill-height style="background-color: rgba(0,0,0,0.7); overflow-y: auto;">
+					<v-layout fill-height row wrap>
+						<v-flex xs12 class="pt-5">
+							<v-layout row wrap>
+								<v-flex xs12 v-if="game.rating || game.first_release_date">
+									<v-layout row justify-start class="mb-2">
+										<a :href="`https://www.igdb.com/games/${game.name.toLowerCase().split(' ').join('-')}`" target="_blank" class="pr-2">
+											<v-avatar :size="36" color="grey lighten-4">
+												<img src="https://logo.clearbit.com/igdb.com" alt="avatar">
+											</v-avatar>
+										</a>
+										<v-flex>
+											<p v-if="game.rating" class="mb-0 caption">Avaliação: {{ parseInt(game.rating) }}/100</p>
+											<p v-if="game.first_release_date" class="mb-0 caption">Lançamento: {{ new Date(game.first_release_date).toLocaleDateString() }}</p>
+										</v-flex>
+									</v-layout>
+								</v-flex>
+								<v-flex xs12>
+									<v-layout row wrap>
+										<v-flex xs12 :style="`
+											max-height: ${ showMore ? '9999' : '60' }px;
+											-webkit-transition: max-height 0s;
+											transition: max-height 0s;
+											overflow: hidden;`"
+										>
+											<p class="mb-0">{{ game.summary }}</p>
+										</v-flex>
+										<v-flex xs12>
+											<v-layout justify-center>
+												<v-btn @click.stop="showMore = !showMore" flat small fab>
+													<v-icon large>{{ showMore ? 'expand_less' : 'expand_more' }}</v-icon>
+												</v-btn>
+											</v-layout>
+										</v-flex>
+									</v-layout>
+								</v-flex>
+								<v-flex xs12 v-if="game.videos">
+									<v-layout row wrap class="py-2">
+										<v-flex xs12>
+											<v-layout justify-space-between>
+												<p class="mb-0 title">Vídeos</p>
+												<v-btn v-if="toPlay.video_id" fab small color="#ef001c" @click.stop="toPlay = {}" class="my-0">
+													<v-icon>close</v-icon>
+												</v-btn>
+											</v-layout>
+										</v-flex>
+										<v-flex xs12 v-if="toPlay.video_id" class="embed-responsive embed-responsive-16by9">
+											<iframe class="in-videos-item-player-iframe" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen :src="'https://www.youtube.com/embed/' + toPlay.video_id + '?autoplay=1'"></iframe>
+										</v-flex>
+										<v-flex xs12>
+											<swiper :options="swiperOption">
+												<swiper-slide v-for="(video, index) in game.videos" :key="index" style="background-color: rgba(0,0,0,0)">
+													<v-hover>
+														<v-card slot-scope="{ hover }" @click.stop="play(video)" transparent flat hover>
+															<v-img :src="`https://i.ytimg.com/vi/${video.video_id}/mqdefault.jpg`" cover>
+																<v-container fluid fill-height :style=" hover ? 'background-color: rgba(0,0,0,0.7)' : ''">
+																	<v-layout justify-start fill-height>
+																		<p class="title">{{ video.name }}</p>
+																		<v-icon :color="hover ? 'red' : 'white'" size="70px" class="absolute_position" dark>play_arrow</v-icon>
+																	</v-layout>
+																</v-container>
+															</v-img>
+														</v-card>
+													</v-hover>
+												</swiper-slide>
+												<div class="swiper-button-prev" slot="button-prev"></div>
+												<div class="swiper-button-next" slot="button-next"></div>
+												<div class="swiper-scrollbar" slot="scrollbar"></div>
+												<div class="swiper-pagination" slot="pagination"></div>
+											</swiper>
+										</v-flex>
+									</v-layout>
+								</v-flex>
+								<v-flex xs12 v-if="game.artworks">
+									<v-layout row wrap class="py-2">
+										<v-flex xs12>
+											<v-layout justify-space-between>
+												<p class="mb-0 title">Artworks</p>
+												<v-btn v-if="toSee.cloudinary_id" fab small color="#ef001c" @click.stop="toSee = {}" class="my-0">
+													<v-icon>close</v-icon>
+												</v-btn>
+											</v-layout>
+										</v-flex>
+										<v-flex xs12 v-if="toSee.cloudinary_id">
+											<v-img :src="toSee.url" cover></v-img>
+										</v-flex>
+										<v-flex xs12>
+											<swiper :options="swiperOptionImage">
+												<swiper-slide v-for="(artwork, index) in game.artworks" :key="index" style="background-color: rgba(0,0,0,0)">
+													<v-hover>
+														<v-card slot-scope="{ hover }" @click.stop="toSee = artwork" transparent flat hover>
+															<v-img :src="artwork.url" cover></v-img>
+														</v-card>
+													</v-hover>
+												</swiper-slide>
+												<div class="swiper-button-prev" slot="button-prev"></div>
+												<div class="swiper-button-next" slot="button-next"></div>
+												<div class="swiper-scrollbar" slot="scrollbar"></div>
+												<div class="swiper-pagination" slot="pagination"></div>
+											</swiper>
+										</v-flex>
+									</v-layout>
+								</v-flex>
+								<v-flex xs12 v-if="game.screenshots">
+									<v-layout row wrap class="py-2">
+										<v-flex xs12>
+											<v-layout justify-space-between>
+												<p class="mb-0 title">Screenshots</p>
+												<v-btn v-if="toSeeScreenshot.cloudinary_id" fab small color="#ef001c" @click.stop="toSeeScreenshot = {}" class="my-0">
+													<v-icon>close</v-icon>
+												</v-btn>
+											</v-layout>
+										</v-flex>
+										<v-flex xs12 v-if="toSeeScreenshot.cloudinary_id">
+											<v-img :src="toSeeScreenshot.url" cover></v-img>
+										</v-flex>
+										<v-flex xs12>
+											<swiper :options="swiperOptionImage">
+												<swiper-slide v-for="(screenshot, index) in game.screenshots" :key="index" style="background-color: rgba(0,0,0,0)">
+													<v-hover>
+														<v-card slot-scope="{ hover }" @click.stop="toSeeScreenshot = screenshot" transparent flat hover>
+															<v-img :src="screenshot.url" cover></v-img>
+														</v-card>
+													</v-hover>
+												</swiper-slide>
+												<div class="swiper-button-prev" slot="button-prev"></div>
+												<div class="swiper-button-next" slot="button-next"></div>
+												<div class="swiper-scrollbar" slot="scrollbar"></div>
+												<div class="swiper-pagination" slot="pagination"></div>
+											</swiper>
+										</v-flex>
+									</v-layout>
+								</v-flex>
+							</v-layout>
+						</v-flex>
+					</v-layout>
+				</v-container>
+			</v-img>
+		</v-card>
+	</v-dialog>
+</template>
+
+<script>
+	Vue.component('in-game-modal', {
+		template: '#in-game-modal',
+		props: ['game'],
+		data () {
+			return {
+				dialog: true,
+				showMore: false,
+				toPlay: {},
+				toSee: {},
+				toSeeScreenshot: {},
+				swiperOption: {
+          slidesPerView: 3,
+          spaceBetween: 10,
+          pagination: {
+            el: '.swiper-pagination',
+            clickable: true
+					},
+					navigation: {
+            nextEl: '.swiper-button-next',
+            prevEl: '.swiper-button-prev'
+          },
+          breakpoints: {
+            768: {
+              slidesPerView: 2,
+              spaceBetween: 10
+            },
+            640: {
+              slidesPerView: 1,
+              spaceBetween: 10
+            }
+          }
+				},
+				swiperOptionImage: {
+          slidesPerView: 4,
+          spaceBetween: 10,
+          pagination: {
+            el: '.swiper-pagination',
+            clickable: true
+					},
+					navigation: {
+            nextEl: '.swiper-button-next',
+            prevEl: '.swiper-button-prev'
+          },
+          breakpoints: {
+            768: {
+              slidesPerView: 3,
+              spaceBetween: 10
+            },
+            640: {
+              slidesPerView: 2,
+              spaceBetween: 10
+            }
+          }
+        }
+			}
+		},
+		methods: {
+			closeModal (val) {
+				this.dialog = val
+				this.$emit('close-modal', val)
+			},
+
+			play(video) {
+				this.toPlay = {}
+				setTimeout(() => {
+					this.toPlay = video
+				}, 50)
+			}
+		}
+	})
+</script>

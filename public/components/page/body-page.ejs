@@ -1,0 +1,387 @@
+<template id="in-body-page">
+	<div class="row">
+		<div class="col-lg-4 col-xl-3 col-xs-12 in-subnav-navbar in-specialborder">
+			<div class="row d-flex justify-content-center">
+				<div class="col-12">
+					<in-avatar />
+				</div>
+
+				<div class="col-12 text-center">
+					<div class="py-3">
+						<div v-if="page.ref && editingType !== 'title'">
+							<in-title />
+						</div>
+						<div v-if="editingType === 'title'">
+							<in-editor-type-title />
+						</div>
+						<div v-if="page.categories && editingType !== 'categories'">
+							<in-categories />
+						</div>
+						<div v-if="editingType === 'categories'">
+							<in-editor-type-categories />
+						</div>
+					</div>
+					<in-follow-button />
+				</div>
+
+				<div v-if="page.id" class="mb-3">
+					<div class="col-12">
+						<div class="row text-center">
+							<div class="col-12">
+								Compartilhar
+							</div>
+							<div class="col-12 d-flex justify-content-center">
+								<div class="sharethis-inline-share-buttons"></div>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<div class="col-12 p-0">
+					<div v-for="(item, index) of sideOrder" :key="index">
+						<div v-if="item === 'wiki'">
+							<div class="col-12 text-center text-lg-left" v-if="page.wiki && editingType !== 'wiki'">
+								<in-template-wiki-fullinfo v-if="page.wiki.fullinfo" />
+							</div>
+						</div>
+
+						<div class="col-12 hidden-sm-and-down" v-if="item === 'facebook'">
+							<div v-if="page.facebook">
+								<div v-if="page.facebook.url && editingType !== 'facebook'">
+									<in-template-facebook />
+								</div>
+							</div>
+						</div>
+
+						<div class="col-12 hidden-sm-and-down" v-if="item === 'spotify'">
+							<div v-if="page.spotify && editingType !== 'spotify'">
+								<in-template-spotify v-if="page.spotify.url" />
+							</div>
+						</div>
+
+						<div class="col-12 hidden-sm-and-down" v-if="item === 'twitter'">
+							<div v-if="page.twitter">
+								<in-template-twitter v-if="page.twitter.embbed" />
+							</div>
+						</div>
+
+						<div class="col-12 hidden-sm-and-down" v-if="item === 'featuredPages'">
+							<div v-if="page.featuredPages && editingType !== 'featuredPages'">
+								<in-template-featured-pages v-if="page.featuredPages.length" />
+							</div>
+							<div v-if="editingType === 'featuredPages'">
+								<in-editor-type-featured-pages />
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<section
+			class="col-lg-8 col-xl-9 col-xs-12 in-subnav-contents in-specialborder" id="contents"
+			style="z-index: 1; border-left: none; overflow-x: hidden;"
+		>
+			<v-tabs 
+				v-if="scrollTop <= bp && $vuetify.breakpoint.mdAndUp"
+				v-model="active" dark color="#232323"
+				slider-color="#ef001c" show-arrows @change="checkTab"
+				v-if="$vuetify.breakpoint.mdAndUp" class="animated fadeIn faster"
+			>
+				<v-tab href="#in-tab-content" v-if="checkContent(page)" ripple>
+					<v-icon class="mr-2" dark small>view_module</v-icon> CONTEÚDO
+				</v-tab>
+
+				<v-tab href="#in-tab-instagram" v-if="checkInstagram(page.instagram) && editingType !== 'basic-infos'">
+					<v-icon class="mr-2" dark small>photo_camera</v-icon> Instagram
+				</v-tab>
+
+				<v-tab href="#in-tab-books" v-if="checkLists(page.books) && editingType !== 'books'">
+					<v-icon class="mr-2" dark small>import_contacts</v-icon> Livros
+				</v-tab>
+
+				<v-tab href="#in-tab-channels" v-if="checkLists(page.channels) && editingType !== 'channels'">
+					<v-icon class="mr-2" dark small>account_circle</v-icon> Relacionados
+				</v-tab>
+
+				<v-tab href="#in-tab-movies" v-if="checkLists(page.movies) && editingType !== 'movies'">
+					<v-icon class="mr-2" dark small>local_movies</v-icon> Filmes
+				</v-tab>
+
+				<v-tab href="#in-tab-games" v-if="checkLists(page.games) && editingType !== 'games'">
+					<v-icon class="mr-2" dark small>videogame_asset</v-icon> Jogos
+				</v-tab>
+
+				<v-tab href="#in-tab-lives" v-if="page.lives && editingType !== 'lives'">
+					<v-icon class="mr-2" dark small>live_tv</v-icon> Lives
+				</v-tab>
+
+				<v-tab href="#in-tab-series" v-if="page.series && editingType !== 'series'">
+					<v-icon class="mr-2" dark small>tv</v-icon> Series
+				</v-tab>
+				
+				<v-tab href="#in-tab-videos" v-if="checkLists(page.videos) && editingType !== 'videos'">
+					<v-icon class="mr-2" dark small>ondemand_video</v-icon> Videos
+				</v-tab>
+				
+				<v-tab href="#in-tab-playlists" v-if="checkLists(page.playlists) && editingType !== 'playlists'">
+					<v-icon class="mr-2" dark small>playlist_play</v-icon> Playlists
+				</v-tab>
+
+				<v-tab href="#in-tab-feeds" v-if="page.feeds || editingType === 'feeds'" id="feeds" ripple>
+					<v-icon class="mr-2" dark small>list_alt</v-icon> Noticias
+				</v-tab>
+
+				<v-tab href="#in-tab-community">
+					<v-icon class="mr-2" dark small>forum</v-icon> COMUNIDADE
+				</v-tab>
+			</v-tabs>
+
+			<v-tabs-items v-model="active" dark touchless class="px-2">
+				<v-tab-item value="in-tab-content" v-if="checkContent(page)">
+					<div v-if="active === 'in-tab-content'">
+						<in-main-drag :mainorder="mainOrder"/>
+					</div>
+				</v-tab-item>
+				<v-tab-item value="in-tab-instagram" v-if="checkInstagram(page.instagram) && editingType !== 'basic-infos'">
+					<div v-if="active === 'in-tab-instagram'">
+						<in-template-instagram-tab />
+					</div>
+				</v-tab-item>
+				<v-tab-item value="in-tab-books" v-if="checkLists(page.books) && editingType !== 'books'">
+					<div v-if="active === 'in-tab-books'">
+						<in-template-books-tab />
+					</div>
+				</v-tab-item>
+				<v-tab-item value="in-tab-channels" v-if="checkLists(page.channels) && editingType !== 'channels'">
+					<div v-if="active === 'in-tab-channels'">
+						<in-template-channels-tab />
+					</div>
+				</v-tab-item>
+				<v-tab-item value="in-tab-movies" v-if="checkLists(page.movies) && editingType !== 'movies'">
+					<div v-if="active === 'in-tab-movies'">
+						<in-template-movies-tab />
+					</div>
+				</v-tab-item>
+				<v-tab-item value="in-tab-games" v-if="checkLists(page.games) && editingType !== 'games'">
+					<div v-if="active === 'in-tab-games'">
+						<in-template-games-tab />
+					</div>
+				</v-tab-item>
+				<v-tab-item value="in-tab-lives" v-if="page.lives && editingType !== 'lives'">
+					<div v-if="active === 'in-tab-lives'">
+						<in-template-lives-tab />
+					</div>
+				</v-tab-item>
+				<v-tab-item value="in-tab-series" v-if="checkLists(page.series) && editingType !== 'series'">
+					<div v-if="active === 'in-tab-series'">
+						<in-template-series />
+					</div>
+				</v-tab-item>
+				<v-tab-item value="in-tab-videos" v-if="checkLists(page.videos) && editingType !== 'videos'">
+					<div v-if="active === 'in-tab-videos'">
+						<in-template-videos-tab />
+					</div>
+				</v-tab-item>
+				<v-tab-item value="in-tab-playlists" v-if="checkLists(page.playlists) && editingType !== 'playlists'">
+					<div v-if="active === 'in-tab-playlists'">
+						<in-template-playlist-tab />
+					</div>
+				</v-tab-item>
+				<v-tab-item value="in-tab-feeds" v-if="page.feeds !== undefined || editingType === 'feeds'">
+					<div v-if="active === 'in-tab-feeds'">
+						<div v-if="editingType === 'feeds'">
+							<in-editor-type-feeds @change-tab="active = 'in-tab-feeds'" />
+						</div>
+						<div v-if="editingType !== 'feeds' && page.feeds">
+							<in-template-feeds />
+						</div>
+					</div>
+				</v-tab-item>
+				<v-tab-item value="in-tab-community"></v-tab-item>
+			</v-tabs-items>
+		</section>
+	</div>
+</template>
+
+<script>
+	Vue.component('in-body-page', {
+		template: '#in-body-page',
+		computed: {
+			...mapGetters('app', [
+				'tab',
+				'scrollTop'
+			]),
+			...mapGetters('page', [
+				'page',
+				'editingType'
+			]),
+			bp () {
+				const { breakpoint } = this.$vuetify
+				if (breakpoint.smAndDown) {
+					return 100
+				} else if (breakpoint.width <= 1500) {
+					return breakpoint.width / 3
+				} else {
+					return 500
+				}				
+			}
+		},
+		watch: {
+			tab (val) {
+				this.active = val
+			}
+		},
+		data() {
+			const tab = parseInt(new URL(location.href).searchParams.get('t'))
+			const tabs = ['in-tab-content', 'in-tab-instagram', 'in-tab-books', 'in-tab-channels', 'in-tab-movies', 'in-tab-games', 'in-tab-lives', 'in-tab-series', 'in-tab-videos', 'in-tab-playlists', 'in-tab-feeds']
+			const selectedTab = tabs[tab]
+			return {
+				active: selectedTab ? selectedTab : 'in-tab-content',
+				list: [],
+				sideOrder: [],
+				mainOrder: [],
+				content: true,
+				timer: 0
+			}
+		},
+		mounted() {
+			const vue = this
+			window.onscroll = (e) => {
+				clearTimeout(vue.timer)
+				vue.timer = setTimeout(() => {
+					vue.setScrollTop(e.target.documentElement.scrollTop)
+				}, 10)
+			}
+			setTimeout(() => {
+				const order = <%- JSON.stringify(order) %>
+				if (!order.void) {
+					vue.sideOrder = order.sideOrder
+					vue.mainOrder = order.mainOrder
+				} else {
+					vue.list = vue.page.order
+					vue.mainOrder = vue.page.order
+					vue.sideOrder = vue.page.order
+				}
+			}, 10)
+		},
+		methods: {
+			...mapActions('app', [
+				'goTo',
+				'setTab',
+				'setScrollTop'
+			]),
+			...mapActions('page', [
+				'setPage',
+				'setButtonState',
+				'setMovingBox'
+			]),
+
+
+			checkInstagram (instagram) {
+				if (instagram) if (instagram.url) return true
+				return false
+			},
+
+			checkTab (tab) {
+				if (tab === 'in-tab-community' && !this.page.local) {
+					this.goTo(`/page/${this.page.url}/community?p=1`)
+				} else {
+					this.setTab(tab)
+				}
+			},
+
+			checkContent (page) {
+				return page.books !== undefined ||
+				page.videos !== undefined ||
+				page.playlists !== undefined ||
+				page.wiki !== undefined ||
+				page.lives !== undefined ||
+				page.movies !== undefined ||
+				page.series !== undefined ||
+				page.games !== undefined ||
+				page.featuredVideo !== undefined ||
+				page.channels !== undefined ||
+				page.instagram !== undefined
+			},
+
+			checkLists (list) {
+				if (list) if (list.length) return true
+				return false
+			},
+
+			hasDragChange(event) {
+				const {
+					page,
+					list
+				} = this
+				if (list.filter((item, index) => item === page.order[index]).length !== list.length) {
+					page.changes.push({
+						type: 'move'
+					})
+					page.order = list
+					this.setPage(page)
+					this.setButtonState(false)
+					this.setButtonState(true)
+				}
+				this.setMovingBox(false)
+			}
+		}
+	})
+</script>
+
+<style>
+	.card {
+		border: none;
+	}
+
+	#st-1 {
+		z-index: 1 !important;
+	}
+
+	.in-subnav {
+		background-color: #121212 !important;
+	}
+
+	.move {
+		cursor: move !important;
+		cursor: grab !important;
+		cursor: -moz-grab !important;
+		cursor: -webkit-grab !important;
+	}
+
+	.move:active {
+		cursor: grabbing !important;
+		cursor: -moz-grabbing !important;
+		cursor: -webkit-grabbing !important;
+	}
+
+	.in-editor-section,
+	.swiper-container.swiper-container-horizontal {
+		margin-top: 0;
+	}
+
+	.swiper-container {
+		margin-bottom: 0;
+	}
+
+	.h1,
+	.h2,
+	.h3,
+	.h4,
+	.h5,
+	.h6,
+	h1,
+	h2,
+	h3,
+	h4,
+	h5,
+	h6 {
+		margin-bottom: 5px;
+	}
+
+	.v-tabs__item:hover {
+		color: white !important;
+		text-decoration: none !important;
+	}
+</style>

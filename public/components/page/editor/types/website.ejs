@@ -1,0 +1,155 @@
+<template id="in-editor-type-website">
+  <div id="website">
+    <div
+      v-if="website.url"
+      @click.stop="openWebsite"
+    >
+      <div class="row">
+        <div class="offset-1 col-10">
+          <div class="in-website-button row">
+            <img
+              class="col-4 in-website-button-image animated fadeIn"
+              v-if="website.icon && !loading"
+              :src="website.icon"
+              :title="website.title"
+              @error="setDefaultImage"
+              width="45"
+              height="45"
+            >
+            <div
+              v-if="loading"
+              class="in-website-button-loading"
+              v-html="svgLoading"
+            ></div>
+            <div
+              class="col-8 align-middle"
+            >
+              <span class="in-website-button-title">
+                Website <br>
+                {{ website.title }}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="row mt-2">
+      <div class="col-10 offset-1">
+        <div class="row">
+          <h5 class="col-12"><%= __('Cole o link do site aqui') %></h5>
+        </div>
+        <div class="row">
+          <input
+            class="col-10" type="text"
+            v-model="website.url" style="width: 100%;"
+            placeholder="Ex: https://website.com.br"
+            @keyup="getIcon" />
+            <button
+              @click.stop="getIcon"
+              class="btn btn-info btn-sm ml-1"
+            >ok</button>
+        </div>
+      </div>
+    </div>
+    <div class="btn-group-sm">
+      <v-tooltip :open-delay="50" :close-delay="50" left>
+        <v-btn slot="activator" dark small fab flat fixed @click.stop="save(website)" class="btn-second btn btn-info btn-fab animated fadeInUp faster" v-if="buttonState">
+          <v-icon>save</v-icon>
+        </v-btn>
+        <span>Salvar Website</span>
+      </v-tooltip>
+    </div>
+  </div>
+</template>
+
+<script>
+  Vue.component("in-editor-type-website", {
+    template: "#in-editor-type-website",
+    computed: {
+      ...mapGetters('page', [
+        'page',
+        'buttonState',
+        'editingType'
+      ]),
+      ...mapGetters('app', [
+        'windowWidth'
+      ])
+    },
+    data () {
+      return {
+        title: 'Website',
+        website: '',
+        loading: false,
+        svgLoading: `
+        <svg width="45px"  height="45px"  xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid" class="lds-magnify" style="background: none;"><g transform="translate(50,50)"><g ng-attr-transform="scale({{config.scale}})" transform="scale(0.8)"><g transform="translate(-50,-50)"><g transform="translate(18.8445 -17.689)"><animateTransform attributeName="transform" type="translate" calcMode="linear" values="-20 -20;20 -20;0 20;-20 -20" keyTimes="0;0.33;0.66;1" dur="1s" begin="0s" repeatCount="indefinite"></animateTransform><path ng-attr-fill="{{config.glass}}" d="M44.19,26.158c-4.817,0-9.345,1.876-12.751,5.282c-3.406,3.406-5.282,7.934-5.282,12.751 c0,4.817,1.876,9.345,5.282,12.751c3.406,3.406,7.934,5.282,12.751,5.282s9.345-1.876,12.751-5.282 c3.406-3.406,5.282-7.934,5.282-12.751c0-4.817-1.876-9.345-5.282-12.751C53.536,28.033,49.007,26.158,44.19,26.158z" fill="#f47e60"></path><path ng-attr-fill="{{config.frame}}" d="M78.712,72.492L67.593,61.373l-3.475-3.475c1.621-2.352,2.779-4.926,3.475-7.596c1.044-4.008,1.044-8.23,0-12.238 c-1.048-4.022-3.146-7.827-6.297-10.979C56.572,22.362,50.381,20,44.19,20C38,20,31.809,22.362,27.085,27.085 c-9.447,9.447-9.447,24.763,0,34.21C31.809,66.019,38,68.381,44.19,68.381c4.798,0,9.593-1.425,13.708-4.262l9.695,9.695 l4.899,4.899C73.351,79.571,74.476,80,75.602,80s2.251-0.429,3.11-1.288C80.429,76.994,80.429,74.209,78.712,72.492z M56.942,56.942 c-3.406,3.406-7.934,5.282-12.751,5.282s-9.345-1.876-12.751-5.282c-3.406-3.406-5.282-7.934-5.282-12.751 c0-4.817,1.876-9.345,5.282-12.751c3.406-3.406,7.934-5.282,12.751-5.282c4.817,0,9.345,1.876,12.751,5.282 c3.406,3.406,5.282,7.934,5.282,  12.751C62.223,49.007,60.347,53.536,56.942,56.942z" fill="#e15b64"></path></g></g></g></g></svg>
+        `
+      }
+    },
+    mounted () {
+      this.website = this.page.website ? this.page.website : { title: this.page.ref, url: '', icon: '' }
+    },
+    methods: {
+      ...mapActions('page', [
+        'setPage',
+        'setAdding',
+        'setSnackbar',
+        'setEditingType'
+      ]),
+      ...mapActions('app', [
+        'showDialog'
+      ]),
+
+      openWebsite () {
+        window.open(this.website.url, '_blank')
+      },
+
+      setDefaultImage (event) {
+        this.website.icon = ''
+      },
+
+      getIcon () {
+        if (this.website.url.includes('http') ||
+            this.website.url.includes('www')) {
+          this.loading = true
+          this.$http.post('/api/website-icon', { url: this.website.url })
+            .then(res => {
+              this.website.icon = res.data.icon
+              this.loading = false
+            })
+        }
+      },
+
+      save (website) {
+        const { page } = this.page
+        page.website = website
+        page.changes.push({
+          type: this.editingType
+        })
+        this.setPage(page)
+        this.setAdding(false)
+        this.setEditingType('')
+        this.showDialog({
+          message: `Edições de ${this.title} gravadas para envio`,
+          color: 'success',
+          icon: 'check-circle'
+        })
+      }
+    }
+  })
+</script>
+
+<style>
+  .in-website-button-image {
+    padding: 0;
+    max-width: 45px;
+    max-height: 45px;
+  }
+  .in-website-button {
+    cursor: pointer;
+    padding: 10px;
+  }
+  .in-website-button-loading {
+    max-width: 45px;
+    max-height: 45px;
+  }
+</style>

@@ -1,0 +1,63 @@
+<template id="in-snackbar">
+  <div>
+    <div style="position: absolute; z-index: 9999">
+      <v-snackbar
+        v-model="sb.show" :timeout="sb.timeout ? sb.timeout : 3000"
+        :color="sb.color" vertical
+        top @input="closeSnackbar"
+      >
+        <v-layout row>
+          <v-icon>{{ sb.icon }}</v-icon>
+          <span class="ml-2">{{ sb.message }}</span>
+        </v-layout>
+        <v-layout>
+          <v-btn v-if="snackbar.length > 1" @click="closeAll" icon>
+            fechar todos [{{ snackbar.length }}]
+          </v-btn>
+          <v-spacer></v-spacer>
+          <v-btn @click="closeSnackbar" icon>
+            <v-icon>close</v-icon>
+          </v-btn>
+        </v-layout>
+      </v-snackbar>
+    </div>
+  </div>
+</template>
+
+<script>
+  Vue.component('in-snackbar', {
+    template: '#in-snackbar',
+    computed: {
+      ...mapGetters('app', ['snackbar'])
+    },
+    watch: {
+      snackbar (val) {
+        const vue = this
+        if (val[0]) {
+          if (val[0].show) {
+            setTimeout(() => {
+              vue.sb = val[0]
+            }, 500)
+          }
+        }
+      }
+    },
+    data () {
+      return {
+        sb: { show: false }
+      }
+    },
+    methods: {
+      ...mapActions('app', ['showDialog']),
+      closeSnackbar () {
+        this.sb = { show: false }
+        this.showDialog({ remove: true })
+      },
+
+      closeAll () {
+        this.sb = { show: false }
+        this.showDialog({ remove: 'all' })
+      }
+    }
+  })
+</script>

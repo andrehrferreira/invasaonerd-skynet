@@ -1,0 +1,102 @@
+<template id="in-user-notifications">
+	<v-layout row>
+		<v-card :width="$vuetify.breakpoint.mdAndUp ? '480px' : '280px'">
+			<v-card-title class="py-2">
+				<p class="mb-0 title">Notificações</p>
+			</v-card-title>
+			<v-divider></v-divider>
+			<v-card-text class="px-0 py-0" v-if="user.notifications.length" :style="`max-height: ${bp.mdAndUp ? '600px' : '450px'}; overflow-y: auto;`">
+				<v-layout
+					row wrap class="pa-1"
+					v-for="(notification, index) of computedNotifications"
+					:key="index" @click.stop="redirectToHref(notification)"
+					style="cursor: pointer;"
+				>
+					<v-hover>
+						<v-flex slot-scope="{ hover }" xs12 :class="'pa-1 ' + (!notification.clicked ? (hover ? 'grey darken-1' : 'grey darken-2') : (hover ? ' grey darken-1 ' : ''))">
+							<v-layout row justify-start>
+								<v-flex v-if="notification.image" class="pa-2">
+									<v-avatar size="36">
+										<v-img :src="notification.image" cover></v-img>
+									</v-avatar>
+								</v-flex>
+								<v-flex>
+									<v-layout row wrap>
+										<v-flex xs12>
+											<p class="mb-1">{{ notification.message }}</p>
+										</v-flex>
+										<v-flex xs12>
+											<p class="mb-0 caption font-italic grey--text">{{ new Date(notification.timestamp).toLocaleString() }}</p>
+										</v-flex>
+									</v-layout>
+								</v-flex>
+							</v-layout>
+						</v-flex>
+					</v-hover>
+				</v-layout>
+			</v-card-text>
+			<v-card-text v-else>
+				Não há notificações para exibir
+			</v-card-text>
+		</v-card>
+	</v-layout>
+</template>
+
+<script>
+	Vue.component('in-user-notifications', {
+		template: '#in-user-notifications',
+		computed: {
+			...mapGetters('app', [
+				'user',
+				'userPages'
+			]),
+
+			computedNotifications () {
+				return this.user.notifications.sort((a,b) => {
+					if (a.timestamp > b.timestamp) return -1
+					return 1
+				})
+			},
+
+			bp () {
+				return this.$vuetify.breakpoint
+			}
+		},
+		mounted () {
+			const vue = this
+			const user = JSON.parse(JSON.stringify(vue.user))
+			if (user.notifications.some(n => n.new)) {
+				user.notifications = user.notifications.map(notification => {
+					notification.new = false
+					return notification
+				})
+				vue.setUserPages(vue.userPages.map(page => {
+					page.notifications = 0
+					return page
+				}))
+				vue.$http.post('/update-user-notifications', { user }).then(response => {
+					const data = response
+					if (!data.error) {
+						vue.setUser(user)
+					}
+				})
+			}
+		},
+		methods: {
+			...mapActions('app', ['goTo', 'setUser', 'setUserPages']),
+
+			redirectToHref (notification) {
+				const vue = this
+				if (!notification.clicked) {
+					const user = JSON.parse(JSON.stringify(vue.user))
+					user.notifications = user.notifications.map(n => {
+						if (n.timestamp === notification.timestamp) n.clicked = true
+						return n
+					})
+					vue.$http.post('/update-user-notifications', { user })
+				}
+				vue.goTo(notification.href)
+			}
+		}
+	})
+</script>

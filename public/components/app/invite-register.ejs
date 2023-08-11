@@ -1,0 +1,223 @@
+<template id="in-invite-register">
+	<v-dialog v-model="dialog" persistent max-width="1000px">
+		<v-card>
+			<v-toolbar dark color="#212121">
+				<v-toolbar-title>Convidar</v-toolbar-title>
+				<p class="ml-2 mt-1 mb-0 caption font-italic">
+					(você tem {{ user.invites.filter(i => i.status).length }} convites restantes)
+				</p>
+				<v-spacer></v-spacer>
+				<v-btn :disabled="loading" dark icon @click.native="$emit('set-invite', false)">
+					<v-icon>close</v-icon>
+				</v-btn>
+			</v-toolbar>
+			<v-card-text class="pa-3 animated zoomIn faster" v-if="user.invites">
+				<v-layout row wrap justify-center v-if="!type && !seeInvites">
+					<v-flex xs11 sm8  md6 lg4 v-for="({ typeShare, title, color, icon }, index) in shares" :key="index" class="pr-2">
+						<v-btn
+							class="mt-0" :color="color" block
+							:disabled="user.invites.filter(i => i.status).length === 0"
+							@click.stop="prepareInvite(typeShare, user.invites.filter(i => i.status)[0])" target="_blank"
+						>
+							<span style="width: 30px; height: 30px;" class="mr-2" v-html="icons[typeShare]"></span>
+							{{ title }}
+						</v-btn>
+					</v-flex>
+				</v-layout>
+				<v-layout row wrap justify-center class="animated zoomIn faster" v-if="type !== ''">
+					<v-flex xs12>
+						<p class="text-truncate" style="-webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none;">{{ text }}</p>
+					</v-flex>
+					<v-flex xs12>
+						<v-layout row wrap justify-space-between>
+							<v-btn :loading="loading" class="mx-0 hidden-sm-and-up" color="success" @click.stop="sendInvite(type, text)">CONVIDAR VIA {{ type }}</v-btn>
+							<v-btn :disabled="loading" class="mx-0" @click.stop="type = ''" color="red">CANCELAR</v-btn>
+							<v-btn :loading="loading" class="mx-0 hidden-xs-only" color="success" @click.stop="sendInvite(type, text)">CONVIDAR VIA {{ type }}</v-btn>
+						</v-layout>
+					</v-flex>
+				</v-layout>
+				<v-layout v-if="seeInvites" row wrap class="animated zoomIn faster">
+					<v-flex xs12 v-for="({ token, status, invited }, index) in filterSort(user.invites)" :key="index">
+						<v-card dark :class="'mb-2 ' + (!invited ? 'grey darken-2' : '')">
+							<v-card-text class="pa-2">
+								<v-layout row wrap>
+								 <v-flex xs11>
+										<v-text-field readonly :value="'<%= settings.url %>/register/' + token" class="py-0 my-0" :id="'link-' + token"></v-text-field>
+								 </v-flex>
+								 <v-flex xs1>
+										<v-tooltip :open-delay="50" :close-delay="50" top>
+											<v-btn slot="activator" small icon @click.stop="copyLink('link-' + token)"><v-icon small>file_copy</v-icon></v-btn>
+											<span>Copiar Link</span>
+										</v-tooltip>
+								 </v-flex>
+								</v-layout>
+								<p v-if="invited" class="mb-0" v-if="invited">Usuário Cadastrado: {{ invited }}</p>
+								<p class="mb-0">Status: {{ invited ? 'CADASTRADO' : 'DISPONÍVEL' }}</p>
+							</v-card-text>
+						</v-card>
+					</v-flex>
+				</v-layout>
+			</v-card-text>
+			<v-card-actions class="pa-3 animated zoomIn faster">
+				<v-btn v-if="type === '' && filterSort(user.invites).length" flat @click.stop="seeInvites = !seeInvites">{{ seeInvites ? 'voltar' : 'convites enviados' }}</v-btn>
+				<v-spacer></v-spacer>
+			</v-card-actions>
+		</v-card>
+	</v-dialog>
+</template>
+
+<script>
+	Vue.component('in-invite-register', {
+		template: '#in-invite-register',
+		props: ['invite'],
+		computed: {
+			...mapGetters('app', [
+				'user',
+				'icons'
+			])
+		},
+		watch: {
+			invite (val) {
+				this.dialog = val
+				this.toggleSideBar(!val)
+			}
+		},
+		data () {
+			return {
+				dialog: false,
+				type: '',
+				text: '',
+				token: '',
+				loading: false,
+				seeInvites: false,
+				shares: [{
+					typeShare: 'email',
+					color: 'red',
+					title: 'E-mail'
+				}, {
+					typeShare: 'messenger',
+					color: '#2196f3',
+					title: 'Messenger'
+				}, {
+					typeShare: 'telegram',
+					color: '#7aa5da',
+					title: 'Telegram'
+				}, {
+					typeShare: 'facebook',
+					color: '#3b5998',
+					title: 'Facebook'
+				}, {
+					typeShare: 'whatsapp',
+					color: '#75b73b',
+					title: 'Whatsapp'
+				}, {
+					typeShare: 'twitter',
+					color: '#55acee',
+					title: 'Twitter'
+				}]
+			}
+		},
+		mounted() {
+			const vm = this
+			const { user } = vm
+			vm.$nextTick(() => {
+				if (user.admin || user.superadmin) {
+					if (!user.invites) {
+						user.invites = Array.from({ length: 20 }).map((invite, index) => {
+							return {
+								token: md5(user._id + '-' + (index + performance.now())),
+								user: user.user,
+								invited: '',
+								status: true
+							}
+						})
+						vm.$http.put('/user', { user }).then(res => {
+							vm.setUser(user)
+						})
+					}
+				}
+			})
+		},
+		methods: {
+			...mapActions('app', [
+				'toggleSideBar',
+				'showDialog',
+				'setUser'
+			]),
+
+			filterSort (list) {
+				return list.filter(i => !i.status).sort((a, b) => {
+					if (a.invited) return 1
+					return -1
+				})
+			},
+
+			copyLink (elem) {
+				const link = document.getElementById(elem)
+				document.execCommand('copy', false, link.select())
+				link.blur()
+			},
+			
+			sendInvite (type, text) {
+				text = encodeURI(text)
+				const vue = this
+				vue.loading = true
+				var user = JSON.parse(JSON.stringify(vue.user))
+				user.invites = user.invites.map(invite => {
+					if (invite.token === vue.token.token) {
+						invite.status = false
+					}
+					return invite
+				})
+				vue.$http.post('/invite', { invite: vue.token, invites: user.invites }).then(res => {
+					const { data } = res
+					if (!data.error) {
+						user.invites = data
+						vue.setUser(user)
+						if (type === 'whatsapp') {
+							window.open(`https://web.whatsapp.com/send?text=${text}`, '_blank')
+						} else if (type === 'facebook') {
+							window.open('https://www.facebook.com/sharer/sharer.php?u=' + text, '_blank')
+						} else if (type === 'twitter') {
+							window.open('https://twitter.com/home?status=' + text, '_blank')
+						} else if (type === 'messenger') {
+							window.open(`https://www.facebook.com/dialog/send?link=${text}&app_id=288306328656111&redirect_uri=${encodeURI(location.href)}`, '_blank')
+						} else if (type === 'email') {
+							window.open(`mailto:?&subject=Convite de cadastro no Invasão Nerd&body=${text}`)
+						} else if (type === 'telegram') {
+							window.open(`https://t.me/share/url?url=${text}`, '_blank')
+						}
+						vue.type = ''
+						vue.showDialog({
+							message: 'Convite gerado com sucesso, caso não tenha sido redirecionado, desative o bloqueador de popups do seu navegador',
+							color: 'green',
+							icon: 'info',
+							timeout: 6000
+						})
+					} else {
+						vue.showDialog({
+							message: 'Ocorreu um erro na comunicação com o servidor',
+							icon: 'warning',
+							color: 'red'
+						})
+					}
+					vue.loading = false
+				}).catch(err => {
+					vue.loading = false
+					console.log(err)
+					vue.showDialog({
+						message: 'Ocorreu um erro na comunicação com o servidor',
+						icon: 'warning',
+						color: 'red'
+					})
+				})
+			},
+
+			prepareInvite (type, code) {
+				this.token = code
+				this.text = `<%= settings.url %>/register/${code.token}`
+				this.type = type
+			}
+		}
+	})
+</script>

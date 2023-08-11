@@ -1,0 +1,134 @@
+<template id="register-form">
+  <div>
+    <div class="in-register-form animated fadeIn">
+      <h4>Cadastro</h4>
+      <form>
+        <v-text-field
+          autofocus color="blue" color="info"
+          dark v-model="register.name" type="text"
+          label="<%= __('Nome') %>"
+          required browser-autocomplete placeholder="<%= __('Nome Completo') %>"
+        ></v-text-field>
+
+        <v-text-field
+          color="blue" color="info"
+          dark v-model="register.user" type="text"
+          label="<%= __('Usuário') %>"
+          required browser-autocomplete placeholder="<%= __('Nome de Usuário') %>"
+        ></v-text-field>
+
+        <v-text-field
+          color="blue" color="info"
+          dark v-model="register.email" type="email"
+          label="<%= __('e-mail') %>"
+          required browser-autocomplete placeholder="<%= __('E-mail') %>"
+        ></v-text-field>
+
+        <v-text-field
+          color="blue" color="info"
+          dark v-model="register.pass" type="password" autocomplete
+          label="<%= __('Senha') %>"
+          required browser-autocomplete placeholder="<%= __('Senha') %>"
+        ></v-text-field>
+
+        <v-text-field
+          color="blue" color="info"
+          dark v-model="register.confirm" type="password" autocomplete
+          label="<%= __('Senha') %>"
+          required browser-autocomplete placeholder="<%= __('Confirme a senha') %>"
+        ></v-text-field>
+      </form>
+
+      <div class="in-login-input-container">
+        <v-btn dark block color="#28a745" @click.stop="postUser" tabindex="4"><%= __('Cadastrar') %></v-btn>
+        <v-btn dark block color="#ef001c" outline flat @click.stop="$emit('cancel')" tabindex="5"><%= __('Cancelar') %></v-btn>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+  Vue.component('register-form', {
+    template: '#register-form',
+    data () {
+      return {
+        register: {
+          name: '',
+          user: '',
+          email: '',
+          pass: '',
+          confirm: ''
+        }
+      }
+    },
+    methods: {
+      ...mapActions('app', [
+        'showDialog'
+      ]),
+
+      postLogin() {
+        this.$http.post('/login', this.login)
+          .then((res) => {
+            location.reload()
+          }, err => {
+            console.log(err)
+          })
+      },
+      
+      postUser() {
+        let user = this.register
+        if (user.pass === user.confirm) {
+          delete user.confirm
+          user['avatar'] = '/assets/img/useravatar.png'
+          this.$http.post('/register', user)
+            .then((res) => {
+              this.processRegister(res.body, user)
+            }, err => {
+              console.log(err)
+            })
+        } else {
+          this.showDialog({
+            message: 'As senhas não conferem',
+            color: 'orange',
+            icon: 'warning'
+          })
+        }
+      },
+
+      processRegister(verify, user) {
+        if (verify.error) this.showDialog({
+          message: verify.error,
+          color: 'red',
+          icon: 'warning'
+        })
+        else this.showDialog({
+          message: verify.success,
+          color: 'success',
+          icon: 'check-circle'
+        })
+        setTimeout(() => {
+          this.$emit('login', {
+            http: this.$http,
+            form: {
+              username: user.email,
+              password: user.pass
+            }
+          })
+        }, 1000)
+      }
+    }
+  })
+</script>
+
+<style>
+  .in-register-form {
+    padding: 15px;
+  }
+
+  .in-register-form-input input {
+    width: 85%;
+    margin-bottom: 8px;
+    border-radius: 3px;
+    padding: 5px;
+  }
+</style>

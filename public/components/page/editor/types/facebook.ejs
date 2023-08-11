@@ -1,0 +1,88 @@
+<template id="in-editor-type-facebook">
+  <div id="facebook">
+    <div v-if="facebook">
+      <div class="d-flex justify-content-center">
+        <iframe
+          :src="'https://www.facebook.com/plugins/page.php?href=' + encodeURI(page.facebook.url) + '&width=250&height=250&small_header=false&adapt_container_width=true&hide_cover=false&show_facepile=true&appId=556136401387797'"
+          width="250" height="250" style="border:none;overflow:hidden"
+          scrolling="no" frameborder="0"
+          allowTransparency="true"
+          allow="encrypted-media"
+        ></iframe>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-10 offset-1">
+        <div class="row">
+          <h5 class="col-12"><%= __('Cole o link da fanpage do facebook aqui') %></h5>
+        </div>
+        <div class="row">
+          <input
+            class="col-12" type="text"
+            v-model="facebook" style="width: 100%;"
+            placeholder="Ex: https://www.facebook.com/InvasaoNerd/" />
+        </div>
+      </div>
+    </div>
+    <div class="btn-group-sm">
+      <v-tooltip :open-delay="50" :close-delay="50" left>
+        <v-btn slot="activator" dark small fab flat fixed @click.stop="save(facebook)" class="btn-second btn btn-info btn-fab animated fadeInUp faster" v-if="buttonState">
+          <v-icon>save</v-icon>
+        </v-btn>
+        <span>Salvar Fanpage</span>
+      </v-tooltip>
+    </div>
+  </div>
+</template>
+
+<script>
+  Vue.component("in-editor-type-facebook", {
+    template: "#in-editor-type-facebook",
+    computed: {
+      ...mapGetters('page', [
+        'page',
+        'buttonState',
+        'editingType'
+      ]),
+      ...mapGetters('app', [
+        'windowWidth'
+      ])
+    },
+    data () {
+      return {
+        title: 'Fanpage',
+        facebook: ''
+      }
+    },
+    mounted () {
+      this.facebook = this.page.facebook ? this.page.facebook : ''
+    },
+    methods: {
+      ...mapActions('page', [
+        'setPage',
+        'setAdding',
+        'setSnackbar',
+        'setEditingType'
+      ]),
+      ...mapActions('app', [
+        'showDialog'
+      ]),
+
+      save (facebook) {
+        const { page } = this
+        page.facebook = facebook
+        page.changes.push({
+          type: this.editingType
+        })
+        this.setPage(page)
+        this.setAdding(false)
+        this.setEditingType('')
+        this.showDialog({
+          message: `Edições de ${this.title} gravadas para envio`,
+          color: 'success',
+          icon: 'check-circle'
+        })
+      }
+    }
+  })
+</script>
